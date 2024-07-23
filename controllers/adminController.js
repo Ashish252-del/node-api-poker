@@ -1,0 +1,3376 @@
+const userService = require("../services/userService");
+const adminService = require("../services/adminService");
+const pokerService = require("../services/pokerService");
+const responseHelper = require("../helpers/customResponse");
+const {
+  makeString,
+  generateUserToken,
+  comparePassword,
+  encryptPassword,
+  decryptData,
+  last7Days,
+  encryptData,
+  encodeRequest,
+  signRequest,
+  getDates,
+} = require("../utils");
+const { Op, fn, col } = require("sequelize");
+const { Sequelize } = require("sequelize");
+const { sequelize } = require("../models/index");
+const moment = require("moment");
+const config = require("../config/dbconfig");
+const { getRedisClient } = require("../helpers/redis");
+const { bankWithdraw } = require("../utils/payment");
+const { QueryTypes } = require("sequelize");
+const adminLogin = async (req, res) => {
+  let responseData = {};
+  let reqObj = req.body;
+  try {
+    console.log("hello from login");
+    let emailMobile = reqObj.email;
+    let mac_address = req.body.mac_address;
+    let os_version = req.body.os_version;
+    let app_version = req.body.app_version;
+    // emails = await encryptData(emailMobile);
+    // let admin_id = req.user;
+    // console.log("admin_id",req.user.admin_id);
+    let userData = await adminService.geAdminDetailsById({
+      email: emailMobile,
+      admin_status: "1",
+    });
+    // console.log("admin_id",admin_id);
+    console.log("userData",userData);
+    if (!userData) {
+      responseData.msg = " User doesn't exists";
+      return responseHelper.error(res, responseData, 201);
+    }
+    // let dbemail=await decryptData(userData.email)
+    // console.log("dbemail-->",dbemail);
+    // console.log("reqObj.email-->",reqObj.email);
+    // if(await decryptData(userData.email) != reqObj.email){
+    //   responseData.msg = " email doesn't exists";
+    //   return responseHelper.error(res, responseData, 201);
+
+    // }
+
+    let reqPassword = reqObj.password;
+    let userPassword = userData.password;
+    //compare req body password and user password,
+    let isPasswordMatch = await comparePassword(reqPassword, userPassword);
+    console.log("isPasswordMatch-->",isPasswordMatch);
+
+
+    if (!isPasswordMatch) {
+      responseData.msg = "Credential does not match";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let tokenData = {
+      id: userData.admin_id,
+      email: userData.email,
+    };
+    //generate jwt token with the token obj
+    let jwtToken = generateUserToken(tokenData);
+    let loginLogs = {
+      admin_id: userData.user_id,
+      mac_address: mac_address,
+      os_version: os_version,
+      app_version: app_version,
+      ip: "",
+    };
+
+    const adminId = userData.admin_id;
+    console.log("adminId", adminId);
+    const getRoles = `
+        SELECT
+            roles.roles
+        FROM
+            admins
+        INNER JOIN
+            user_roles ON user_roles.userId = admins.admin_id
+        INNER JOIN
+            roles ON roles.role_id = user_roles.roleId
+        WHERE
+            admins.admin_id = :adminId;
+    `;
+
+    allRoles = await sequelize.query(getRoles, {
+      replacements: { adminId }, 
+      type: QueryTypes.SELECT,
+    });
+    const formattedRoles = allRoles.map((roleObj) => {
+      return roleObj.roles;
+    });
+
+    if (!formattedRoles || formattedRoles.length === 0) {
+      responseData.msg = `No roles assigned !!!`;
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    const modulesIds = `
+    SELECT 
+        role_modules.moduleId
+    FROM 
+        admins
+        INNER JOIN user_roles ON user_roles.userId = admins.admin_id
+        INNER JOIN roles ON roles.role_id = user_roles.roleId
+        INNER JOIN role_modules ON user_roles.roleId = role_modules.roleId
+    WHERE 
+        admins.admin_id = ${adminId}
+    GROUP BY 
+        role_modules.moduleId;
+`;
+
+    modulesIdsData = await sequelize.query(modulesIds, {
+      type: QueryTypes.SELECT,
+    });
+
+    const formattedIds = modulesIdsData.map((roleObj) => {
+      return roleObj.moduleId;
+    });
+
+    const moduleIds = formattedIds;
+
+    let recursiveQuery = `
+WITH RECURSIVE ModuleHierarchy AS (
+    SELECT 
+        m.moduleId,
+        m.moduleName,
+        m.isSidebar,
+        m.apiMethod,
+        m.routes,
+        m.parentId,
+        m.icon
+    FROM 
+        modules m
+    WHERE
+        m.moduleId IN (${moduleIds.join(", ")})  -- Inject module IDs here
+    
+    UNION ALL
+    
+    SELECT 
+        m.moduleId,
+        m.moduleName,
+        m.isSidebar,
+        m.apiMethod,
+        m.routes,
+        m.parentId,
+        m.icon
+    FROM 
+        ModuleHierarchy mh
+    INNER JOIN modules m ON m.parentId = mh.moduleId  -- Fetch child modules where parentId matches moduleId
+)
+SELECT 
+    mh.moduleId,
+    mh.moduleName,
+    mh.isSidebar,
+    mh.apiMethod,
+    mh.routes,
+    mh.parentId,
+    mh.icon
+FROM 
+    ModuleHierarchy mh;
+`;
+
+    modulesIdsData = await sequelize.query(recursiveQuery, {
+      type: QueryTypes.SELECT,
+    });
+    const organizedPermissions = organizePermissions(modulesIdsData);
+    await adminService.createLoginLog(loginLogs);
+    responseData.msg = "You are login successfully";
+    responseData.data = {
+      id: userData.user_id,
+      full_name: userData.full_name,
+      email: userData.email,
+      mobile: userData.mobile,
+      role_id: userData.role_id,
+      role_assigned: formattedRoles ? formattedRoles : "",
+      token: jwtToken,
+      permissions: organizedPermissions,
+    };
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const organizePermissions = (permissions) => {
+  // Create a map to store permissions by moduleId
+  const permissionsMap = new Map();
+
+  // Initialize children array for all permissions
+  permissions.forEach((permission) => {
+    permission.children = [];
+    permissionsMap.set(permission.moduleId, permission);
+  });
+
+  // Iterate through permissions and add children to their respective parents
+  permissions.forEach((permission) => {
+    if (permission.parentId !== permission.moduleId) {
+      const parentPermission = permissionsMap.get(permission.parentId);
+      if (parentPermission) {
+        parentPermission.children.push(permission);
+      }
+    }
+  });
+
+  // Filter out parent permissions and return them as an array
+  const organizedPermissions = permissions.filter(
+    (permission) => permission.parentId === 0
+  );
+
+  return organizedPermissions;
+};
+
+const getProfile = async (req, res) => {
+  let responseData = {};
+  try {
+    let admin_id = req.user.admin_id;
+    let getList = await adminService.geAdminDetailsById({ admin_id: admin_id });
+    if (getList.length == 0) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let getModules = await adminService.getModules();
+    getModules = getModules.map(async (element, i) => {
+      let getAssignData = await adminService.getPermissionQuery({
+        role_id: getList.role_id,
+        permission_module_id: element.module_id,
+      });
+      element.dataValues.module_access = getAssignData
+        ? getAssignData.module_access
+        : "";
+      element.dataValues.add_access = getAssignData
+        ? getAssignData.add_access
+        : false;
+      element.dataValues.edit_access = getAssignData
+        ? getAssignData.edit_access
+        : false;
+      element.dataValues.view_access = getAssignData
+        ? getAssignData.view_access
+        : false;
+      element.dataValues.delete_access = getAssignData
+        ? getAssignData.delete_access
+        : false;
+      return element;
+    });
+    getModules = await Promise.all(getModules);
+    getList.dataValues.permissions = getModules ? getModules : "";
+    responseData.msg = "Admin Profile";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const adminActivity = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.id;
+    let getList = await adminService.getAdminUserActivityLogs({
+      admin_activity_log_id: user_id,
+    });
+    if (getList.length == 0) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Admin Activity Log Details";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addRole = async (req, res) => {
+  let responseData = {};
+  try {
+    const { title } = req.body;
+    let checkRole = await adminService.getRoleByQuery({
+      roles: title,
+    });
+    console.log("checkRole", checkRole);
+    if (checkRole) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      roles: title,
+      added_by: req.user.admin_id,
+    };
+    console.log("roleObj", roleObj);
+    await adminService.createRole(roleObj);
+    responseData.msg = "Role Added Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const roleList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getRoles = await adminService.getAllRoles({
+      role_status: { [Op.ne]: "2" },
+    });
+    if (getRoles.length == 0) {
+      responseData.msg = "Roles not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Roles List";
+    responseData.data = getRoles;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const activeRoleList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getRoles = await adminService.getAllRoles({ role_status: "1" });
+    if (getRoles.length == 0) {
+      responseData.msg = "Roles not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Roles List";
+    responseData.data = getRoles;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeRoleStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, role_status: status } = req.body;
+    let checkRole = await adminService.getRoleByQuery({ role_id: id });
+    if (!checkRole) {
+      responseData.msg = "Role not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      role_status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateRole(roleObj, { role_id: id });
+    responseData.msg = "Role Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const roleById = async (req, res) => {
+  let responseData = {};
+  try {
+    const userId = req.query.user_id;
+    let userData_admin = await adminService.geAdminDetailsById({ user_id: userId });
+    const allRolesQuery = `
+      SELECT role_id, roles, role_status FROM roles
+    `;
+    const allRoles = await sequelize.query(allRolesQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    let adminRoles = []; 
+
+    if (userData_admin) {
+      const user_id = userData_admin.admin_id;
+      // Step 2: Fetch roles associated with the admin
+      const adminRolesQuery = `
+        SELECT roles.role_id
+        FROM admins
+        INNER JOIN user_roles ON user_roles.userId = admins.admin_id
+        INNER JOIN roles ON roles.role_id = user_roles.roleId
+        WHERE admins.admin_id = :user_id
+      `;
+     
+      adminRoles = await sequelize.query(adminRolesQuery, {
+        replacements: { user_id },
+        type: QueryTypes.SELECT,
+      });
+      console.log("adminRoles-->", adminRoles);
+    }
+
+    // Step 3: Set isActive flag for each role
+    const rolesWithIsActive = allRoles.map((role) => ({
+      ...role,
+      isActive: adminRoles.some(
+        (adminRole) => adminRole.role_id === role.role_id
+      ),
+    }));
+
+    responseData.msg = "Roles List";
+    responseData.data = rolesWithIsActive;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateRoleById = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, title } = req.body;
+    let checkRole = await adminService.getRoleByQuery({
+      roles: title,
+      role_status: { [Op.ne]: "2" },
+    });
+    if (checkRole) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      roles: title,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateRole(roleObj, { role_id: id });
+    responseData.msg = "Role Updated Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addGameCategory = async (req, res) => {
+  let responseData = {};
+  try {
+    const { title } = req.body;
+    let checkRole = await adminService.getGameCategoryByQuery({
+      name: title,
+      game_category_status: { [Op.ne]: "2" },
+    });
+    if (checkRole) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      name: title,
+      type: title.toLowerCase(),
+      added_by: req.user.admin_id,
+    };
+    await adminService.addGameCategory(roleObj);
+    responseData.msg = "Game Type Added Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameCategoryList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getRoles = await adminService.getAllGameCategory();
+    if (getRoles.length == 0) {
+      responseData.msg = "Game Type found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Game Type List";
+    responseData.data = getRoles;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameCategoryById = async (req, res) => {
+  let responseData = {};
+  try {
+    let getCatgeory = await adminService.getGameCategoryByQuery({
+      game_category_id: req.params.id,
+    });
+    if (!getCatgeory) {
+      responseData.msg = "Type not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Type List";
+    responseData.data = getCatgeory;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updategameCategoryById = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, new_title } = req.body;
+    let checkCategory = await adminService.getGameCategoryByQuery({
+      name: new_title,
+      game_category_status: { [Op.ne]: "2" },
+    });
+    if (checkCategory) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let catObj = {
+      name: new_title,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateGameCategory(catObj, { game_category_id: id });
+    responseData.msg = "Game type Updated Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeGameCategoryStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getGameCategoryByQuery({
+      game_category_id: id,
+    });
+    if (!checkRole) {
+      responseData.msg = "Game type not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      game_category_status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateGameCategory(roleObj, { game_category_id: id });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getActiveGameCategoryList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getResult = await adminService.getAllGameCategory({
+      game_category_status: "1",
+    });
+    if (getResult.length == 0) {
+      responseData.msg = "Game Type Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Game List";
+    responseData.data = getResult;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeGameTypeStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getGameTypeByQuery({ game_type_id: id });
+    if (!checkRole) {
+      responseData.msg = "Game Type not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      
+      game_type_status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateGameType(roleObj, { game_type_id: id });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeGameStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getGameByQuery({ game_id: id });
+    if (!checkRole) {
+      responseData.msg = "Game not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    await (await getRedisClient()).del("ROOM", "" + id);
+    let roleObj = {
+      game_status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateGameById(roleObj, { game_id: id });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addGameType = async (req, res) => {
+  let responseData = {};
+  try {
+    const { game_category_id, title, description } = req.body;
+    let checkRole = await adminService.getGameTypeByQuery({
+      name: title,
+      game_category_id: game_category_id,
+      game_type_status: { [Op.ne]: "2" },
+    });
+    if (checkRole) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    // let gameFieldJsondata = req.body.game_fields_json_data
+    // let gameField = [];
+    // if (gameFieldJsondata.length > 0) {
+    //     for (var i = 0; i < gameFieldJsondata.length; i++) {
+    //         let slug = gameFieldJsondata[i].field_name.toLowerCase();
+    //         let splitSlug = slug.split(" ");
+    //         let joinSlug = splitSlug.join("_");
+    //         let datas = {
+    //             field_name: gameFieldJsondata[i].field_name,
+    //             field_type: gameFieldJsondata[i].field_type,
+    //             field_key: joinSlug,
+    //             is_required: gameFieldJsondata[i].is_required,
+    //         }
+    //         gameField.push(datas);
+    //     }
+    // }
+    let roleObj = {
+      name: title,
+      game_category_id: game_category_id,
+      added_by: req.user.admin_id,
+      description: description,
+    };
+    let save = await adminService.addGameType(roleObj);
+    responseData.msg = "Game Category Added Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameTypeList = async (req, res) => {
+  let responseData = {};
+  try {
+    let categoryId = req.query.category_id;
+    let getTypes;
+    if (categoryId) {
+      getTypes = await adminService.getAllGameType({
+        game_category_id: categoryId,
+        game_type_status: "1",
+        club_type: 0,
+      });
+    } else {
+      getTypes = await adminService.getAllGameType({
+        game_type_status: { [Op.ne]: "2" },
+        club_type: 0,
+      });
+    }
+
+    if (getTypes.length == 0) {
+      responseData.msg = "Game Category not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    getTypes = getTypes.map(async (element, i) => {
+      let getCategoryData = await adminService.getGameCategoryByQuery({
+        game_category_id: element.game_category_id,
+      });
+      element.dataValues.game_fields_json_data = JSON.parse(
+        element.game_fields_json_data
+      );
+      element.dataValues.game_category_id = getCategoryData
+        ? getCategoryData.game_category_id
+        : "";
+      element.dataValues.game_category_name = getCategoryData
+        ? getCategoryData.name
+        : "";
+      return element;
+    });
+
+    getTypes = await Promise.all(getTypes);
+    responseData.msg = "Game Category List";
+    responseData.data = getTypes;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameTypeById = async (req, res) => {
+  let responseData = {};
+  try {
+    let getData = await adminService.getGameTypeByQuery({
+      game_type_id: req.params.id,
+    });
+    if (!getData) {
+      responseData.msg = "Game Type not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData.dataValues.game_fields_json_data = JSON.parse(
+      getData.game_fields_json_data
+    );
+    responseData.msg = "Game Type List";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updategameTypeById = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, new_title } = req.body;
+    let checkGameType = await adminService.getGameTypeByQuery({
+      name: new_title,
+      game_type_id: { [Op.ne]: id },
+      game_type_status: { [Op.ne]: "2" },
+    });
+    if (checkGameType) {
+      responseData.msg = "Already Added";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let gameFieldJsondata = req.body.game_fields_json_data;
+    let gameField = [];
+    if (gameFieldJsondata.length > 0) {
+      for (var i = 0; i < gameFieldJsondata.length; i++) {
+        let slug = gameFieldJsondata[i].field_name.toLowerCase();
+        let splitSlug = slug.split(" ");
+        let joinSlug = splitSlug.join("_");
+        let datas = {
+          field_name: gameFieldJsondata[i].field_name,
+          field_type: gameFieldJsondata[i].field_type,
+          field_key: joinSlug,
+          is_required: gameFieldJsondata[i].is_required,
+        };
+        gameField.push(datas);
+      }
+    }
+    let roleObj = {
+      name: new_title,
+      game_fields_json_data: JSON.stringify(gameField),
+      updated_by: req.user.admin_id,
+    };
+    let update = await adminService.updateGameType(roleObj, {
+      game_type_id: id,
+    });
+
+    responseData.msg = "Game Category Updated Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+// game_category_id == 2 for poker
+const createGame = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      game_category_id,
+      game_type_id,
+      game_json_data,
+      game_blind_structure_json_data,
+      game_price_json_data,
+    } = req.body;
+
+    let data = {
+      game_category_id: game_category_id,
+      game_type_id: game_type_id,
+      game_name: "",
+      game_json_data: JSON.stringify(game_json_data),
+      added_by: req.user.admin_id,
+      club_id: 0,
+      is_club_template: 0,
+      game_blind_id: game_json_data.game_blind_id
+        ? parseInt(game_json_data.game_blind_id)
+        : null,
+      game_prize_id: game_json_data.game_prize_id
+        ? parseInt(game_json_data.game_prize_id)
+        : null,
+    };
+
+    let game_type = await adminService.getGameTypeByQuery({
+      game_type_id: game_type_id,
+    });
+    if (game_type && game_type.name === "SIT N GO") {
+      data.is_single_table = true;
+    }
+    if (game_type && game_type.name.toLowerCase().includes("tournament")) {
+      data.is_tournament = true;
+    }
+
+    let save = await adminService.createGame(data);
+
+    responseData.msg = "Game Added Done";
+    await (await getRedisClient()).del("ROOM");
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.log(error);
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getData = await adminService.getAllGameList({
+      game_status: { [Op.ne]: "3" },
+    });
+    if (!getData) {
+      responseData.msg = "Game List not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData = getData.map(async (element, i) => {
+      let getCategoryData = await adminService.getGameCategoryByQuery({
+        game_category_id: element.game_category_id,
+      });
+      element.dataValues.game_category_name = getCategoryData
+        ? getCategoryData.name
+        : "";
+      let getTypeData = await adminService.getGameTypeByQuery({
+        game_type_id: element.game_type_id,
+      });
+      element.dataValues.game_type_name = getTypeData ? getTypeData.name : "";
+      let getUserD = await adminService.geAdminDetailsById({
+        admin_id: element.added_by,
+      });
+      element.dataValues.added_by =
+        getUserD && getUserD.full_name != null ? getUserD.full_name : "";
+      let getUserDD = await adminService.geAdminDetailsById({
+        admin_id: element.updated_by,
+      });
+      element.dataValues.updated_by =
+        getUserDD && getUserDD.full_name != null ? getUserDD.full_name : "";
+      let gameName;
+      let str = JSON.parse(element.game_json_data, true);
+      if (element.game_category_id == 2) {
+        gameName = str.room_name;
+      } else if (element.game_category_id == 3) {
+        gameName = str.name ? str.name : str.Name;
+      } else if (element.game_category_id == 4) {
+        gameName = element.game_name;
+      }
+      console.log(gameName);
+      element.dataValues.game_json_data = str;
+      element.dataValues.game_name = gameName;
+      element.dataValues.game_price_json_data = JSON.parse(
+        element.game_price_json_data,
+        true
+      );
+      element.dataValues.game_blind_structure_json_data = JSON.parse(
+        element.game_blind_structure_json_data,
+        true
+      );
+      return element;
+    });
+    getData = await Promise.all(getData);
+    responseData.msg = "Game List";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const gameDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let gameId = req.params.id;
+    let getData = await adminService.getGameByQuery({ game_id: gameId });
+    if (!getData) {
+      responseData.msg = "Game Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let str = getData.game_json_data;
+    getData.game_json_data = JSON.parse(str, true);
+    (getData.game_price_json_data = JSON.parse(
+      getData.game_price_json_data,
+      true
+    )),
+      (getData.game_blind_structure_json_data = JSON.parse(
+        getData.game_blind_structure_json_data,
+        true
+      )),
+      (responseData.msg = "Game Detail");
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateGame = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      game_id,
+      game_category_id,
+      game_type_id,
+      game_json_data,
+      game_price_json_data,
+      game_blind_structure_json_data,
+    } = req.body;
+    game_json_data.rummy_code = "1";
+    let data = {
+      game_category_id: game_category_id,
+      game_type_id: game_type_id,
+      game_name: "",
+      game_json_data: JSON.stringify(game_json_data),
+      // game_price_json_data: JSON.stringify(game_price_json_data),
+      // game_blind_structure_json_data: JSON.stringify(game_blind_structure_json_data),
+      updated_by: req.user.admin_id,
+      club_id: 0,
+      is_club_template: 0,
+    };
+    let getData = await adminService.getGameByQuery({ game_id: game_id });
+    if (!getData) {
+      responseData.msg = "Game Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let updateData = await adminService.updateGameById(data, {
+      game_id: game_id,
+    });
+    responseData.msg = "Game Update Successfully";
+    await (await getRedisClient()).del("ROOM");
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const dashboard = async (req, res) => {
+  let responseData = {};
+  try {
+    let gameType = req.query.game_type;
+    let userCount = await adminService.getUserList(1);
+    let gameCount = await adminService.getAllGameList();
+    let data;
+    if (gameType == "Poker" || gameType == "Pool" || gameType == "Rummy") {
+      let date = new Date().toISOString().split("T")[0];
+      let query = {
+        createdAt: {
+          [Op.gte]: date,
+        },
+      };
+      let getHandsHistory = await adminService.gameHistory({
+        game_category: gameType,
+      });
+      let getRunningTable = await adminService.getRunningTableData({
+        game_category: gameType,
+        game_table_status: "Active",
+      });
+      let getTodayActiveTable = await adminService.getRunningTableData({
+        game_category: gameType,
+        game_table_status: "Active",
+        createdAt: {
+          [Op.gte]: date,
+        },
+      });
+      let totalVolume = 0;
+      if (getHandsHistory.length > 0) {
+        for (var i = 0; i < getHandsHistory.length; i++) {
+          console.log(getHandsHistory[i].bet_amount);
+          totalVolume += +getHandsHistory[i].bet_amount;
+        }
+      }
+      data = {
+        today_games: 10,
+        total_player: 5,
+        new_player: 0,
+        total_rake: 10,
+        total_volume_today: totalVolume,
+        running_table: getRunningTable.length,
+        today_active_table: getTodayActiveTable.length,
+      };
+    } else {
+      data = {
+        today_sales: 0,
+        total_player: userCount.length,
+        new_player: 0,
+        total_sales: userCount.length,
+      };
+    }
+
+    responseData.msg = "Dashboard Data";
+    responseData.data = data;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getPagination = (page) => {
+  page = page - 1;
+  const limit = 15;
+  const offset = page ? page * limit : 0;
+  return { limit, offset };
+};
+
+const userList = async (req, res) => {
+  let responseData = {};
+  try {
+    const { page, search_key, from_date, end_date } = req.query;
+    const { limit, offset } = getPagination(page);
+    // let query = {
+    //     order: [["user_id", "DESC"]],
+    //     limit, offset
+    // }
+    let response, responseTotalCount;
+    let query = `user_status!='2' AND is_influencer='0'`;
+    if (from_date && end_date) {
+      console.log("d");
+      let fromDate = moment(from_date).format("YYYY-MM-DD");
+      let endDate = moment(end_date).format("YYYY-MM-DD");
+      query += ` AND DATE(createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+    if (search_key) {
+      query += ` AND (username like '%${search_key}%' OR referral_code like '%${search_key}%' OR full_name like '%${search_key}%')`;
+    }
+    query += ` order by user_id DESC`;
+    response = await sequelize.query(
+      `Select *  from users where ${query} LIMIT ${offset}, ${limit}`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    responseTotalCount = await sequelize.query(
+      `Select *  from users where ${query}`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    let totalCount = responseTotalCount.length;
+    console.log(response);
+    if (response.length == 0) {
+      responseData.msg = "No users found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    response = response.map(async (element, i) => {
+      let getWithDrawAmt = await adminService.getWithdrawl({
+        user_id: element.user_id,
+      });
+      let getDepositAmt = await adminService.getDeposit({
+        user_id: element.user_id,
+      });
+      let withdrawAmt =
+        getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null
+          ? getWithDrawAmt[0].redeem_amount
+          : 0;
+      let depositAmt =
+        getDepositAmt && getDepositAmt[0].redeem_amount != null
+          ? getDepositAmt[0].amount
+          : 0;
+      element.withdraw_amount = withdrawAmt;
+      element.deposit_amount = depositAmt;
+      element.mobile = await decryptData(element.mobile);
+      element.user_level = 10;
+      return element;
+    });
+
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: "User List",
+      statusCode: 200,
+      status: true,
+      count: totalCount,
+      data: response,
+    });
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const userDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.id;
+    let getList = await userService.getUserDetailsById({ user_id: user_id });
+    if (!getList) {
+      responseData.msg = "No users found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let getWithDrawAmt = await adminService.getWithdrawl({
+      user_id: getList.user_id,
+    });
+    let getWallet = await userService.getUserWalletDetailsById({
+      user_id: getList.user_id,
+    });
+    let withdrawAmt = getWithDrawAmt[0].redeem_amount;
+    if (getWithDrawAmt[0].redeem_amount == null) {
+      withdrawAmt = 0;
+    }
+
+    let depositAmt = getWallet.real_amount;
+    let getUserLevel = await adminService.getGameHistoryCountByUserId({
+      user_id: getList.user_id,
+    });
+    let getUserWinGame = await adminService.getGameHistoryCountByUserId({
+      user_id: getList.user_id,
+      is_win: "1",
+    });
+    let getUserLoseGame = await adminService.getGameHistoryCountByUserId({
+      user_id: getList.user_id,
+      is_win: "0",
+    });
+    console.log("usr_lvl", getUserLevel);
+    getList.dataValues.mobile = await decryptData(getList.dataValues.mobile);
+    getList.dataValues.email = getList.dataValues.email
+      ? await decryptData(getList.dataValues.email)
+      : "";
+    getList.dataValues.total_games = getUserLevel;
+    getList.dataValues.is_email_verified =
+      getList.is_email_verified == 1 ? "Yes" : "No";
+    getList.dataValues.is_mobile_verified =
+      getList.is_mobile_verified == 1 ? "Yes" : "No";
+    getList.dataValues.is_kyc_done = getList.is_kyc_done == 1 ? "Yes" : "No";
+    getList.dataValues.game_win = getUserWinGame;
+    getList.dataValues.game_lose = getUserLoseGame;
+    getList.dataValues.win_wallet =
+      getWallet && getWallet.win_amount ? getWallet.win_amount : 0;
+    getList.dataValues.withdraw_amount = withdrawAmt;
+    getList.dataValues.deposit_amount = depositAmt;
+    getList.dataValues.wallet_amount =
+      getWallet && getWallet.real_amount
+        ? parseFloat(getWallet.real_amount) + parseFloat(getWallet.win_amount)
+        : 0;
+    getList.dataValues.bonus_amount =
+      getWallet && getWallet.bonus_amount ? getWallet.bonus_amount : 0;
+    let level = 0;
+    if (getUserLevel > 0 && getUserLevel < 100) {
+      level = 1;
+    } else if (getUserLevel > 101 && getUserLevel < 500) {
+      level = 2;
+    } else if (getUserLevel > 501 && getUserLevel < 1000) {
+      level = 3;
+    } else if (getUserLevel > 1001 && getUserLevel < 3000) {
+      level = 4;
+    } else if (getUserLevel > 3001) {
+      level = 5;
+    }
+    getList.dataValues.user_level = "Level " + level;
+    responseData.msg = "User Detail";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const userKycDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.userid;
+    let getList = await userService.getUserKycDetailsById({ user_id: user_id });
+    if (!getList) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getList.id_number = await decryptData(getList.id_number);
+    getList.id_document =
+      req.protocol + "://" + req.headers.host + "/user/" + getList.id_document;
+    responseData.msg = "User Kyc Details";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const userActivity = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.id;
+    let getList = await userService.getUserActivityDetailsById({
+      user_id: user_id,
+    });
+    if (getList.length == 0) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "User Activity Log Details";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const userLoginActivity = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.id;
+    let getList = await userService.getUserLoginDetailsById({
+      user_id: user_id,
+    });
+    if (getList.length == 0) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "User Login Log Details";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const userBankAccount = async (req, res) => {
+  let responseData = {};
+  try {
+    let user_id = req.params.userid;
+    let getData = await userService.getUserBankByQuery({ user_id: user_id });
+    if (getData.length == 0) {
+      responseData.msg = "No Data found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData = getData.map(async (element, i) => {
+      element.ifsc_code = await decryptData(element.ifsc_code);
+      element.account_no = await decryptData(element.account_no);
+      element.upi_no = element.upi_no ? await decryptData(element.upi_no) : "";
+      return element;
+    });
+    getData = await Promise.all(getData);
+    responseData.msg = "User Bank Account List";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changePassword = async (req, res) => {
+  let responseData = {};
+  try {
+    let reqObj = req.body;
+    let user = req.user;
+    console.log(user);
+    let id = user.admin_id;
+    let query = { admin_id: id };
+    let getUser = await adminService.geAdminDetailsById(query);
+    if (!getUser) {
+      responseData.msg = "No User Found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    console.log(1);
+    let comparePasswrd = await comparePassword(
+      reqObj.old_password,
+      getUser.password
+    );
+    console.log(4);
+    if (!comparePasswrd) {
+      console.log(3);
+      responseData.msg = `Invalid old password !!!`;
+      return responseHelper.error(res, responseData, 201);
+    }
+    console.log(2);
+    let compareNewAndOld = await comparePassword(
+      reqObj.new_password,
+      getUser.password
+    );
+    if (compareNewAndOld) {
+      responseData.msg = `New password must be different from old password !!!`;
+      return responseHelper.error(res, responseData, 201);
+    }
+    let newPassword = await encryptPassword(reqObj.new_password);
+    let updatedObj = {
+      password: newPassword,
+    };
+
+    let updateProfile = await adminService.updateAdminByQuery(
+      updatedObj,
+      query
+    );
+    responseData.msg = `Password updated successfully !!!`;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const filterUser = async (req, res) => {
+  let responseData = {};
+  try {
+    let reqObj = req.body;
+    let fromDate = new Date(reqObj.from_date);
+    let toDate = new Date(reqObj.to_date);
+    if (isNaN(fromDate.getTime())) {
+      responseData.msg = "Please enter valid from date";
+      return responseHelper.error(res, responseData, 201);
+    }
+    if (isNaN(toDate.getTime())) {
+      responseData.msg = "Please enter valid to date";
+      return responseHelper.error(res, responseData, 201);
+    }
+    if (fromDate > toDate) {
+      responseData.msg = "From date is not greater than to date";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    const page = req.query.page || 1;
+    const limit = config.limit;
+    let query = {
+      where: {
+        createdAt: {
+          [Op.gte]: fromDate,
+          [Op.lte]: toDate,
+        },
+      },
+      order: [["user_id", "DESC"]],
+    };
+    //return false;
+    let getUser = await adminService.getUserList(query);
+    if (getUser.length == 0) {
+      responseData.msg = "No User Found";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    responseData.msg = `User List !!!`;
+    responseData.data = getUser;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const activeUserListNew = async (req, res) => {
+  let responseData = {};
+  try {
+    let query = {
+      where: {
+        user_status: "1",
+      },
+    };
+    let getList = await adminService.getUserList(query);
+    //console.log(getList);
+    if (getList.length == 0) {
+      responseData.msg = "No users found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "User List";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const activeUserList = async (req, res) => {
+  let responseData = {};
+  try {
+    let query = {
+      where: {
+        user_status: "1",
+      },
+    };
+    let newdate = moment(new Date(), "DD/MM/YYYY").format("YYYY-MM-DD");
+    let response = await sequelize.query(
+      `Select users.*,game_histories.updatedAt  from game_histories join users on game_histories.user_id = users.user_id where DATE(game_histories.createdAt)='${newdate}' group by game_histories.user_id`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    if (response.length == 0) {
+      responseData.msg = "No users found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    response = response.map(async (element, i) => {
+      // let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
+      // let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
+      // let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
+      // let depositAmt = (getDepositAmt && getDepositAm`t[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
+      // element.dataValues.withdraw_amount = withdrawAmt;
+      // element.dataValues.deposit_amount = depositAmt;
+      element.mobile = await decryptData(element.mobile);
+      // element.dataValues.user_level = 10;
+      return element;
+    });
+    response = await Promise.all(response);
+    responseData.msg = "User List";
+    responseData.data = response;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const todayUserList = async (req, res) => {
+  let responseData = {};
+  try {
+    let date = new Date().toISOString().split("T")[0];
+    let query = {
+      where: {
+        createdAt: {
+          [Op.gte]: date,
+        },
+      },
+    };
+    let getList = await adminService.getUserList(query);
+    console.log(getList);
+    if (getList.length == 0) {
+      responseData.msg = "No users found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "User List";
+    responseData.data = getList;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateUserProfile = async (req, res) => {
+  let responseData = {};
+  try {
+    let reqObj = req.body;
+    let id = req.body.id;
+    let query = { user_id: id };
+    let getUser = await userService.getUserDetailsById(query);
+    if (!getUser) {
+      responseData.msg = "No User Found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let fullName, emailId, dobs, gendar, mobileNo;
+    if (typeof reqObj.full_name == "undefined") {
+      fullName = getUser.full_name;
+    } else if (reqObj.full_name == "") {
+      fullName = getUser.full_name;
+    } else {
+      fullName = reqObj.full_name;
+    }
+
+    if (typeof reqObj.email == "undefined") {
+      emailId = getUser.email;
+    } else if (reqObj.email == "") {
+      emailId = getUser.email;
+    } else {
+      emailId = reqObj.email;
+    }
+
+    if (typeof reqObj.mobile == "undefined") {
+      mobileNo = getUser.mobile;
+    } else if (reqObj.mobile == "") {
+      mobileNo = getUser.mobile;
+    } else {
+      mobileNo = reqObj.mobile;
+    }
+
+    if (typeof reqObj.gender == "undefined") {
+      gendar = getUser.gender;
+    } else if (reqObj.gender == "") {
+      gendar = getUser.gender;
+    } else {
+      gendar = reqObj.gender;
+    }
+
+    if (typeof reqObj.dob == "undefined") {
+      dobs = getUser.dob;
+    } else if (reqObj.dob == "") {
+      dobs = getUser.dob;
+    } else {
+      dobs = reqObj.dob;
+    }
+
+    let userData = {
+      full_name: fullName,
+      gender: gendar,
+      dob: dobs,
+      email: emailId,
+      mobile: mobileNo,
+    };
+
+    let userLog = {
+      user_id: id,
+      device_token: getUser.device_token,
+      type: "update profile by admin",
+      old_value: JSON.stringify(getUser),
+      new_value: JSON.stringify(userData),
+    };
+    let updateUser = await userService.updateUserByQuery(userData, query);
+    let updateLog = await userService.addUserLog(userLog);
+    responseData.msg = "User Updated successfully!!!";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getGameFields = async (req, res) => {
+  let responseData = {};
+  try {
+    let gameType = req.query.name;
+    let subType = req.query.sub_name;
+    let field;
+    if (gameType == "Poker") {
+      var text = subType.toLowerCase();
+      if (text.toLowerCase().includes("sit n go")) {
+        field = [
+          {
+            field: "Room Name",
+            field_type: "String",
+            key: "room_name",
+          },
+          {
+            field: "Players",
+            field_type: "Number",
+            key: "maximum_player",
+          },
+          {
+            field: "Entry Fee",
+            field_type: "Number",
+            key: "minimum_buyin",
+          },
+          {
+            field: "Ante",
+            field_type: "Number",
+            key: "ante",
+          },
+          {
+            field: "Small Blind",
+            field_type: "Number",
+            key: "small_blind",
+          },
+          {
+            field: "Big Blind",
+            field_type: "Number",
+            key: "big_blind",
+          },
+          {
+            field: "Time Interval",
+            field_type: "Number",
+            key: "time_interval",
+          },
+          {
+            field: "Commission(%)",
+            field_type: "Number",
+            key: "commission",
+          },
+          {
+            field: "Commission Cap",
+            field_type: "Number",
+            key: "commission_cap",
+          },
+          {
+            field: "Turn Timmer",
+            field_type: "Number",
+            key: "turn_timmer",
+          },
+          {
+            field: "Multi Run",
+            field_type: "Boolean",
+            key: "multi_run",
+          },
+          {
+            field: "Game Timmer",
+            field_type: "Number",
+            key: "game_timmer",
+          },
+          {
+            field: "Prize Money",
+            field_type: "Number",
+            key: "prize_money",
+          },
+          {
+            field: "Default Stack",
+            field_type: "Number",
+            key: "default_stack",
+          },
+          {
+            field: "Game Blind Structure",
+            field_type: "Number",
+            key: "game_blind_id",
+          },
+          {
+            field: "Game Prize Structure",
+            field_type: "Number",
+            key: "game_prize_id",
+          },
+        ];
+      } else if (text.toLowerCase().includes("tournament")) {
+        field = [
+          {
+            field: "Room Name",
+            field_type: "String",
+            key: "room_name",
+          },
+          {
+            field: "Maximum Players for tournament",
+            field_type: "Number",
+            key: "maximum_player",
+          },
+          {
+            field: "Maximum Players on Table",
+            field_type: "Number",
+            key: "maximum_player_in_table",
+          },
+          {
+            field: "Minimum Players for tournament",
+            field_type: "Number",
+            key: "minimum_player",
+          },
+          {
+            field: "Entry Fee",
+            field_type: "Number",
+            key: "minimum_buyin",
+          },
+          {
+            field: "Ante",
+            field_type: "Number",
+            key: "ante",
+          },
+          {
+            field: "Small Blind",
+            field_type: "Number",
+            key: "small_blind",
+          },
+          {
+            field: "Big Blind",
+            field_type: "Number",
+            key: "big_blind",
+          },
+          {
+            field: "Time Interval",
+            field_type: "Number",
+            key: "time_interval",
+          },
+          {
+            field: "Commission(%)",
+            field_type: "Number",
+            key: "commission",
+          },
+          {
+            field: "Commission Cap",
+            field_type: "Number",
+            key: "commission_cap",
+          },
+          {
+            field: "Turn Timmer",
+            field_type: "Number",
+            key: "turn_timmer",
+          },
+          {
+            field: "Multi Run",
+            field_type: "Boolean",
+            key: "multi_run",
+          },
+          {
+            field: "Game Timmer",
+            field_type: "Number",
+            key: "game_timmer",
+          },
+          {
+            field: "Prize Money",
+            field_type: "Number",
+            key: "prize_money",
+          },
+          {
+            field: "Default Stack",
+            field_type: "Number",
+            key: "default_stack",
+          },
+          {
+            field: "Start Date and Time",
+            field_type: "Number",
+            key: "start_date",
+          },
+          {
+            field: "Registration Start Date and Time",
+            field_type: "Number",
+            key: "registration_start_date",
+          },
+          {
+            field: "Registration End Date and Time",
+            field_type: "Number",
+            key: "registration_end_date",
+          },
+          {
+            field: "Rebuy In Until Level",
+            field_type: "Number",
+            key: "rebuy_in_until_level",
+          },
+          {
+            field: "Add on Until Level",
+            field_type: "Number",
+            key: "add_on_until_level",
+          },
+          {
+            field: "Game Blind Structure",
+            field_type: "Number",
+            key: "game_blind_id",
+          },
+          {
+            field: "Game Prize Structure",
+            field_type: "Number",
+            key: "game_prize_id",
+          },
+        ];
+      } else {
+        field = [
+          {
+            field: "Room Name",
+            field_type: "String",
+            key: "room_name",
+          },
+
+          {
+            field: "Minimum Player",
+            field_type: "Number",
+            key: "minimum_player",
+          },
+          {
+            field: "Maximum Player",
+            field_type: "Number",
+            key: "maximum_player",
+          },
+          {
+            field: "Minimum BuyIn",
+            field_type: "Number",
+            key: "minimum_buyin",
+          },
+          {
+            field: "Maximum BuyIn",
+            field_type: "Number",
+            key: "maximum_buyin",
+          },
+          {
+            field: "Small Blind",
+            field_type: "Number",
+            key: "small_blind",
+          },
+          {
+            field: "Big Blind",
+            field_type: "Number",
+            key: "big_blind",
+          },
+          {
+            field: "Commission(%)",
+            field_type: "Number",
+            key: "commission",
+          },
+          {
+            field: "Commission Cap",
+            field_type: "Number",
+            key: "commission_cap",
+          },
+          {
+            field: "Turn Timmer",
+            field_type: "Number",
+            key: "turn_timmer",
+          },
+          {
+            field: "Multi Run",
+            field_type: "Boolean",
+            key: "multi_run",
+          },
+          {
+            field: "Game Timmer",
+            field_type: "Number",
+            key: "game_timmer",
+          },
+          {
+            field: "Default Stack",
+            field_type: "Number",
+            key: "default_stack",
+          },
+        ];
+      }
+    }
+    responseData.msg = "Get Form Fields";
+    responseData.data = field;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  let reqObj = req.body;
+  let responseData = {};
+  let email = reqObj.email;
+  try {
+    let userData;
+    let query;
+
+    userData = await adminService.geAdminDetailsById({ email: email });
+    query = {
+      email: email,
+    };
+    if (!userData) {
+      responseData.msg = "no user found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let otp = "123456";
+    //let otp = OTP();
+    let htmlB =
+      "<html><body><p>Hello , " +
+      "This is your one time password (" +
+      otp +
+      ") for forgot password. Please don't share to anyone.</p></body></html>";
+    let subject = "Forgot Password OTP";
+    //await SendWaitlistEmail(userData, htmlB, subject)
+    console.log("otp", otp);
+
+    await adminService.updateAdminByQuery({ otp: otp, is_verify: "0" }, query);
+    responseData.msg = "OTP has been sent successfully to your email id!!!";
+    responseData.data = { otp: otp };
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 201);
+  }
+};
+
+const verifyOtpForForgotPassword = async (req, res) => {
+  let email = req.body.email;
+  let otp = req.body.otp;
+  let responseData = {};
+  try {
+    let userData;
+    let updateObj;
+    let query;
+    userData = await adminService.geAdminDetailsById({ email: email });
+    updateObj = {
+      otp: null,
+      is_verify: "1",
+    };
+    if (!userData) {
+      responseData.msg = "no user found";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    if (userData.otp != otp) {
+      responseData.msg = "Invalid Otp";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    let updatedUser = await adminService.updateAdminByQuery(updateObj, {
+      email: email,
+    });
+    if (!updatedUser) {
+      responseData.msg = "failed to verify user";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Your account has been successfully verified!!!";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const resetPassword = async (req, res) => {
+  let email = req.body.email;
+  let newPassword = req.body.password;
+  let responseData = {};
+  try {
+    let userData;
+    let query;
+
+    userData = await adminService.geAdminDetailsById({ email: email });
+    query = {
+      email: email,
+    };
+    if (!userData) {
+      responseData.msg = "no user found";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    if (userData.is_verify == "0") {
+      responseData.msg = "Please verify your otp";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let encryptedPassword = await encryptPassword(newPassword);
+    let updateUserQuery = {
+      password: encryptedPassword,
+    };
+
+    let updatedUser = await adminService.updateAdminByQuery(
+      updateUserQuery,
+      query
+    );
+    if (!updatedUser) {
+      responseData.msg = "failed to reset password";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    responseData.msg =
+      "Password updated successfully! Please Login to continue";
+    return responseHelper.successWithType(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addPriceStructure = async (req, res) => {
+  let responseData = {};
+  try {
+    let { name, price_structure_json_data } = req.body;
+    let data = {
+      price_structure_name: name,
+      price_structure_json_data: JSON.stringify(price_structure_json_data),
+      added_by: req.user.admin_id,
+    };
+    let save = await adminService.createPriceStructure(data);
+    responseData.msg = "Added Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.log(error);
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const priceStructureList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getData = await adminService.getAllPriceStructureList();
+    if (!getData) {
+      responseData.msg = "Price List not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData = getData.map(async (element, i) => {
+      element.dataValues.price_structure_json_data = JSON.parse(
+        element.price_structure_json_data,
+        true
+      );
+      return element;
+    });
+    getData = await Promise.all(getData);
+    responseData.msg = "Price List";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const priceStructureById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.params.id;
+    let getData = await adminService.getPriceStructureByQuery({ price_id: id });
+    if (!getData) {
+      responseData.msg = "Price Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    (getData.price_structure_json_data = JSON.parse(
+      getData.price_structure_json_data,
+      true
+    )),
+      (responseData.msg = "Price Detail");
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updatePriceStructureById = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id, price_structure_json_data, name } = req.body;
+    let data = {
+      price_structure_name: name,
+      price_structure_json_data: JSON.stringify(price_structure_json_data),
+      updated_by: req.user.admin_id,
+    };
+    let getData = await adminService.getPriceStructureByQuery({ price_id: id });
+    if (!getData) {
+      responseData.msg = "Price Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let updateData = await adminService.updatePriceStructureById(data, {
+      price_id: id,
+    });
+    responseData.msg = "Price Update Successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const deletePriceStructure = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id } = req.query;
+    let getData = await adminService.getGameByQuery({ game_prize_id: id });
+    if (getData) {
+      responseData.msg = "This price added in game";
+      return responseHelper.error(res, responseData, 201);
+    }
+    await adminService.deletePrice({ price_id: id });
+    responseData.msg = "Price deleted Successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const addBlindStructure = async (req, res) => {
+  let responseData = {};
+  try {
+    let { name, blind_structure_json_data } = req.body;
+    let data = {
+      blind_structure_name: name,
+      blind_structure_json_data: JSON.stringify(blind_structure_json_data),
+      added_by: req.user.admin_id,
+    };
+    let save = await adminService.createBlindStructure(data);
+    responseData.msg = "Added Done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.log(error);
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const blindStructureList = async (req, res) => {
+  let responseData = {};
+  try {
+    let getData = await adminService.getAllBlindStructureList();
+    if (!getData) {
+      responseData.msg = "Blind List not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData = getData.map(async (element, i) => {
+      element.dataValues.blind_structure_json_data = JSON.parse(
+        element.blind_structure_json_data,
+        true
+      );
+      return element;
+    });
+    getData = await Promise.all(getData);
+    responseData.msg = "Blind List";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const blindStructureById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.params.id;
+    let getData = await adminService.getBlindStructureByQuery({ blind_id: id });
+    if (!getData) {
+      responseData.msg = "Game Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    getData.blind_structure_json_data = JSON.parse(
+      getData.blind_structure_json_data,
+      true
+    );
+    responseData.msg = "Game Detail";
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateBlindStructureById = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id, name, blind_structure_json_data } = req.body;
+    let data = {
+      blind_structure_name: name,
+      blind_structure_json_data: JSON.stringify(blind_structure_json_data),
+      updated_by: req.user.admin_id,
+    };
+    let getData = await adminService.getBlindStructureByQuery({ blind_id: id });
+    if (!getData) {
+      responseData.msg = "Blind Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let updateData = await adminService.updateBlindStructureById(data, {
+      blind_id: id,
+    });
+    responseData.msg = "Blind Update Successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const deleteBlindStructure = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id } = req.query;
+    let getData = await adminService.getGameByQuery({ game_blind_id: id });
+    if (getData) {
+      responseData.msg = "This blind data added in game";
+      return responseHelper.error(res, responseData, 201);
+    }
+    await adminService.deleteBlindStructures({ blind_id: id });
+    responseData.msg = "Blind Structure deleted Successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const getClubList = async (req, res) => {
+  let responseData = {};
+  try {
+    let result = await adminService.getClubList({ raw: true });
+    if (result.length == 0) {
+      responseData.msg = "Club not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    console.log(result);
+    result = result.map(async (element) => {
+      let clubOwner = await userService.getUserDetailsById({
+        user_id: element.club_adminId,
+      });
+      console.log("element.clubId", element.clubId);
+      let clubJoined = await adminService.getJoinedclub({
+        where: {
+          clubId: element.clubId,
+        },
+      });
+      console.log("clubjoined-->", clubJoined);
+      element.club_owner = clubOwner ? clubOwner.username : "";
+      element.club_request_count = clubJoined.length;
+      return element;
+    });
+    result = await Promise.all(result);
+    responseData.msg = "Club List";
+    responseData.data = result;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getClubDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let clubId = req.query.club_id;
+    console.log("clubId-->", clubId);
+    let result = await adminService.getClubDetailById({
+      where: { clubId: clubId },
+    });
+    console.log("result-->", result);
+    if (!result) {
+      responseData.msg = "Club not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let clubOwner = await userService.getUserDetailsById({
+      user_id: result.club_adminId,
+    });
+    result.dataValues.club_owner = clubOwner ? clubOwner.username : "";
+
+    let clubMembers = await adminService.getJoinedclub({
+      clubId: clubId,
+      is_approve: "1",
+    });
+    let memArr = [];
+    for (let i = 0; i < clubMembers.length; i++) {
+      let memberDet = await userService.getUserDetailsById({
+        user_id: clubMembers[i].user_id,
+      });
+      let data = {
+        member_id: clubMembers[i].user_id,
+        member_name: memberDet ? memberDet.username : "",
+        chips: clubMembers[i].chips,
+        amount: clubMembers[i].amount,
+        deducted_Amount: 0,
+      };
+      memArr.push(data);
+    }
+    result.dataValues.members = memArr;
+    responseData.msg = "Club Detail";
+    responseData.data = result;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeClubStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getClubDetailById({ clubId: id });
+    if (!checkRole) {
+      responseData.msg = "Club not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      club_status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateClubById(roleObj, { clubId: id });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const createVipPriviledge = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      card_feature_title,
+      days,
+      all_in_equity,
+      rabbit_hunting,
+      more_login_report,
+      retail_detail,
+      rival_data_display,
+      club_data,
+      extra_disconnect_protection,
+      exclusive_emojis,
+      club_creation_limit,
+      free_emojis,
+      free_time_bank,
+      purchase_diamond,
+      purchase_coin,
+      purchase_point,
+    } = req.body;
+    let reqObj = {
+      card_feature_title,
+      days,
+      all_in_equity,
+      rabbit_hunting,
+      more_login_report,
+      retail_detail,
+      rival_data_display,
+      club_data,
+      extra_disconnect_protection,
+      exclusive_emojis,
+      club_creation_limit,
+      free_emojis,
+      free_time_bank,
+      purchase_diamond,
+      purchase_coin,
+      purchase_point,
+    };
+
+    await adminService.createVipPriviledge(reqObj);
+    responseData.msg = "Vip Priviledge created done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const updateVipPriviledge = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      id,
+      card_feature_title,
+      days,
+      all_in_equity,
+      rabbit_hunting,
+      more_login_report,
+      retail_detail,
+      rival_data_display,
+      club_data,
+      extra_disconnect_protection,
+      exclusive_emojis,
+      club_creation_limit,
+      free_emojis,
+      free_time_bank,
+      purchase_diamond,
+      purchase_coin,
+      purchase_point,
+    } = req.body;
+    let reqObj = {
+      card_feature_title,
+      days,
+      all_in_equity,
+      rabbit_hunting,
+      more_login_report,
+      retail_detail,
+      rival_data_display,
+      club_data,
+      extra_disconnect_protection,
+      exclusive_emojis,
+      club_creation_limit,
+      free_emojis,
+      free_time_bank,
+      purchase_diamond,
+      purchase_coin,
+      purchase_point,
+    };
+    let check = await adminService.getVipPriviledgeById({ id: id });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    await adminService.updateVipPriviledge(reqObj, { where: { id: id } });
+    responseData.msg = "Vip Priviledge updated done";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getVipPriviledgeById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.query.id;
+    let check = await adminService.getVipPriviledgeById({ id: id });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Vip priviledge detail";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getAllVipPriviledge = async (req, res) => {
+  let responseData = {};
+  try {
+    let check = await adminService.getAllVipPriviledge({
+      where: { status: { [Op.ne]: "2" } },
+    });
+    if (check.length == 0) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Vip priviledge list";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeVipPriviledgeStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getVipPriviledgeById({ id: id });
+    if (!checkRole) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateVipPriviledge(roleObj, { where: { id: id } });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addClubLevel = async (req, res) => {
+  let responseData = {};
+  try {
+    let { name, validity, diamond, manager, member, rating } = req.body;
+    let reqObj = { name, validity, diamond, manager, member, rating };
+    reqObj.added_by = req.user.admin_id;
+    await adminService.addClubLevel(reqObj);
+    responseData.msg = "Club Level added";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateClubLevel = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id, name, validity, diamond, manager, member, rating } = req.body;
+    let reqObj = { name, validity, diamond, manager, member, rating };
+    let check = await adminService.getClubLevelById({ where: { id: id } });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    reqObj.updated_by = req.user.admin_id;
+    await adminService.updateClubLevel(reqObj, { where: { id: id } });
+    responseData.msg = "Club Level updated";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getClubLevelById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.query.id;
+    let check = await adminService.getClubLevelById({ where: { id: id } });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Club Level detail";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getAllClubLevel = async (req, res) => {
+  let responseData = {};
+  try {
+    let check = await adminService.getAllClubLevel({});
+    if (check.length == 0) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Club Level list";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addShop = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      category,
+      sub_category,
+      from_purchase,
+      get_purchase,
+      purchase_value,
+      get_value,
+      is_offer,
+    } = req.body;
+    let reqObj = {
+      category,
+      sub_category,
+      from_purchase,
+      get_purchase,
+      purchase_value,
+      get_value,
+      is_offer,
+    };
+    reqObj.added_by = req.user.admin_id;
+    await adminService.addShop(reqObj);
+    responseData.msg = "Shop added";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateShop = async (req, res) => {
+  let responseData = {};
+  try {
+    let {
+      id,
+      category,
+      sub_category,
+      from_purchase,
+      get_purchase,
+      purchase_value,
+      get_value,
+      is_offer,
+    } = req.body;
+    let reqObj = {
+      category,
+      sub_category,
+      from_purchase,
+      get_purchase,
+      purchase_value,
+      get_value,
+      is_offer,
+    };
+    reqObj.updated_by = req.user.admin_id;
+    await adminService.updateShop(reqObj, { where: { id: id } });
+    responseData.msg = "Shop updated";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getShopById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.query.id;
+    let check = await adminService.getShopById({ where: { id: id } });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Shop detail";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getAllShop = async (req, res) => {
+  let responseData = {};
+  try {
+    let check = await adminService.getAllShop({
+      where: { status: { [Op.ne]: "2" } },
+    });
+    if (check.length == 0) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "shop list";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const changeShopStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const { id, status } = req.body;
+    let checkRole = await adminService.getShopById({ where: { id: id } });
+    if (!checkRole) {
+      responseData.msg = "Shop not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let roleObj = {
+      status: status,
+      updated_by: req.user.admin_id,
+    };
+    await adminService.updateShop(roleObj, { where: { id: id } });
+    responseData.msg = "Status Updated";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addMission = async (req, res) => {
+  let responseData = {};
+  try {
+    let { image, mission_type, description, value, time_interval } = req.body;
+    let reqObj = { image, mission_type, description, value, time_interval };
+    reqObj.added_by = req.user.admin_id;
+    await adminService.addMission(reqObj);
+    responseData.msg = "Mission added";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const updateMission = async (req, res) => {
+  let responseData = {};
+  try {
+    let { id, image, mission_type, description, value, time_interval } =
+      req.body;
+    let reqObj = { image, mission_type, description, value, time_interval };
+    reqObj.updated_by = req.user.admin_id;
+    await adminService.updateMission(reqObj, { where: { id: id } });
+    responseData.msg = "Mission updated";
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getMissionById = async (req, res) => {
+  let responseData = {};
+  try {
+    let id = req.query.id;
+    let check = await adminService.getMissionById({ where: { id: id } });
+    if (!check) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "Mission detail";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getAllMission = async (req, res) => {
+  let responseData = {};
+  try {
+    let check = await adminService.getAllMission({});
+    if (check.length == 0) {
+      responseData.msg = "Data not found";
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = "mission list";
+    responseData.data = check;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const memberDetails = async (req, res) => {
+  let responseData = {};
+  try {
+    let memberId = req.query.member_id;
+    let type = req.query.type;
+    let memberD = await userService.getUserDetailsById({ user_id: memberId });
+    if (type == 1) {
+    } else if (type == 2) {
+    } else {
+    }
+    let result = {
+      username: memberD.username,
+      profile_pic: memberD.profile_pic,
+      winning: 0,
+      hands: 0,
+      bb_100: 0,
+      mtt_winnings: 0,
+      spinup_buy_in: 0,
+      fee: 0,
+    };
+
+    responseData.msg = "Member details";
+    responseData.data = result;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const uploadImage = async (req, res) => {
+  let responseData = {};
+  try {
+    console.log(req.file);
+    responseData.msg = "File upload";
+    responseData.data = req.file.location;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const addModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const { module_name, parent_id, is_Sidebar, api_method, routes, icon } =
+      req.body;
+    console.log("req.body", req.body.is_Sidebar);
+    let existingModule = await adminService.getModuleByName(module_name);
+    if (existingModule) {
+      responseData.msg = "Module with the same name already exists";
+      return responseHelper.error(res, responseData, 201);
+    }
+    let moduleObj = {
+      moduleName: module_name,
+      parentId: parent_id,
+      isSidebar: is_Sidebar,
+      apiMethod: api_method,
+      routes: routes,
+      icon: icon,
+    };
+
+    console.log("moduleObj", moduleObj);
+    await adminService.createModule(moduleObj);
+
+    responseData.msg = "Module added successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const updateModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const {
+      module_id,
+      module_name,
+      parent_id,
+      is_Sidebar,
+      api_method,
+      routes,
+      icon,
+    } = req.body;
+    console.log("req.body", req.body.is_Sidebar);
+    let existingModule = await adminService.getModuleById(module_id);
+    if (!existingModule) {
+      responseData.msg = "Module with the given ID does not exist";
+      return responseHelper.error(res, responseData, 404);
+    }
+
+    // Check if module name is being updated and it's not conflicting with existing modules
+    if (module_name !== existingModule.moduleName) {
+      let moduleWithName = await adminService.getModuleByName(module_name);
+      if (moduleWithName) {
+        responseData.msg = "Module with the same name already exists";
+        return responseHelper.error(res, responseData, 409);
+      }
+    }
+
+    let updatedModuleObj = {
+      moduleName: module_name,
+      parentId: parent_id,
+      isSidebar: is_Sidebar,
+      apiMethod: api_method,
+      routes: routes,
+      icon: icon,
+    };
+
+    console.log("updatedModuleObj", updatedModuleObj);
+    await adminService.updateModule(updatedModuleObj, {
+      where: { moduleId: module_id },
+    });
+    // await adminService.updateClubLevel(reqObj, { where: { id: id } });
+
+    responseData.msg = "Module updated successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const delModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const { module_name } = req.body;
+
+    let existingModule = await adminService.getModuleByName(module_name);
+    if (!existingModule) {
+      responseData.msg = "Module does not exist";
+      return responseHelper.error(res, responseData, 404);
+    }
+    await adminService.deleteModule(existingModule.moduleId);
+
+    responseData.msg = "Module deleted successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+const addRoleModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const { module_ids, role_id } = req.body; // Assuming module_ids is an array
+    for (const module_id of module_ids) {
+      const existingRoleModule =
+        await adminService.getRoleModuleByModuleIdAndRoleId({
+          moduleId: module_id,
+          roleId: role_id,
+        });
+
+      if (existingRoleModule) {
+        responseData.msg =
+          "Role module with the same moduleId and roleId already exists";
+        return res.status(400).json(responseData);
+      }
+
+      let moduleObj = {
+        moduleId: module_id,
+        roleId: role_id,
+        addedBy: req.user.admin_id,
+      };
+
+      await adminService.createRoleModule(moduleObj);
+    }
+
+    responseData.msg = "Role modules added successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.error("Error creating role modules:", error);
+    responseData.msg = "Error creating role modules";
+    return res.status(500).json(responseData);
+  }
+};
+
+const deleteRoleModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const { module_id, role_id } = req.body;
+    const existingRoleModule =
+      await adminService.getRoleModuleByModuleIdAndRoleId({
+        moduleId: module_id,
+        roleId: role_id,
+      });
+
+    if (!existingRoleModule) {
+      responseData.msg = "Role module does not exist";
+      return res.status(404).json(responseData);
+    }
+    await adminService.deleteRoleModule(existingRoleModule.id);
+
+    responseData.msg = "Role module deleted successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.error("Error deleting role module:", error);
+    responseData.msg = "Error deleting role module";
+    return res.status(500).json(responseData);
+  }
+};
+const updateRoleModules = async (req, res) => {
+  try {
+    const { role_id, permit_module_ids, not_permit_module_ids } = req.body;
+
+    // Validate input parameters
+    if (
+      !Array.isArray(permit_module_ids) ||
+      !Array.isArray(not_permit_module_ids) ||
+      !role_id
+    ) {
+      return res.status(400).json({ msg: "Invalid input data" });
+    }
+
+    for (const module_id of permit_module_ids) {
+      const existingRoleModule =
+        await adminService.getRoleModuleByModuleIdAndRoleId({
+          moduleId: module_id,
+          roleId: role_id,
+        });
+
+      if (!existingRoleModule) {
+        const moduleObj = {
+          moduleId: module_id,
+          roleId: role_id,
+          addedBy: req.user.admin_id,
+        };
+        await adminService.createRoleModule(moduleObj);
+      }
+    }
+
+    // Delete non-permitted modules
+    for (const module_id of not_permit_module_ids) {
+      const existingRoleModule =
+        await adminService.getRoleModuleByModuleIdAndRoleId({
+          moduleId: module_id,
+          roleId: role_id,
+        });
+
+      if (existingRoleModule) {
+        await adminService.deleteRoleModule(existingRoleModule.id);
+      }
+    }
+
+    return res.status(200).json({ msg: "Role modules updated successfully" });
+  } catch (error) {
+    console.error("Error updating role modules:", error);
+    return res.status(500).json({ msg: "Error updating role modules" });
+  }
+};
+
+const addUserRole = async (req, res) => {
+  let responseData = {};
+  try {
+    const { user_id, role_ids } = req.body;
+    let userData = await adminService.geAdminDetailsById({ user_id: user_id });
+    console.log("userData-->", userData);
+    if (!userData) {
+      let userDetail = await userService.getUserDetailsById({
+        user_id: user_id,
+      });
+      if (!userDetail) {
+        responseData.msg = "User does not exist in our system";
+        return res.status(404).json(responseData);
+      }
+
+      if (!userDetail.email) {
+        responseData.msg = "Email not found";
+        return res.status(400).json(responseData);
+      }
+
+      userDetail.admin_status = "1";
+      await adminService.createAdminUser(userDetail);
+    }
+
+    for (const role_id of role_ids) {
+      let userData = await adminService.geAdminDetailsById({
+        user_id: user_id,
+      });
+      console.log("userData-->", userData);
+      const existingUserRole = await adminService.getUserRoleByUserIdAndRoleId({
+        // userId: user_id,
+        userId: userData.admin_id,
+        roleId: role_id,
+      });
+      console.log("existingUserRole-->", existingUserRole);
+      if (existingUserRole) {
+        responseData.msg = "User role already exists";
+        return res.status(400).json(responseData);
+      }
+
+      const newUserRole = {
+        userId: userData.admin_id,
+        roleId: role_id,
+        addedBy: req.user.admin_id,
+      };
+
+      await adminService.createUserRole(newUserRole);
+    }
+
+    responseData.msg = "User roles added successfully";
+    responseData.data = { user_id, role_ids };
+    return res.status(201).json(responseData);
+  } catch (error) {
+    console.error("Error creating user roles:", error);
+    responseData.msg = "Error creating user roles";
+    return res.status(500).json(responseData);
+  }
+};
+
+const deleteUserRole = async (req, res) => {
+  let responseData = {};
+  try {
+    const { user_id, role_id } = req.body;
+    const existingRoleModule = await adminService.getUserRoleByUserIdAndRoleId({
+      userId: user_id,
+      roleId: role_id,
+    });
+
+    if (!existingRoleModule) {
+      responseData.msg = "User Role does not exist";
+      return res.status(404).json(responseData);
+    }
+    await adminService.deleteUserRole(existingRoleModule.id);
+
+    responseData.msg = "Role module deleted successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.error("Error deleting role module:", error);
+    responseData.msg = "Error deleting role module";
+    return res.status(500).json(responseData);
+  }
+};
+const updateUserRole = async (req, res) => {
+  let responseData = {};
+  try {
+    const { user_id, permit_role_ids, not_permit_role_ids } = req.body;
+    let userData = await adminService.geAdminDetailsById({ user_id: user_id });
+    console.log("userData-->", userData);
+    if (!userData) {
+      let userDetail = await userService.getUserDetailsById({
+        user_id: user_id,
+      });
+      if (!userDetail) {
+        responseData.msg = "User does not exist in our system";
+        return res.status(404).json(responseData);
+      }
+
+      if (!userDetail.email) {
+        responseData.msg = "Email not found";
+        return res.status(400).json(responseData);
+      }
+
+      userDetail.admin_status = "1";
+      await adminService.createAdminUser(userDetail);
+    }
+
+    // // Validate input parameters
+    // if (!user_id || !Array.isArray(permit_role_ids) || !Array.isArray(not_permit_role_ids)) {
+    //   responseData.msg = "Invalid input data";
+    //   return res.status(400).json(responseData);
+    // }
+
+
+    // if (!userData) {
+    //   responseData.msg = "User does not exist in our system";
+    //   return responseHelper.error(res, responseData, 404);
+    // }
+
+    let userData_admin = await adminService.geAdminDetailsById({ user_id: user_id });
+    console.log("userData_admin--->",userData_admin);
+    // Check if any permitted role already exists
+    for (const role_id of permit_role_ids) {
+     
+      const existingUserRole = await adminService.getUserRoleByUserIdAndRoleId({
+        userId: userData_admin.admin_id,
+        roleId: role_id,
+      });
+
+      if (existingUserRole) {
+        responseData.msg =
+          "User role with the same userId and roleId already exists";
+        return res.status(400).json(responseData);
+      }
+    }
+
+    for (const role_id of permit_role_ids) {
+     
+      const newUserRole = {
+        userId: userData_admin.admin_id,
+        roleId: role_id,
+        addedBy: req.user.admin_id,
+      };
+      await adminService.createUserRole(newUserRole);
+    }
+
+    for (const role_id of not_permit_role_ids) {
+     
+      const existingUserRole = await adminService.getUserRoleByUserIdAndRoleId({
+        userId: userData_admin.admin_id,
+        roleId: role_id,
+      });
+
+      if (existingUserRole) {
+        await adminService.deleteUserRole(existingUserRole.id);
+      }
+    }
+
+    responseData.msg = "User roles updated successfully";
+    return res.status(201).json(responseData);
+  } catch (error) {
+    console.error("Error updating user roles:", error);
+    responseData.msg = "Error updating user roles";
+    return res.status(500).json(responseData);
+  }
+};
+
+const getAllModules = async (req, res) => {
+  let responseData = {};
+  try {
+    const roleId = req.query.role_id;
+    console.log("adminId", roleId);
+    const allModules = await adminService.getAllModules();
+
+    const modulesIds = `
+    SELECT 
+        role_modules.moduleId
+    FROM 
+        user_roles
+        INNER JOIN role_modules ON user_roles.roleId = role_modules.roleId
+    WHERE 
+        user_roles.roleId = ${roleId}
+`;
+
+    modulesIdsData = await sequelize.query(modulesIds, {
+      type: QueryTypes.SELECT,
+    });
+
+    const formattedIds = modulesIdsData.map((roleObj) => {
+      return roleObj.moduleId;
+    });
+
+    console.log("getRolesResult", formattedIds);
+
+    const moduleIds = formattedIds;
+
+    if (moduleIds.length === 0) {
+      const allModulesUpdated = allModules.map((module) => ({
+        ...module,
+        isActive: false,
+      }));
+      responseData.msg = "No roles assigned";
+      responseData.modules = allModulesUpdated;
+      return responseHelper.success(res, responseData);
+    }
+
+    let recursiveQuery = `
+WITH RECURSIVE ModuleHierarchy AS (
+    SELECT 
+        m.moduleId,
+        m.moduleName,
+        m.isSidebar,
+        m.apiMethod,
+        m.routes,
+        m.parentId,
+        m.icon
+    FROM 
+        modules m
+    WHERE
+        m.moduleId IN (${moduleIds.join(", ")})  -- Inject module IDs here
+    
+    UNION ALL
+    
+    SELECT 
+        m.moduleId,
+        m.moduleName,
+        m.isSidebar,
+        m.apiMethod,
+        m.routes,
+        m.parentId,
+        m.icon
+    FROM 
+        ModuleHierarchy mh
+    INNER JOIN modules m ON m.parentId = mh.moduleId  -- Fetch child modules where parentId matches moduleId
+)
+SELECT 
+    mh.moduleId,
+    mh.moduleName,
+    mh.isSidebar,
+    mh.apiMethod,
+    mh.routes,
+    mh.parentId,
+    mh.icon
+FROM 
+    ModuleHierarchy mh;
+`;
+
+    modulesIdsData = await sequelize.query(recursiveQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    // Create a set of moduleIds for quick lookup
+    const modulesWithAccessIds = new Set(
+      modulesIdsData.map((module) => module.moduleId)
+    );
+
+    // Add isActive field to each module in allModules
+    const allModulesWithIsActive = allModules.map((module) => ({
+      ...module,
+      isActive: modulesWithAccessIds.has(module.moduleId),
+    }));
+
+    responseData.modules = allModulesWithIsActive; // Return allModules with isActive field
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.error("Error:", error);
+    responseData.msg = "Internal server error";
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const addMemberRole = async (req, res) => {
+  let responseData = {};
+  try {
+      const { member_role } = req.body;
+
+      // Validation
+      if (!member_role) {
+          responseData.msg = "Member role is required";
+          return responseHelper.error(res, responseData, 400);
+      }
+
+      // Create the member role
+      const roleData = {
+          member_role
+      };
+
+      // await club_member_roles(roleData);
+      await adminService.createClubMemberRole(roleData);
+
+      responseData.msg = "Member role created successfully";
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+const addclubModule = async (req, res) => {
+  let responseData = {};
+  try {
+    const { module_name, parent_id, is_Sidebar, api_method, routes, icon } =
+      req.body;
+    // console.log("req.body", req.body.is_Sidebar);
+    // let existingModule = await adminService.getModuleByName(module_name);
+    // if (existingModule) {
+    //   responseData.msg = "Module with the same name already exists";
+    //   return responseHelper.error(res, responseData, 201);
+    // }
+    let moduleObj = {
+      moduleName: module_name,
+      parentId: parent_id,
+      isSidebar: is_Sidebar,
+      apiMethod: api_method,
+      routes: routes,
+      icon: icon,
+    };
+
+    // console.log("moduleObj", moduleObj);
+    await adminService.createclubModule(moduleObj);
+
+    responseData.msg = "Module added successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+
+const  addclubMemberRoleModule= async (req, res) => {
+  let responseData = {};
+  try {
+    const { clubMemberRoleId, moduleId } = req.body; // Assuming module_ids is an array
+
+
+    let Obj = {
+      clubMemberRoleId: clubMemberRoleId,
+      moduleId: moduleId
+
+    };
+    console.log(Obj);
+    await adminService.createclubMemberRoleModule(Obj);
+    responseData.msg = "club Member Role- modules added successfully";
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    console.error("Error creating role modules:", error);
+    responseData.msg = "Error creating club Member role modules";
+    return res.status(500).json(responseData);
+  }
+};
+
+
+// addMemberRole
+
+module.exports = {
+  adminLogin,
+  addRole,
+  roleList,
+  roleById,
+  updateRoleById,
+  activeRoleList,
+  changeRoleStatus,
+  changePassword,
+  dashboard,
+  userList,
+  userDetail,
+  createGame,
+  gameList,
+  gameDetail,
+  updateGame,
+  userKycDetail,
+  userBankAccount,
+  filterUser,
+  activeUserList,
+  todayUserList,
+  updateUserProfile,
+  addGameCategory,
+  updategameCategoryById,
+  gameCategoryList,
+  gameCategoryById,
+  addGameType,
+  updategameTypeById,
+  gameTypeList,
+  gameTypeById,
+  userActivity,
+  adminActivity,
+  userLoginActivity,
+  changeGameCategoryStatus,
+  changeGameTypeStatus,
+  changeGameStatus,
+  getGameFields,
+  getActiveGameCategoryList,
+  getProfile,
+  activeUserListNew,
+  forgotPassword,
+  verifyOtpForForgotPassword,
+  resetPassword,
+  addPriceStructure,
+  priceStructureList,
+  priceStructureById,
+  updatePriceStructureById,
+  addBlindStructure,
+  blindStructureList,
+  blindStructureById,
+  updateBlindStructureById,
+  getClubList,
+  getClubDetail,
+  createVipPriviledge,
+  updateVipPriviledge,
+  getVipPriviledgeById,
+  getAllVipPriviledge,
+  addClubLevel,
+  updateClubLevel,
+  getClubLevelById,
+  getAllClubLevel,
+  deleteBlindStructure,
+
+  addShop,
+  updateShop,
+  getShopById,
+  getAllShop,
+
+  addMission,
+  updateMission,
+  getMissionById,
+  getAllMission,
+  deletePriceStructure,
+  changeVipPriviledgeStatus,
+  changeShopStatus,
+  memberDetails,
+  changeClubStatus,
+
+  uploadImage,
+  addModule,
+  delModule,
+  addRoleModule,
+  deleteRoleModule,
+  addUserRole,
+  deleteUserRole,
+  getAllModules,
+  updateModule,
+  updateRoleModules,
+  updateUserRole,
+
+  addMemberRole,
+  addclubModule,
+  addclubMemberRoleModule
+};

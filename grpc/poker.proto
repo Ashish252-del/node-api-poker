@@ -1,0 +1,237 @@
+syntax = "proto3";
+
+message TableRoomDataRequest{
+  int64 roomId = 1;
+}
+
+message TableRoomDataResponse{
+  float buyIn = 1;
+  float smallBlind = 2;
+  float bigBlind = 3;
+  float animation = 4;
+  int32 maxPlayers = 5;
+  int32 minPlayers = 6;
+  bool status = 7;
+  string message = 8;
+  float commission = 9;
+  float commission_cap = 10;
+  int32 turn_timmer = 11;
+  int32 game_timmer = 12;
+  int32 prize_money = 13;
+  int32 default_stack = 14;
+  string game_blind_structure = 15;
+  string game_prize_structure = 16;
+  int32 rebuy_in_until_level = 17;
+  int32 add_on_until_level = 18;
+  string room_name = 19;
+  string private_table_code = 20;
+  int64 club_id = 21;
+  int64 selected_small_blind = 22;
+    int64 selected_big_blind = 23;
+    int64 selected_maximum_player = 24;
+    int64 selected_buyin = 25;
+    string password = 26;
+    string game_type_name = 27;
+    int64 minimum_buyin = 28;
+    int64 maximum_buyin = 29;
+    bool exclusive_table =30;
+    bool auto_start = 31;
+   int64 auto_start_player = 32;
+   bool is_table_started_by_owner = 33;
+   bool ban_chatting = 34;
+  bool runmulti_time = 35;
+  bool auto_extension = 36;
+  float auto_extension_time = 37;
+  bool auto_open = 38;
+  float table_time = 39;
+}
+
+message JoinTableDataRequest {
+  int64 userId = 1;
+  string userName = 2;
+  int32 chips = 3;
+  int64 tableId = 4;
+}
+
+message JoinTableAsViewerDataRequest {
+  int64 userId = 1;
+  int64 tableId = 4;
+}
+
+message JoinTournamentTableDataRequest {
+  repeated int64 userIds = 1;
+  int32 chips = 3;
+  int64 gameId = 4;
+}
+
+message MergeTableAndCreateNewTableRequest{
+  repeated PlayerAndStack playerAndStacks = 1;
+  int64 gameId = 2;
+}
+
+message PlayerAndStack{
+  int64 userId = 1;
+  int32 chips = 2;
+}
+
+message LeaveTableRequest {
+  int64 userId = 1;
+  int64 tableId = 2;
+  int32 amount = 3;
+}
+message isNewPlayerRequest {
+  int64 tableId = 1;
+  int64 userId = 2;
+}
+
+
+message PokerResultRequest {
+  int64 tableId = 1;
+  repeated int64 winners = 2;
+  repeated PokerPotResult pots = 3;
+  repeated PokerPlayerCardsAndChips playerCardsAndChips = 4;
+  repeated Card communityCards = 5;
+  repeated HandHistory handHistories = 6;
+}
+
+message HandHistory{
+  string bettingRound = 1;
+  repeated UserBetRecord userBetRecords = 2;
+}
+
+message UserBetRecord {
+  int64 userId = 1;
+  int32 betAmount = 2;
+  string action = 3;
+}
+
+message PokerPotResult {
+  int64 amount = 1;
+  repeated int64 winners = 2;
+}
+
+message PokerPlayerCardsAndChips {
+  int64 userId = 1;
+  int32 chips = 2;
+  repeated Card cards = 3;
+  repeated int64 bets = 4;
+  bool folded = 5;
+  bool allIn = 6;
+  string hand = 7;
+  string playerPosition = 8;
+  bool doesSeeFlop = 9;
+  bool doesReachShowdown = 10;
+  bool isMuckEnabled = 11;
+  bool isPlaying = 12;
+}
+
+message Card {
+  string cardRank = 1;
+  string cardSuit = 2;
+}
+
+message JoinTableDataResponse {
+  bool status = 1;
+  string message = 2;
+  int64 tableId = 3;
+  int64 roomId = 4;
+  string gameType = 5;
+  optional bool isRoomDisabledOrDeleted = 6;
+}
+
+message GenericResponse {
+  bool status = 1;
+  string message = 2;
+  string data = 3;
+   bool isNewPlayer = 4; 
+}
+
+message ChatMessage {
+  string message = 1;
+  int64 userId = 2;
+  int64 tableId = 3;
+}
+
+message ChatMessageRequest {
+  repeated ChatMessage chatMessages = 1;
+}
+
+message DeactivateTournamentRequest {
+  int64 gameId = 1;
+}
+
+
+message clubDataRequest{
+  int64 clubId = 1;
+}
+
+message clubDataResponse{
+    bool status = 1;
+    string message = 2;
+    int64 clubId = 3;
+    string clubOwnerId = 4;
+    string clubUniqueId = 5;
+}
+
+message clubList {
+  repeated clubDataResponse clubs = 1;
+}
+
+message UpdateTableRoomDataRequest{
+  int64 roomId = 1;
+  int64 userId = 2;
+  string roomAttributes = 3;
+  int64 club_id =4;
+}
+
+message UpdateTableRoomDataResponse{
+  string message = 1;
+}
+
+message Empty {}
+
+message JoinMultiTableDataRequest {
+  int64 userId = 1;
+  int32 gameId = 3;
+}
+
+message CloneTableRequest {
+    int64 tableId = 1;
+}
+
+ message JoinMultiTableDataResponse {
+   int32 game_id = 1;
+   string table_name = 2;
+  int64 game_table_id = 3;
+   string game_table_status = 4;
+   string game_category = 5;
+   string table_attributes = 6;
+}
+
+service TableRoomDataService{
+  rpc GetTableRoomData(TableRoomDataRequest) returns (TableRoomDataResponse);
+  rpc UpdateTableRoomData(UpdateTableRoomDataRequest) returns (UpdateTableRoomDataResponse);
+}
+
+service TableDataService {
+  rpc GetOrCreateTable(JoinTableDataRequest) returns (JoinTableDataResponse);
+  rpc UpdateStatusAndCloneTable(CloneTableRequest) returns (UpdateTableRoomDataResponse);
+  rpc CreateTableAndJoinTournament(JoinTournamentTableDataRequest) returns (JoinTableDataResponse);
+  rpc MergeTable(MergeTableAndCreateNewTableRequest) returns (JoinTableDataResponse);
+  rpc RemovePlayerFromTable(JoinTableDataRequest) returns (GenericResponse);
+  rpc SavePokerResult(PokerResultRequest) returns (JoinTableDataResponse);
+  rpc LeaveTable(LeaveTableRequest) returns (GenericResponse);
+  rpc IsNewPlayer(isNewPlayerRequest) returns (GenericResponse);
+
+  rpc DumpChatMessages(ChatMessageRequest) returns (GenericResponse);
+  rpc DeactivateTournament(DeactivateTournamentRequest) returns (GenericResponse);
+  rpc GetOrCreateMultiTable(JoinMultiTableDataRequest) returns (JoinMultiTableDataResponse);
+  rpc GetOrCreateTableForJoinViewer(JoinTableDataRequest) returns (JoinTableDataResponse);
+
+  rpc savePokerResultForClub(PokerResultRequest) returns (JoinTableDataResponse);
+}
+
+service TableClubRoomDataService{
+    rpc GetClubDetails(clubDataRequest) returns (clubDataResponse);
+    rpc GetAllClubs(Empty) returns (clubList);
+}

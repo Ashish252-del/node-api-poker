@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+
+message Tables {
+  repeated Table tables = 1;
+}
+
+message TableWrapper {
+  Table table = 1;
+}
+
+message Table {
+
+  message Communitycards {
+    optional string _rank = 1;
+    optional string _suit = 2;
+  }
+
+  message Deck {
+    optional string _rank = 1;
+    optional string _suit = 2;
+  }
+
+  message Holecards {
+    optional string _rank = 1;
+    optional string _suit = 2;
+  }
+
+  message Players {
+    optional uint32 bet = 1;
+    repeated uint32 pastBets = 2;
+    optional uint32 raise = 3;
+    repeated Holecards holeCards = 4;
+    optional bool folded = 5;
+    optional bool isAllIn = 6;
+    optional bool isPlaying = 7;
+    optional bool isSitOut = 8;
+    optional bool showCards = 9;
+    optional uint32 winAmount = 10;
+    optional bool left = 11;
+    optional uint32 turnTimer = 12;
+    optional uint32 seat = 13;
+    optional bool isUserConnected = 14;
+    optional bool isAdditionalTimeGiven = 15;
+    optional string id = 16;
+    optional uint32 userId = 17;
+    optional uint32 stackSize = 18;
+    optional string socketId = 19;
+    optional uint32 tableId = 20;
+    optional bool empty = 21;
+  }
+
+  message Holecards1 {
+    optional string _rank = 1;
+    optional string _suit = 2;
+  }
+
+  message Eligibleplayers {
+    optional uint32 bet = 1;
+    repeated uint32 pastBets = 2;
+    optional uint32 raise = 3;
+    repeated Holecards1 holeCards = 4;
+    optional bool folded = 5;
+    optional bool isAllIn = 6;
+    optional bool isPlaying = 7;
+    optional bool isSitOut = 8;
+    optional bool showCards = 9;
+    optional uint32 winAmount = 10;
+    optional bool left = 11;
+    optional uint32 turnTimer = 12;
+    optional uint32 seat = 13;
+    optional bool isUserConnected = 14;
+    optional bool isAdditionalTimeGiven = 15;
+    optional string id = 16;
+    optional uint32 userId = 17;
+    optional uint32 stackSize = 18;
+    optional string socketId = 19;
+    optional uint32 tableId = 20;
+  }
+
+  message Pots {
+    optional uint32 amount = 1;
+    repeated Eligibleplayers eligiblePlayers = 2;
+    repeated google.protobuf.Any winners = 3;
+  }
+
+  message Userbetrecords {
+    optional uint32 userId = 1;
+    optional uint32 betAmount = 2;
+    optional string action = 3;
+  }
+
+  message Handhistories {
+    optional string bettingRound = 1;
+    repeated Userbetrecords userBetRecords = 2;
+  }
+
+  optional bool autoMoveDealer = 1;
+  optional uint32 bigBlindPosition = 2;
+  repeated Communitycards communityCards = 3;
+  optional uint32 currentBet = 4;
+  optional uint32 roundBets = 5;
+  optional uint32 currentPosition = 6;
+  optional string currentRound = 7;
+  optional uint32 dealerPosition = 8;
+  optional bool debug = 9;
+  repeated Deck deck = 10;
+  optional uint32 handNumber = 11;
+  optional uint32 lastPosition = 12;
+  optional uint32 lastRaise = 13;
+  repeated Players players = 14;
+  optional uint32 totalCurrentPlayers = 15;
+  repeated Pots pots = 16;
+  repeated Handhistories handHistories = 17;
+  optional uint32 smallBlindPosition = 18;
+  repeated google.protobuf.Any winners = 19;
+  optional uint32 gameCounter = 20;
+  optional uint32 buyIn = 21;
+  optional uint32 smallBlind = 22;
+  optional uint32 bigBlind = 23;
+  optional uint32 animation = 24;
+  optional uint32 maxPlayers = 25;
+  optional uint32 tableId = 26;
+  optional string roomId = 27;
+  optional string gameType = 28;
+  optional bool betsGathered = 29;
+  optional string delayedAction = 30;
+  optional bool isTableInActive = 31;
+  optional uint32 inActiveCount = 32;
+}
+
+message GenericResponse {
+  optional bool status = 1;
+  optional string message = 2;
+  optional Tables data = 3;
+}
+
+service PokerDumpService{
+  rpc UpdatePokerDump(Tables) returns (GenericResponse);
+  rpc DumpSingleTable(TableWrapper) returns (GenericResponse);
+  rpc GetPokerDump(google.protobuf.Empty) returns (GenericResponse);
+}
