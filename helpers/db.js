@@ -77,6 +77,18 @@ async function initialize() {
     db.mission = require('../models/missionModel')(sequelize, DataTypes);
     db.club_level = require('../models/clubLevel')(sequelize, DataTypes);
     db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
+    db.avatar = require('../models/avatar')(sequelize,DataTypes);
+    db.ludo_chat_template = require('../models/ludo_chat_template')(sequelize, DataTypes);
+    db.ludo_emojis = require('../models/ludo_emojis')(sequelize,DataTypes);
+    db.ludo_game_history = require('../models/ludo_game_history')(sequelize,DataTypes);
+    db.ludo_game_type = require ('../models/ludo_game_type')(sequelize,DataTypes);
+    db.ludo_game_varient = require('../models/ludo_game_varient')(sequelize,DataTypes);
+    db.ludo_game = require('../models/ludo_game')(sequelize,DataTypes);
+    db.lodo_leaderboard = require('../models/ludo_leaderboard')(sequelize,DataTypes);
+    db.ludo_prize_structure = require('../models/ludo_prize_structure')(sequelize,DataTypes);
+    db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize,DataTypes);
+    db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize,DataTypes);
+    db.ludo_shop = require('../models/ludo_shop')(sequelize,DataTypes);
     db.user_log.belongsTo(db.users, {
         foreignKey: "user_id",
         as: "user_log_user",
@@ -140,7 +152,41 @@ async function initialize() {
         foreignKey: "clubId",
         as: "registered_club_id"
     })
+    db.users.belongsTo(db.avatar,{
+        foreignKey: 'avatarId',
+        // onDelete: 'SET NULL',
+        // onUpdate: 'CASCADE',
+   })
+    db.avatar.hasMany(db.users, {
+        foreignKey: 'avatarId',
+    })
+    db.ludo_game_history.belongsTo(db.ludo_game,{
+        foreignKey: "gameId",
+      });
+      db.ludo_game.hasMany(db.ludo_game_history , {
+        foreignKey: "gameId"
+      })
+      db.ludo_game_history.belongsTo(db.users,{
+        foreignKey: "userId",
+      });
+      db.users.hasMany(db.ludo_game_history, {
+        foreignKey: "userId",
+      });
+      db.ludo_game.belongsTo(db.ludo_game_type,{
+        foreignKey: "type_id",
+      });
+      db.ludo_game_type.hasMany(db.ludo_game, {
+        foreignKey: "type_id",
+      });
+      db.ludo_game.belongsTo(db.ludo_game_varient,{
+        foreignKey: "varient_id",
+      });
+      db.ludo_game_varient.hasMany(db.ludo_game, {
+        foreignKey: "varient_id",
+      });
+      
     
+     
     // sync all models with database
      await sequelize.sync({alter: true});
 }
