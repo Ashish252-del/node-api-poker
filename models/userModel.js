@@ -164,6 +164,30 @@ function model(sequelize) {
             values: ["0", "1"],
             defaultValue: "0"
         },
+        isBot:{
+            type: DataTypes.BOOLEAN,
+            defaultValue:false
+          },
+          inGame:{
+            type:DataTypes.BOOLEAN,
+            defaultValue: false,
+            allowNull:false
+            
+          },
+          avatarId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 1
+        },
+        gmailUserId: {
+          type: DataTypes.STRING,
+          allowNull: true
+      },
+      isFirstTime:{
+        type:DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue:1
+      },
         added_by: {
             type: DataTypes.INTEGER,
             allowNull: true
