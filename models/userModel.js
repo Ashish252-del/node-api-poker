@@ -176,8 +176,8 @@ function model(sequelize) {
           },
           avatarId: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1
+            allowNull: true,
+           // defaultValue: 1
         },
         gmailUserId: {
           type: DataTypes.STRING,
