@@ -153,7 +153,9 @@ async function initialize() {
         as: "registered_club_id"
     })
     db.users.belongsTo(db.avatar,{
-        foreignKey: 'avatarId'
+        foreignKey: 'avatarId',
+        // onDelete: 'SET NULL',
+        // onUpdate: 'CASCADE',
    })
     db.avatar.hasMany(db.users, {
         foreignKey: 'avatarId',
