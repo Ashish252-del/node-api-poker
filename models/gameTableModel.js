@@ -34,22 +34,6 @@ function model(sequelize) {
             allowNull: false,
             defaultValue: 0
         },
-        players: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
-        bet_amount: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        percentage: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        winner: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
         game_table_status:{
             type: DataTypes.ENUM,
             allowNull: false,
