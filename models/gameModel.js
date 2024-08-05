@@ -83,6 +83,36 @@ function model(sequelize) {
             allowNull:false,
             defaultValue:0 // 0 means it's not a private table
           },
+
+        name : {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        bet_amount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        percentage: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        table_type: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        target_lines: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        prize: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        win_amount: {
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0.00
+        },
         updated_by: {
             type: DataTypes.INTEGER,
             allowNull: true
