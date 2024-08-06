@@ -25,6 +25,11 @@ function model(sequelize) {
                 msg: "Username already in use!",
             },
         },
+        is_login: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: false,
+        },
         email: {
             type: DataTypes.STRING,
             allowNull: true,
