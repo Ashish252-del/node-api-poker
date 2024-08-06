@@ -227,6 +227,10 @@ function model(sequelize) {
         allowNull: false,
         defaultValue:1
       },
+        app_version: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         added_by: {
             type: DataTypes.INTEGER,
             allowNull: true
