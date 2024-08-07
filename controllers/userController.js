@@ -3255,6 +3255,26 @@ const addPrizeMoneyForClub = async (addPrizeMoneyReq) => {
         }
     }
 }
+
+const logout = async (req, res) => {
+    let responseData = {}
+    try {
+        const userId = req.user.user_id;
+        let query = {user_id: userId}
+        let getUser = await userService.getUserDetailsById(query);
+        if (!getUser) {
+            responseData.msg = 'No User Found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        await userService.updateUserByQuery({is_login: '0'}, query);
+        responseData.msg = 'User logout successfully!!!';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+};
 module.exports = {
     sendOtp,
     verifyOtp,
@@ -3305,5 +3325,7 @@ module.exports = {
     updateLockBalanceOfUserForTableForClub,
     unlockBalanceOfUserForClub,
     addPrizeMoneyForClub,
-    topUpBalanceOfUserForClub
+    topUpBalanceOfUserForClub,
+
+    logout
 }
