@@ -2,6 +2,7 @@ const grpc = require("@grpc/grpc-js");
 const USER_PROTO_PATH = __dirname + "/user.proto";
 const POKER_PROTO_PATH = __dirname + "/poker.proto";
 const POKER_DATA_DUMP_PROTO_PATH = __dirname + "/pokerTable.proto";
+const RUMMY_PROTO_PATH = __dirname + "/rummy.proto";
 require("dotenv").config();
 const process = require('process');
 let protoLoader = require("@grpc/proto-loader");
@@ -36,6 +37,17 @@ const {
    getClubDetails,
    getAllCLubsDetails
 } = require("../controllers/clubController");
+const {
+   get_all_rummyGames,
+   save_history,
+   get_singleGame,
+   getUserWalletDataForRummy,
+   getRummyTournaments,
+   registerPlayersForRummyTrournament,
+   getTournamentRegisteredPlayers,
+   getRummyTournamentById,
+} = require('../controllers/rummyController')
+
 const options = {
    keepCase: true,
    longs: String,
@@ -47,10 +59,13 @@ const options = {
 let userPackageDefinition = protoLoader.loadSync(USER_PROTO_PATH, options);
 let pokerPackageDefinition = protoLoader.loadSync(POKER_PROTO_PATH, options);
 let pokerTableDumpPackageDefinition = protoLoader.loadSync(POKER_DATA_DUMP_PROTO_PATH, options);
+let rummyPackageDefination = protoLoader.loadSync(RUMMY_PROTO_PATH, options);
 
 const userProto = grpc.loadPackageDefinition(userPackageDefinition);
 const pokerProto = grpc.loadPackageDefinition(pokerPackageDefinition);
 const pokerTableDumpProto = grpc.loadPackageDefinition(pokerTableDumpPackageDefinition);
+const rummyProto = grpc.loadPackageDefinition(rummyPackageDefination);
+
 const server = new grpc.Server();
 
 server.addService(userProto.BalanceUpdateService.service, {
@@ -283,6 +298,83 @@ server.addService(pokerProto.TableClubRoomDataService.service, {
     callback(null,res)
    }
 });
+
+server.addService(rummyProto.GameDataService.service, {
+   GetGameData: async (_, callback) => {
+      //  console.log(call.request)
+      try {
+         let res = await get_all_rummyGames({});
+         callback(null, res
+         )
+      } catch (error) {
+         console.log('error occured in grpc service ', error);
+      }
+   },
+   SaveGameHistory: async (call, callback) => {
+      try {
+         let res = await save_history(call.request);
+         callback(null, res
+         )
+      } catch (error) {
+         console.log('error occured in grpc service ', error);
+      }
+   },
+   GetSingleGame: async (call, callback) => {
+      try {
+         let res = await get_singleGame(call.request, callback);
+         callback(null, res)
+      } catch (error) {
+         console.log('error occured in grpc service ', error);
+      }
+   },
+   getUserWalletData: async (call, callback) => {
+      let res = await getUserWalletDataForRummy(call.request);
+      callback(null, res);
+   },
+   registerPlayersForRummyTournament: async (call, callback) => {
+      try {
+         let res = await registerPlayersForRummyTrournament(call.request, callback);
+         if(res.message == "tournament already started"){
+            const error = new Error('tournament already started');
+            error.code = grpc.status.NOT_FOUND;
+            return callback(error);
+         }
+         if(res.message == "user already registered for this tournament"){
+            const error = new Error('user already registered for this tournament');
+            error.code = grpc.status.NOT_FOUND;
+            return callback(error);
+         }
+         callback(null, res);
+      } catch (error) {
+         console.log('error occured in send toruanment rummy grpc ', error);
+         callback(error);
+      }
+   },
+   getRummyTournamentData : async (_, callback) => {
+      try {
+         let res = await getRummyTournaments({});
+         callback(null, res);
+      } catch (error) {
+         console.log('error occured in send toruanment rummy grpc ', error);
+      }
+   },
+   getRummyTournamentDataById: async (call, callback) => {
+      try {
+         let res = await getRummyTournamentById(call.request, callback);
+         callback(null, res);
+      } catch (error) {
+         console.log('error occured in send toruanment rummy grpc ', error);
+      }
+   },
+   getTournamentRegisteredPlayersData: async (call, callback) => {
+      try {
+         let res = await getTournamentRegisteredPlayers(call.request);
+         callback(null, res);
+      } catch (error) {
+         console.log('error occured in send toruanment rummy grpc ', error);
+      }
+   },
+})
 
 server.bindAsync(
     process.env.GRPC_SERVER_URL,

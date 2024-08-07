@@ -51,6 +51,7 @@ const uploadImage = multer({
     storage: s3Storage,
 })
 module.exports = () => {
+    routes.get("/running-tables-rummy",authenticate, adminController.running_tables_rummy);
     routes.post("/forgot-password", forgot(), validate201, adminController.forgotPassword);
     routes.post("/verify-otp-for-forgot-password", verifyOtp(), validate201, adminController.verifyOtpForForgotPassword);
     routes.post("/reset-password", resetPassword(), validate201, adminController.resetPassword);

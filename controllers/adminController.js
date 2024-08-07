@@ -599,25 +599,37 @@ const changeGameTypeStatus = async (req, res) => {
 const changeGameStatus = async (req, res) => {
   let responseData = {};
   try {
-    const { id, status } = req.body;
-    let checkRole = await adminService.getGameByQuery({ game_id: id });
-    if (!checkRole) {
-      responseData.msg = "Game not found";
-      return responseHelper.error(res, responseData, 201);
-    }
-    await (await getRedisClient()).del("ROOM", "" + id);
-    let roleObj = {
-      game_status: status,
-      updated_by: req.user.admin_id,
-    };
-    await adminService.updateGameById(roleObj, { game_id: id });
-    responseData.msg = "Status Updated";
-    return responseHelper.success(res, responseData);
-  } catch (error) {
-    responseData.msg = error.message;
-    return responseHelper.error(res, responseData, 500);
+      const {id, status} = req.body;
+      let checkRole = await adminService.getGameByQuery({game_id: id});
+      if (!checkRole) {
+          responseData.msg = 'Game not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+    if(checkRole.game_category_id == 2)  await (await getRedisClient()).del("ROOM"); // for poker 
+    if(checkRole.game_category_id == 3 && await (await getRedisClient()).hExists("gameRules", ""+id)) {
+      let currentGamesRules = JSON.parse(await (await getRedisClient()).hGet("gameRules", ""+id));
+      let game = await (await getRedisClient()).hGet("games", ""+id)
+      if(game) {game = JSON.parse(game); 
+      if(game.rooms.length>0)
+     { currentGamesRules.isDeleted = 1; 
+      await (await getRedisClient()).hSet("gameRules", ""+id, JSON.stringify(currentGamesRules));}
   }
-};
+      else {
+          await (await getRedisClient()).hDel("gameRules", ""+id)
+      }
+    }
+      let roleObj = {
+          game_status: status,
+          updated_by: req.user.admin_id
+      }
+      await adminService.updateGameById(roleObj, {game_id: id});
+      responseData.msg = 'Status Updated';
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
 
 const addGameType = async (req, res) => {
   let responseData = {};
@@ -780,7 +792,7 @@ const updategameTypeById = async (req, res) => {
   }
 };
 
-// game_category_id == 2 for poker
+// game_category_id == 2 for poker,  game_category_id==3 for rummy
 const createGame = async (req, res) => {
   let responseData = {};
   try {
@@ -791,11 +803,17 @@ const createGame = async (req, res) => {
       game_blind_structure_json_data,
       game_price_json_data,
     } = req.body;
-
+    let name = '';
+    let varient = '';
+    if(game_category_id==4){
+      name = game_json_data.Name
+      varient = game_json_data.varient_id
+  }
     let data = {
       game_category_id: game_category_id,
       game_type_id: game_type_id,
-      game_name: "",
+      game_name: name+"",
+      varient_id: varient,
       game_json_data: JSON.stringify(game_json_data),
       added_by: req.user.admin_id,
       club_id: 0,
@@ -833,9 +851,12 @@ const createGame = async (req, res) => {
 const gameList = async (req, res) => {
   let responseData = {};
   try {
-    let getData = await adminService.getAllGameList({
-      game_status: { [Op.ne]: "3" },
-    });
+    let getData;
+    if(req.query.is_tournament){
+      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
+  }else{
+      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_id:'0', is_tournament:{[Op.ne]: '1'}});
+  }
     if (!getData) {
       responseData.msg = "Game List not found";
       return responseHelper.error(res, responseData, 201);
@@ -924,42 +945,63 @@ const gameDetail = async (req, res) => {
 const updateGame = async (req, res) => {
   let responseData = {};
   try {
-    let {
-      game_id,
-      game_category_id,
-      game_type_id,
-      game_json_data,
-      game_price_json_data,
-      game_blind_structure_json_data,
-    } = req.body;
-    game_json_data.rummy_code = "1";
-    let data = {
-      game_category_id: game_category_id,
-      game_type_id: game_type_id,
-      game_name: "",
-      game_json_data: JSON.stringify(game_json_data),
-      // game_price_json_data: JSON.stringify(game_price_json_data),
-      // game_blind_structure_json_data: JSON.stringify(game_blind_structure_json_data),
-      updated_by: req.user.admin_id,
-      club_id: 0,
-      is_club_template: 0,
-    };
-    let getData = await adminService.getGameByQuery({ game_id: game_id });
-    if (!getData) {
-      responseData.msg = "Game Data not found";
-      return responseHelper.error(res, responseData, 201);
+      let {game_id, game_category_id, game_type_id, game_json_data, game_price_json_data, game_blind_structure_json_data} = req.body;
+      game_json_data.rummy_code = "1";
+      let name = '';
+      let varient = '';
+      if(game_category_id==4){
+          name = game_json_data.Name
+          varient = game_json_data.varient_id
+      }
+      let data = {
+          game_category_id: game_category_id,
+          game_type_id: game_type_id,
+          game_name: name,
+          varient_id: varient,
+          game_json_data: JSON.stringify(game_json_data),
+          // game_price_json_data: JSON.stringify(game_price_json_data),
+          // game_blind_structure_json_data: JSON.stringify(game_blind_structure_json_data),
+          updated_by: req.user.admin_id
+      }
+      let getData = await adminService.getGameByQuery({game_id: game_id});
+      if (!getData) {
+          responseData.msg = 'Game Data not found';
+          console.error("---------------------Game Data not found -----------");
+          return responseHelper.error(res, responseData, 201);
+      }
+      let updateData = await adminService.updateGameById(data, {game_id: game_id});
+    if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker 
+    if(game_category_id == 3) {
+      let updatedGamerules = {};
+      updatedGamerules.gameId = game_id;
+      updatedGamerules.rummy_code = parseInt(game_json_data.rummy_code);
+      updatedGamerules.Max_Player = parseInt(game_json_data.maximum_player);
+      updatedGamerules.Comission  = parseInt(game_json_data.commission);
+      updatedGamerules.Name       = parseInt(game_json_data.name);
+      if(game_json_data.rummy_code == 1) {
+          updatedGamerules.Points = parseInt(game_json_data.point_value); 
+          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+          if(game_json_data.is_practice) updatedGamerules.is_practice = parseInt(game_json_data.is_practice)
+      }
+      if(game_json_data.rummy_code == 2) {
+          updatedGamerules.break_Score = parseInt(game_json_data.pool_type); 
+          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+
+      }
+      if(game_json_data.rummy_code == 3) {
+          updatedGamerules.Points = parseInt(game_json_data.point_value); 
+          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+          updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
+      }
+      await (await getRedisClient()).hSet("gameRules", ""+game_id, JSON.stringify(updatedGamerules));
     }
-    let updateData = await adminService.updateGameById(data, {
-      game_id: game_id,
-    });
-    responseData.msg = "Game Update Successfully";
-    await (await getRedisClient()).del("ROOM");
-    return responseHelper.success(res, responseData);
+      responseData.msg = 'Game Update Successfully';
+      return responseHelper.success(res, responseData);
   } catch (error) {
-    responseData.msg = error.message;
-    return responseHelper.error(res, responseData, 500);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
   }
-};
+}
 
 const dashboard = async (req, res) => {
   let responseData = {};
@@ -1528,291 +1570,380 @@ const updateUserProfile = async (req, res) => {
 const getGameFields = async (req, res) => {
   let responseData = {};
   try {
-    let gameType = req.query.name;
-    let subType = req.query.sub_name;
-    let field;
-    if (gameType == "Poker") {
-      var text = subType.toLowerCase();
-      if (text.toLowerCase().includes("sit n go")) {
-        field = [
-          {
-            field: "Room Name",
-            field_type: "String",
-            key: "room_name",
-          },
-          {
-            field: "Players",
-            field_type: "Number",
-            key: "maximum_player",
-          },
-          {
-            field: "Entry Fee",
-            field_type: "Number",
-            key: "minimum_buyin",
-          },
-          {
-            field: "Ante",
-            field_type: "Number",
-            key: "ante",
-          },
-          {
-            field: "Small Blind",
-            field_type: "Number",
-            key: "small_blind",
-          },
-          {
-            field: "Big Blind",
-            field_type: "Number",
-            key: "big_blind",
-          },
-          {
-            field: "Time Interval",
-            field_type: "Number",
-            key: "time_interval",
-          },
-          {
-            field: "Commission(%)",
-            field_type: "Number",
-            key: "commission",
-          },
-          {
-            field: "Commission Cap",
-            field_type: "Number",
-            key: "commission_cap",
-          },
-          {
-            field: "Turn Timmer",
-            field_type: "Number",
-            key: "turn_timmer",
-          },
-          {
-            field: "Multi Run",
-            field_type: "Boolean",
-            key: "multi_run",
-          },
-          {
-            field: "Game Timmer",
-            field_type: "Number",
-            key: "game_timmer",
-          },
-          {
-            field: "Prize Money",
-            field_type: "Number",
-            key: "prize_money",
-          },
-          {
-            field: "Default Stack",
-            field_type: "Number",
-            key: "default_stack",
-          },
-          {
-            field: "Game Blind Structure",
-            field_type: "Number",
-            key: "game_blind_id",
-          },
-          {
-            field: "Game Prize Structure",
-            field_type: "Number",
-            key: "game_prize_id",
-          },
-        ];
-      } else if (text.toLowerCase().includes("tournament")) {
-        field = [
-          {
-            field: "Room Name",
-            field_type: "String",
-            key: "room_name",
-          },
-          {
-            field: "Maximum Players for tournament",
-            field_type: "Number",
-            key: "maximum_player",
-          },
-          {
-            field: "Maximum Players on Table",
-            field_type: "Number",
-            key: "maximum_player_in_table",
-          },
-          {
-            field: "Minimum Players for tournament",
-            field_type: "Number",
-            key: "minimum_player",
-          },
-          {
-            field: "Entry Fee",
-            field_type: "Number",
-            key: "minimum_buyin",
-          },
-          {
-            field: "Ante",
-            field_type: "Number",
-            key: "ante",
-          },
-          {
-            field: "Small Blind",
-            field_type: "Number",
-            key: "small_blind",
-          },
-          {
-            field: "Big Blind",
-            field_type: "Number",
-            key: "big_blind",
-          },
-          {
-            field: "Time Interval",
-            field_type: "Number",
-            key: "time_interval",
-          },
-          {
-            field: "Commission(%)",
-            field_type: "Number",
-            key: "commission",
-          },
-          {
-            field: "Commission Cap",
-            field_type: "Number",
-            key: "commission_cap",
-          },
-          {
-            field: "Turn Timmer",
-            field_type: "Number",
-            key: "turn_timmer",
-          },
-          {
-            field: "Multi Run",
-            field_type: "Boolean",
-            key: "multi_run",
-          },
-          {
-            field: "Game Timmer",
-            field_type: "Number",
-            key: "game_timmer",
-          },
-          {
-            field: "Prize Money",
-            field_type: "Number",
-            key: "prize_money",
-          },
-          {
-            field: "Default Stack",
-            field_type: "Number",
-            key: "default_stack",
-          },
-          {
-            field: "Start Date and Time",
-            field_type: "Number",
-            key: "start_date",
-          },
-          {
-            field: "Registration Start Date and Time",
-            field_type: "Number",
-            key: "registration_start_date",
-          },
-          {
-            field: "Registration End Date and Time",
-            field_type: "Number",
-            key: "registration_end_date",
-          },
-          {
-            field: "Rebuy In Until Level",
-            field_type: "Number",
-            key: "rebuy_in_until_level",
-          },
-          {
-            field: "Add on Until Level",
-            field_type: "Number",
-            key: "add_on_until_level",
-          },
-          {
-            field: "Game Blind Structure",
-            field_type: "Number",
-            key: "game_blind_id",
-          },
-          {
-            field: "Game Prize Structure",
-            field_type: "Number",
-            key: "game_prize_id",
-          },
-        ];
-      } else {
-        field = [
-          {
-            field: "Room Name",
-            field_type: "String",
-            key: "room_name",
-          },
+      let gameType = req.query.name;
+      let subType = req.query.sub_name;
 
-          {
-            field: "Minimum Player",
-            field_type: "Number",
-            key: "minimum_player",
-          },
-          {
-            field: "Maximum Player",
-            field_type: "Number",
-            key: "maximum_player",
-          },
-          {
-            field: "Minimum BuyIn",
-            field_type: "Number",
-            key: "minimum_buyin",
-          },
-          {
-            field: "Maximum BuyIn",
-            field_type: "Number",
-            key: "maximum_buyin",
-          },
-          {
-            field: "Small Blind",
-            field_type: "Number",
-            key: "small_blind",
-          },
-          {
-            field: "Big Blind",
-            field_type: "Number",
-            key: "big_blind",
-          },
-          {
-            field: "Commission(%)",
-            field_type: "Number",
-            key: "commission",
-          },
-          {
-            field: "Commission Cap",
-            field_type: "Number",
-            key: "commission_cap",
-          },
-          {
-            field: "Turn Timmer",
-            field_type: "Number",
-            key: "turn_timmer",
-          },
-          {
-            field: "Multi Run",
-            field_type: "Boolean",
-            key: "multi_run",
-          },
-          {
-            field: "Game Timmer",
-            field_type: "Number",
-            key: "game_timmer",
-          },
-          {
-            field: "Default Stack",
-            field_type: "Number",
-            key: "default_stack",
-          },
-        ];
+      // let checkGameFields = await adminService.getGameTypeByQuery({game_type_id: subType,game_category_id:gameType})
+      // if(!checkGameFields.game_fields_json_data){
+      //     responseData.msg = 'Please add fields from game category';
+      //     return responseHelper.error(res, responseData, 201);
+      // }
+      // let gamefield = [];
+      // let gameFieldData = JSON.parse(checkGameFields.game_fields_json_data, true);
+      // console.log(gameFieldData);
+      // gameFieldData = gameFieldData.map((element) => {
+      //     let result = {
+      //         'field': element.field_name,
+      //         'field_type': element.field_name,
+      //         'key': element.field_key,
+      //         'is_required': element.is_required
+      //     }
+      //     gamefield.push(result);
+      // })
+      //console.log(gameFieldData);
+      //return false;
+      let field;
+      if (gameType == 'Poker') {
+          var text = subType.toLowerCase();
+          if (text.includes("sit n go")) {
+              field = [
+                  {
+                      'field': 'Room Name',
+                      'field_type': 'String',
+                      'key': 'room_name'
+                  },
+                  {
+                      'field': 'Players',
+                      'field_type': 'Number',
+                      'key': 'maximum_player'
+                  }, {
+                      'field': 'Entry Fee',
+                      'field_type': 'Number',
+                      'key': 'minimum_buyin'
+                  }, {
+                      'field': 'Ante',
+                      'field_type': 'Number',
+                      'key': 'ante'
+                  }, {
+                      'field': 'Small Blind',
+                      'field_type': 'Number',
+                      'key': 'small_blind'
+                  }, {
+                      'field': 'Big Blind',
+                      'field_type': 'Number',
+                      'key': 'big_blind'
+                  }, {
+                      'field': 'Time Interval',
+                      'field_type': 'Number',
+                      'key': 'time_interval'
+                  }, {
+                      'field': 'Commission(%)',
+                      'field_type': 'Number',
+                      'key': 'commission'
+                  }, {
+                      'field': 'Commission Cap',
+                      'field_type': 'Number',
+                      'key': 'commission_cap'
+                  }, {
+                      'field': 'Turn Timmer',
+                      'field_type': 'Number',
+                      'key': 'turn_timmer'
+                  }, {
+                      'field': 'Multi Run',
+                      'field_type': 'Boolean',
+                      'key': 'multi_run'
+                  }, {
+                      'field': 'Game Timmer',
+                      'field_type': 'Number',
+                      'key': 'game_timmer'
+                  },
+                  {
+                      'field': 'Prize Money',
+                      'field_type': 'Number',
+                      'key': 'prize_money'
+                  },
+                  {
+                      'field': 'Default Stack',
+                      'field_type': 'Number',
+                      'key': 'default_stack'
+                  },
+                  {
+                      'field': 'Game Blind Structure',
+                      'field_type': 'Number',
+                      'key': 'game_blind_id'
+                  },
+                  {
+                      'field': 'Game Prize Structure',
+                      'field_type': 'Number',
+                      'key': 'game_prize_id'
+                  },
+              ];
+          } else if (text.toLowerCase().includes("tournament")) {
+              field = [
+                  {
+                      'field': 'Room Name',
+                      'field_type': 'String',
+                      'key': 'room_name'
+                  }, {
+                      'field': 'Maximum Players for tournament',
+                      'field_type': 'Number',
+                      'key': 'maximum_player'
+                  }, {
+                      'field': 'Maximum Players on Table',
+                      'field_type': 'Number',
+                      'key': 'maximum_player_in_table'
+                  },
+                  {
+                      'field': 'Minimum Players for tournament',
+                      'field_type': 'Number',
+                      'key': 'minimum_player'
+                  },
+                  {
+                      'field': 'Entry Fee',
+                      'field_type': 'Number',
+                      'key': 'minimum_buyin'
+                  }, {
+                      'field': 'Ante',
+                      'field_type': 'Number',
+                      'key': 'ante'
+                  }, {
+                      'field': 'Small Blind',
+                      'field_type': 'Number',
+                      'key': 'small_blind'
+                  }, {
+                      'field': 'Big Blind',
+                      'field_type': 'Number',
+                      'key': 'big_blind'
+                  }, {
+                      'field': 'Time Interval',
+                      'field_type': 'Number',
+                      'key': 'time_interval'
+                  }, {
+                      'field': 'Commission(%)',
+                      'field_type': 'Number',
+                      'key': 'commission'
+                  }, {
+                      'field': 'Commission Cap',
+                      'field_type': 'Number',
+                      'key': 'commission_cap'
+                  }, {
+                      'field': 'Turn Timmer',
+                      'field_type': 'Number',
+                      'key': 'turn_timmer'
+                  }, {
+                      'field': 'Multi Run',
+                      'field_type': 'Boolean',
+                      'key': 'multi_run'
+                  }, {
+                      'field': 'Game Timmer',
+                      'field_type': 'Number',
+                      'key': 'game_timmer'
+                  },
+                  {
+                      'field': 'Prize Money',
+                      'field_type': 'Number',
+                      'key': 'prize_money'
+                  },
+                  {
+                      'field': 'Default Stack',
+                      'field_type': 'Number',
+                      'key': 'default_stack'
+                  },
+                  {
+                      'field': 'Start Date and Time',
+                      'field_type': 'Number',
+                      'key': 'start_date'
+                  },
+                  {
+                      'field': 'Registration Start Date and Time',
+                      'field_type': 'Number',
+                      'key': 'registration_start_date'
+                  },
+                  {
+                      'field': 'Registration End Date and Time',
+                      'field_type': 'Number',
+                      'key': 'registration_end_date'
+                  },
+                  {
+                      'field': 'Rebuy In Until Level',
+                      'field_type': 'Number',
+                      'key': 'rebuy_in_until_level'
+                  },
+                  {
+                      'field': 'Add on Until Level',
+                      'field_type': 'Number',
+                      'key': 'add_on_until_level'
+                  },
+                  {
+                      'field': 'Game Blind Structure',
+                      'field_type': 'Number',
+                      'key': 'game_blind_id'
+                  },
+                  {
+                      'field': 'Game Prize Structure',
+                      'field_type': 'Number',
+                      'key': 'game_prize_id'
+                  },
+              ];
+          } else {
+              field = [
+                  {
+                      'field': 'Room Name',
+                      'field_type': 'String',
+                      'key': 'room_name'
+                  },
+
+                  {
+                      'field': 'Minimum Player',
+                      'field_type': 'Number',
+                      'key': 'minimum_player'
+                  }, {
+                      'field': 'Maximum Player',
+                      'field_type': 'Number',
+                      'key': 'maximum_player'
+                  }, {
+                      'field': 'Minimum BuyIn',
+                      'field_type': 'Number',
+                      'key': 'minimum_buyin'
+                  }, {
+                      'field': 'Maximum BuyIn',
+                      'field_type': 'Number',
+                      'key': 'maximum_buyin'
+                  }, {
+                      'field': 'Small Blind',
+                      'field_type': 'Number',
+                      'key': 'small_blind'
+                  }, {
+                      'field': 'Big Blind',
+                      'field_type': 'Number',
+                      'key': 'big_blind'
+                  }, {
+                      'field': 'Commission(%)',
+                      'field_type': 'Number',
+                      'key': 'commission'
+                  }, {
+                      'field': 'Commission Cap',
+                      'field_type': 'Number',
+                      'key': 'commission_cap'
+                  }, {
+                      'field': 'Turn Timmer',
+                      'field_type': 'Number',
+                      'key': 'turn_timmer'
+                  }, {
+                      'field': 'Multi Run',
+                      'field_type': 'Boolean',
+                      'key': 'multi_run'
+                  }, {
+                      'field': 'Game Timmer',
+                      'field_type': 'Number',
+                      'key': 'game_timmer'
+                  },
+                  {
+                      'field': 'Default Stack',
+                      'field_type': 'Number',
+                      'key': 'default_stack'
+                  }
+              ];
+          }
+
       }
-    }
-    responseData.msg = "Get Form Fields";
-    responseData.data = field;
-    return responseHelper.success(res, responseData);
+      if (gameType == 'Pool') {
+          field = [
+              {
+                  'field': 'Name',
+                  'field_type': 'Text',
+                  'key': 'name'
+              }, {
+                  'field': 'Description',
+                  'field_type': 'Text',
+                  'key': 'description'
+              }, {
+                  'field': 'BuyIn Amount',
+                  'field_type': 'Number',
+                  'key': 'buyin_amount'
+              }, {
+                  'field': 'Status',
+                  'field_type': 'Text',
+                  'key': 'status'
+              }, {
+                  'field': 'Game Type',
+                  'field_type': 'Enum',
+                  'key': 'game_type'
+              }
+          ];
+      }
+      if (gameType == 'Rummy') {
+          field = [
+              {
+                  'field': 'Rummy Code',
+                  'field_type': 'Number',
+                  'key': 'rummy_code'
+              },
+              {
+                  'field': 'Maximum Player',
+                  'field_type': 'Number',
+                  'key': 'maximum_player'
+              },
+              {
+                  'field': 'Name',
+                  'field_type': 'String',
+                  'key': 'name'
+              },
+              {
+                  'field': 'Commission(%)',
+                  'field_type': 'Number',
+                  'key': 'commission'
+              },
+              {
+                  'field': 'Entry Fee',
+                  'field_type': 'Number',
+                  'key': 'entry_fee'
+              }
+          ];
+          if (subType == 'Pool') field.push({
+              'field': 'Pool Type',
+              'field_type': 'Number',
+              'key': 'pool_type'
+          })
+          if (subType == 'Point') field.push(
+              {
+                  'field': 'Point Value',
+                  'field_type': 'Number',
+                  'key': 'point_value'
+              },
+              {
+                  'field': 'Is Practice',
+                  'field_type': 'Number',
+                  'key': 'is_practice'
+              }
+          )
+          if (subType == 'Deal') field.push({
+                  'field': 'Point Value',
+                  'field_type': 'Number',
+                  'key': 'point_value'
+              }, {
+                  'field': 'Deal Type',
+                  'field_type': 'Number',
+                  'key': 'deal_type'
+              }
+          )
+      }
+      if (gameType == 'Ludo') {
+          field = [
+              {
+                  'field': 'Name',
+                  'field_type': 'Text',
+                  'key': 'Name'
+              },{
+                  'field': 'Varient',
+                  'field_type': 'Dropdown',
+                  'key': 'varient_id'
+              },
+              {
+                  'field': 'Commission(%)',
+                  'field_type': 'Number',
+                  'key': 'commission'
+              },
+          ];
+      }
+      responseData.msg = 'Get Form Fields';
+      responseData.data = field;
+      return responseHelper.success(res, responseData);
   } catch (error) {
-    responseData.msg = error.message;
-    return responseHelper.error(res, responseData, 500);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
   }
-};
+}
 
 const forgotPassword = async (req, res) => {
   let reqObj = req.body;
@@ -3277,6 +3408,47 @@ const  addclubMemberRoleModule= async (req, res) => {
   }
 };
 
+const running_tables_rummy = async (req, res) => {
+  try {
+      let redisClient = await getRedisClient();
+      let rooms = await redisClient.hGetAll("ROOMS");
+      
+      // Define page size and get page number from request parameters
+      const pageSize = 10;
+      const page = parseInt(req.query.page) || 1;
+
+      // Calculate start and end indices for pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+
+      // Filter and paginate the rooms
+      let data = [];
+      for (const roomId in rooms) {
+          let roomString = rooms[roomId];
+          let room = JSON.parse(roomString);
+          let roomData = {
+              roomId: room.roomId,
+              playerCount: room.playerCount,
+              gameId: room.gameId,
+              gameRules: room.gameRules
+          };
+          data.push(roomData);
+
+          // Break loop if reached the end index
+          if (data.length >= pageSize) break;
+      }
+
+      // Calculate total number of pages
+      const totalRooms = Object.keys(rooms).length;
+      const totalPages = Math.ceil(totalRooms / pageSize);
+
+      // Send the filtered rooms and total pages in the response
+      res.status(200).json({ Data: data, totalcount: totalRooms, totalPages });
+  } catch (error) {
+      console.log("Error fetching rooms from Redis:", error);
+      res.status(500).json({ error: "Error fetching rooms from Redis" });
+  }
+}
 
 // addMemberRole
 
@@ -3372,5 +3544,6 @@ module.exports = {
 
   addMemberRole,
   addclubModule,
-  addclubMemberRoleModule
+  addclubMemberRoleModule,
+  running_tables_rummy
 };
