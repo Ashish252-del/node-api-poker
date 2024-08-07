@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+message gameDataRequest{
+  int64 roomId = 1;
+}
+message Empty {}
+message gameDataResponse{
+  int64 gameId = 1;
+  int64 rummy_code = 2;
+  int32 noOfDecks = 3;
+  int32 Points = 4;
+  int32 Max_Player = 5;
+  int32 Min_Chips = 6;
+  int32 Comission = 7;
+  string Name = 8;
+  int32 break_Round = 9;
+  int32 break_Score = 10;
+  int32 is_practice = 11;
+
+}
+message GameList {
+   repeated gameDataResponse games = 1;
+}
+message Game_histroy {
+  string history = 1;
+}
+message Success {
+  string Success = 1;
+}
+
+message TournamentRequestId {
+  int64 tournament_id = 1;
+}
+
+message GameRequestId {
+  int64 gameId = 1;
+}
+
+message userWalletRequest {
+  int64 id = 1;
+}
+
+message userWalletResponse {
+  string data = 1;
+     bool status = 2;
+     string message = 3;
+}
+
+message bonusDataResponse {
+  string data = 1;
+     bool status = 2;
+     string message = 3;
+}
+
+message tournamentDataResponse{
+  int64 id= 1;
+  string tournament_name =2;
+  string tournament_json_data= 3;
+}
+
+message tournaments {
+  repeated tournamentDataResponse tourneys = 1;
+}
+
+message tournamentByIdDataResponse {
+  int64 id= 1;
+  string tournament_name =2;
+  string tournament_json_data= 3;
+}
+
+
+
+message registerPlayersForTournament {
+  string tourney_id = 1;
+  int64 tourney_user_id = 2;
+  string user_id = 3;
+}
+
+message playersData {
+  string user_id = 1;
+}
+
+message registeredPlayersData {
+  repeated playersData  palyers = 1; 
+}
+
+message playerDeatilsForTournamentRegisteration {
+  int64 tournament_id = 1; 
+  string user_id = 2;
+}
+
+service GameDataService {
+  rpc GetGameData(Empty) returns (GameList){};
+  rpc SaveGameHistory(Game_histroy) returns (Success){};
+  rpc GetSingleGame(GameRequestId) returns (gameDataResponse){};
+  rpc getUserWalletData(userWalletRequest) returns (userWalletResponse);
+  rpc getBonusSetting(Empty) returns (bonusDataResponse);
+  rpc getRummyTournamentData(Empty) returns (tournaments){};
+  rpc registerPlayersForRummyTournament(playerDeatilsForTournamentRegisteration) returns (registerPlayersForTournament){};
+  rpc getTournamentRegisteredPlayersData(TournamentRequestId) returns (registeredPlayersData){};
+  rpc getRummyTournamentDataById(TournamentRequestId) returns (tournamentByIdDataResponse);
+}
