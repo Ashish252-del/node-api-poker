@@ -62,6 +62,12 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        is_admin: {
+            type: DataTypes.ENUM,
+            allowNull: false,
+            values: ['0','1'],         // 0 = user, 1 = admin
+            defaultValue: '0',
+        },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,

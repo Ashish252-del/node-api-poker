@@ -25,6 +25,11 @@ function model(sequelize) {
                 msg: "Username already in use!",
             },
         },
+        is_login: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: false,
+        },
         email: {
             type: DataTypes.STRING,
             allowNull: true,
@@ -86,6 +91,30 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        number_of_win_games: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
+        },
+        number_of_win_tournament: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
+        },
+        amount_win_in_game: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
+        },
+        amount_win_in_tournament: {
+            type: DataTypes.DECIMAL,
+            allowNull: true,
+            defaultValue: 0,
+        },
+        total_amount_won: {
+            type: DataTypes.DECIMAL,
+            allowNull: true,
+        },
         referral_code: {
             type: DataTypes.STRING,
             allowNull: true,
@@ -97,6 +126,16 @@ function model(sequelize) {
         last_login: {
             type: DataTypes.DATE,
             allowNull: true,
+        },
+        socket_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        is_bot: {
+            type: DataTypes.ENUM,
+            allowNull: false,
+            values: ['0','1'],
+            defaultValue: '0',
         },
         otp: {
             type: DataTypes.INTEGER,
@@ -188,6 +227,10 @@ function model(sequelize) {
         allowNull: false,
         defaultValue:1
       },
+        app_version: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         added_by: {
             type: DataTypes.INTEGER,
             allowNull: true

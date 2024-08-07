@@ -46,5 +46,7 @@ module.exports = () => {
     routes.get("/private-tables/game-type-list" ,authenticate, userController.gameTypeListForPrivateTable);
     routes.post("/create/private-table" ,authenticate, userController.createGameForPrivate);
     routes.put("/delete/private-table", authenticate , userController.changeGameStatusPrivateRoom)
+
+    routes.get("/logout" ,authenticate,userController.logout);
     return routes;
 };
