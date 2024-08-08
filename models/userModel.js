@@ -203,7 +203,7 @@ function model(sequelize) {
             values: ["0", "1"],
             defaultValue: "0"
         },
-        isBot:{
+        is_ludo_bot:{
             type: DataTypes.BOOLEAN,
             defaultValue:false
           },
