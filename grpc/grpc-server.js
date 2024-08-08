@@ -22,7 +22,9 @@ const {
    lockBalanceOfUserForClub,
    getMinMaxBuyInForTableForClub,
    topUpBalanceOfUserForClub,
-   addPrizeMoneyForClub
+   addPrizeMoneyForClub,
+   deductJoinFeesForRummy,
+   addWinningAmountForRummy
 } = require("../controllers/userController");
 const {
    getPokerTableRoomData,
@@ -190,8 +192,20 @@ server.addService(userProto.getUserDetailsService.service, {
           console.log("getUserNameByUserId called");
           let res = await getUserNameByUserId(call.request);
           callback(null, res);
-       }
-    }
+       },
+       deductJoinFeesForRummy: async (call, callback) => {
+         console.log(call.request)
+         console.log("DeductJoinFeesForRummy  called");
+         let res = await deductJoinFeesForRummy(call.request);
+         callback(null, res);
+      },
+      addWinningAmountForRummy: async (call, callback) => {
+         console.log(call.request)
+         console.log("addWinningAmountForRummy called");
+         let res = await addWinningAmountForRummy(call.request);
+         callback(null, res);
+      }  
+    } 
 )
 server.addService(pokerProto.TableRoomDataService.service, {
    GetTableRoomData: async (call, callback) => {
