@@ -33,7 +33,7 @@ module.exports = (app) => {
    app.use("/api/v1/game", gameRoutes(app));
    app.use("/api/v1/poker/club", clubRoutes(app));
    app.use("/api/v1/poker/union", unionRoutes(app));
-   app.use("api/v1/rummy",rummyRoutes(app));
+   app.use("/api/v1/rummy",rummyRoutes(app));
    // app.get('*', (req, res) => {// eslint-disable-line
    //    let responseData = {};
    //    responseData.msg = 'UnAuthorized Access';
