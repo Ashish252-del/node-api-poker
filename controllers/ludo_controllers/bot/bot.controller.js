@@ -37,7 +37,7 @@ const addBot= async function (req,res){
             userObject.profile_image=url;
             userObject.mobile=Math.floor(Math.random() * 90000) + 10000,
             userObject.kyc='NO'
-            userObject.isBot=1;
+            userObject.is_ludo_bot=1;
             console.log(userObject);
           let resp=  await db.users.create(userObject)
           let walletData = {
@@ -55,7 +55,7 @@ const getBot= async function (req,res)
     try {
         let 
         where= {
-            isBot: 1,
+            is_ludo_bot: 1,
             [Op.or]: [
               
             ]

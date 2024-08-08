@@ -84,7 +84,7 @@ module.exports.allUsers = async (req, res) => {
         //     limit,
         // });
         let response, responseTotalCount;
-        let query = `isAdmin = 0 AND isBot = 0`;
+        let query = `isAdmin = 0 AND is_ludo_bot = 0`;
         if (from_date && end_date) {
             console.log('d');
             let fromDate = moment(from_date).format('YYYY-MM-DD');
