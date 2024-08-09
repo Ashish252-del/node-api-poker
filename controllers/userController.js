@@ -3524,6 +3524,25 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
         }
     }
 }
+
+const userBonusPercentage = async () => {
+    try {
+        let details = await userService.getBonusSetting();
+        let percentage = (details) ? details.bet_bonus_amount : 0;
+        return {
+            bonus_percentage: percentage
+        };
+    } catch (error) {
+        console.log('error occured ', error);
+        return {
+            details: [{
+                status: false,
+                message: error.message
+            }]
+        }
+    }
+}
+
 module.exports = {
     sendOtp,
     verifyOtp,
@@ -3567,7 +3586,6 @@ module.exports = {
     createGameForPrivate,
     changeGameStatusPrivateRoom,
     getMinMaxBuyInForTable,
-
     lockBalanceOfUserForClub,
     deductJoinFeesForClub,
     getMinMaxBuyInForTableForClub,
@@ -3577,5 +3595,6 @@ module.exports = {
     topUpBalanceOfUserForClub,
     deductJoinFeesForRummy,
     logout,
-    addWinningAmountForRummy
+    addWinningAmountForRummy,
+    userBonusPercentage
 }

@@ -92,6 +92,11 @@ message userMinMaxBuyInReqRes {
   float user_balance = 5;
 }
 
+//message bonus percentage
+message bonusResponse {
+  string bonus_percentage = 1;
+}
+
 //message for boolean response to balance update
 message GenericResponse {
   bool status = 1;
@@ -148,6 +153,7 @@ service LockBalanceService {
 // service for getting user details
 service getUserDetailsService {
   rpc GetUserDetails(userDetailsRequest) returns (details){}
+    rpc userBonusPercentage(Empty) returns (bonusResponse){}
   rpc deductJoinFeesForLudo(DeductBalanceRequest) returns (GenericResponse) {}
   rpc addWinningAmountForLudo(addWinBalanceRequest) returns (GenericResponse) {}
   rpc getUserNameByUserId(UserNameByUserIdRequest) returns (UserNameByUserIdResponse){}

@@ -24,7 +24,8 @@ const {
    topUpBalanceOfUserForClub,
    addPrizeMoneyForClub,
    deductJoinFeesForRummy,
-   addWinningAmountForRummy
+   addWinningAmountForRummy,
+   userBonusPercentage
 } = require("../controllers/userController");
 const {
    getPokerTableRoomData,
@@ -186,7 +187,11 @@ server.addService(userProto.getUserDetailsService.service, {
           let res = await userDetails(call.request);
           callback(null, res.details[0]);
        },
-
+       userBonusPercentage: async (call, callback) => {
+         console.log('userBonusPercentage called ----------------->', call.request)
+         let res = await userBonusPercentage(call.request);
+         callback(null, res);
+      },
        getUserNameByUserId: async (call, callback) => {
           console.log(call.request)
           console.log("getUserNameByUserId called");
