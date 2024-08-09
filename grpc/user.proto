@@ -1,5 +1,5 @@
 syntax = "proto3";
-
+message Empty {}
 //message for updating balance of user
 message UpdateBalanceRequest {
   string user_id = 1;
