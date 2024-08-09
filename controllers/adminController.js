@@ -992,24 +992,24 @@ const updateGame = async (req, res) => {
       updatedGamerules.gameId = game_id;
       updatedGamerules.rummy_code = parseInt(game_json_data.rummy_code);
       updatedGamerules.Max_Player = parseInt(game_json_data.maximum_player);
-      updatedGamerules.Comission  = parseInt(game_json_data.commission);
-      updatedGamerules.Name       = parseInt(game_json_data.name);
+      updatedGamerules.Comission  = parseFloat(game_json_data.commission);
+      updatedGamerules.Name       = game_json_data.name;
       if(game_json_data.rummy_code == 1) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || !game_json_data.is_practice) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseInt(game_json_data.point_value); 
-          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
+          updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           if(game_json_data.is_practice) updatedGamerules.is_practice = parseInt(game_json_data.is_practice)
       }
       if(game_json_data.rummy_code == 2) {
           if(!game_json_data.pool_type || !game_json_data.entry_fee) throw new Error("Missing data in game_json_data");
           updatedGamerules.break_Score = parseInt(game_json_data.pool_type); 
-          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+          updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
 
       }
       if(game_json_data.rummy_code == 3) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || game_json_data.deal_type) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseInt(game_json_data.point_value); 
-          updatedGamerules.Min_Chips = parseInt(game_json_data.entry_fee);
+          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
+          updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
       }
       let updateData = await adminService.updateGameById(data, {game_id: game_id});
