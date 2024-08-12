@@ -3504,11 +3504,10 @@ const add_avatar=async(req,res)=>{
 const get_all_avatars = async (req, res) => {
   let responseData = {};
   try {
-
       const avatars = await adminService.getAllAvatar({});
       responseData.msg="all avatar fetch successfully"
       responseData.data=avatars
-      return responseHelper.error(res, responseData, 500);
+      return responseHelper.success(res, responseData, 200);
       
   } catch (error) {
       responseData.msg = error.message;
