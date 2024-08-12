@@ -163,8 +163,8 @@ module.exports = () => {
     routes.post("/upload-file", uploadImage.single("image"), adminController.uploadImage);
     routes.get("/get-member-detail", authenticate,adminController.memberDetails);
 
-    routes.post("/avatar/add",uploadImage.single("image"),adminController.add_avatar);
-    routes.get("/avatar/all",adminController.get_all_avatars)
+    routes.post("/avatar/add",authenticate,uploadImage.single("image"),adminController.add_avatar);
+    routes.get("/avatar/all",authenticate,adminController.get_all_avatars)
     // routes.put("/avatar/delete",adminController.delete_avatar)
     return routes;
 };

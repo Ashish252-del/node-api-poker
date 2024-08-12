@@ -3542,6 +3542,20 @@ const userBonusPercentage = async () => {
         }
     }
 }
+const get_all_avatars = async (req, res) => {
+    let responseData = {};
+    try {
+  
+        const avatars = await adminService.getAllAvatar({});
+        responseData.msg="all avatar fetch successfully"
+        responseData.data=avatars
+        return responseHelper.error(res, responseData, 500);
+        
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+  };
 
 module.exports = {
     sendOtp,
@@ -3596,5 +3610,6 @@ module.exports = {
     deductJoinFeesForRummy,
     logout,
     addWinningAmountForRummy,
-    userBonusPercentage
+    userBonusPercentage,
+    get_all_avatars
 }
