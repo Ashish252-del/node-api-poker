@@ -465,7 +465,15 @@ const getRoleModules = (query) => {
 const createClubMemberRole=(query)=>{
     return db.club_member_roles.create(query)
 }
-
+const createAvatar=(data)=>{
+    return db.avatar.create(data)
+}
+const findAvatar=(data)=>{
+    return db.avatar.findOne({where:data})
+}
+const getAllAvatar=(data)=>{
+    return db.avatar.findAll({where:data})
+}
 
 module.exports = {
     createPriceStructure,
@@ -568,5 +576,8 @@ module.exports = {
     getRoleModules,
     createClubMemberRole,
     createclubModule,
-    createclubMemberRoleModule
+    createclubMemberRoleModule,
+    createAvatar,
+    findAvatar,
+    getAllAvatar
 }

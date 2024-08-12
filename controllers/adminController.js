@@ -3474,7 +3474,71 @@ const running_tables_rummy = async (req, res) => {
   }
 }
 
-// addMemberRole
+const add_avatar=async(req,res)=>{
+  let responseData = {};
+  try {
+      if (!req.file) {
+          responseData.msg =  "file is required"
+          return responseHelper.error(res,responseData,201);
+      }
+      // const existingAvatar = await adminService.findAvatar({url: req.file.location});
+      // console.log("existingAvatar--.>",existingAvatar);
+      // if (existingAvatar) {
+      //   responseData.msg= "This URL has already been added"
+      //     return responseHelper.error(res,responseData,201);
+      // }
+   
+      const obj={
+          url:req.file.location,
+      }
+      const newAvatar=await adminService.createAvatar(obj)
+   responseData.msg="New avatar added successfully";
+   responseData.data=newAvatar;
+   return responseHelper.success(res, responseData);
+      
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+const get_all_avatars = async (req, res) => {
+  let responseData = {};
+  try {
+
+      const avatars = await adminService.getAllAvatar({});
+      responseData.msg="all avatar fetch successfully"
+      responseData.data=avatars
+      return responseHelper.error(res, responseData, 500);
+      
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+
+// const delete_avatar = async (req, res) => {
+ 
+//   try {
+//       const {id} = req.query;
+      
+//       // Check if the avatar exists in the database
+//       const existingAvatar = await avatar.findByPk(id);
+//       if (!existingAvatar) {
+//           return res.status(404).json({ error: "Avatar not found" });
+//       }
+
+//       // Delete the avatar
+//       await existingAvatar.destroy();
+
+//       return res.status(200).json({ message: "Avatar deleted successfully" });
+      
+//   } catch (error) {
+//       responseData.msg = error.message;
+//       return responseHelper.error(res, responseData, 500);
+//   }
+// };
+
+
 
 module.exports = {
   adminLogin,
@@ -3569,5 +3633,8 @@ module.exports = {
   addMemberRole,
   addclubModule,
   addclubMemberRoleModule,
-  running_tables_rummy
+  running_tables_rummy,
+  add_avatar,
+  get_all_avatars,
+  // delete_avatar
 };
