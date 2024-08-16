@@ -13,7 +13,7 @@ const Router = express.Router();
 
 //Router.use("/api/ludo", publicRoutes);
 //Router.use("/api/ludo/admin", publicAdminRoutes);
-// Router.use("/admin",authenticate, adminRoutes);
+Router.use("/admin",authenticate, adminRoutes);
 Router.use("/user", authenticate, userRoutes);
 Router.use("/game", gameRoutes);
 //Router.use("/api/ludo/wallet", authenticate, walletRoutes);

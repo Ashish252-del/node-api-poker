@@ -1,4 +1,4 @@
-const {successResponse, errorResponse} = require("../../helpers");
+const {successResponse, errorResponse} = require("../helpers");
 // const {
 //     user_wallet,
 //     user,

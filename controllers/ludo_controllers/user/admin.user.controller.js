@@ -4,10 +4,10 @@ const jwt = require("jsonwebtoken");
 const {Sequelize} = require("sequelize");
 const NodeRSA = require('node-rsa');
 const Op = Sequelize.Op;
-const {user, user_otp, chat_template, promocodes, sequelize, user_referral, tds_setting, game_history, user_wallet, bank_account, user_kyc, redemption, transaction} = require("../../../models");
+// const {user, user_otp, chat_template, promocodes, sequelize, user_referral, tds_setting, game_history, user_wallet, bank_account, user_kyc, redemption, transaction} = require("../../../models");
 const sendEmail = require("../../../utils/sendEmail");
 const {successResponse, errorResponse, uniqueId} = require("../helpers");
-const {addRazorPayContact, addBankToRazorpay, payoutStatus, addUpiToRazorpay} = require('../../../utils/payment')
+// const {addRazorPayContact, addBankToRazorpay, payoutStatus, addUpiToRazorpay} = require('../../utils/payment')
 const moment = require('moment');
 
 const PRIVATE_KEY=`-----BEGIN PRIVATE KEY-----
