@@ -474,6 +474,94 @@ const findAvatar=(data)=>{
 const getAllAvatar=(data)=>{
     return db.avatar.findAll({where:data})
 }
+const deleteAvatarById=(query)=>{
+return db.avatar.destroy({where:query})
+}
+
+// 8ball poll services->
+//User Related Query
+
+addPolicy = (data) => {
+    return db.policy.create(data);
+}
+
+updatePolicy = (data, query) => {
+    return db.policy.update(
+        data,
+        { where: query }
+    );
+}
+getFilterTableData = (query,type) => {
+    if(type==1){
+        return db.game_table.findAll({where:query});
+    }else{
+        return db.user_join_table.findAll({where:query});
+    }
+}
+
+addUserLevel = (data) => {
+    return db.user_level.create(data);
+}
+
+getLevelByQuery = (query) => {
+    return db.user_level.findOne({where:query});
+}
+
+getAllLevelByQuery = () => {
+    return db.user_level.findAll();
+}
+
+updateUserLevel = (data,query) => {
+    return db.user_level.update(
+        data,
+        { where: query }
+    );
+}
+addEmojisData = (data) => {
+    return db.emojis.create(data);
+}
+
+getEmojisByName = (query) => {
+    return db.emojis.findOne({where:query});
+}
+
+getEmojisData = () => {
+    return db.emojis.findAll({});
+}
+
+deleteEmojis = (query) => {
+    return db.emojis.destroy({where:query});
+}
+
+
+getWithdrawlRequestById = (query) => {
+    return db.redemptions.findOne({where:query});
+}
+
+updateRedemption = (data,query) => {
+    return db.redemptions.update(
+        data,
+        { where: query }
+    );
+}
+
+
+
+getReferralBonus = (query) => {
+    return db.referral_bonus_settings.findOne();
+}
+
+createBonusSetting = (data) => {
+    return db.referral_bonus_settings.create(data)
+}
+
+
+updateBonusSetting = (data, query) => {
+    return db.referral_bonus_settings.update(
+        data,
+        { where: query }
+    );
+}
 
 module.exports = {
     createPriceStructure,
@@ -579,5 +667,49 @@ module.exports = {
     createclubMemberRoleModule,
     createAvatar,
     findAvatar,
-    getAllAvatar
+    getAllAvatar,
+    deleteAvatarById,
+
+    // poll exports-> 
+    getUserDetailsById,
+    geAdminDetailsById,
+    updateAdminByQuery,
+    createRole,
+    getUserList,
+    createGame,
+    getGameByQuery,
+    getAllGameList,
+    updateGameById,
+    getWithdrawl,
+    getDeposit,
+    getPolicyData,
+    addPolicy,
+    updatePolicy,
+    getRunningTableData,
+    getTotalTableData,
+    getFilterTableData,
+    addUserLevel,
+    getLevelByQuery,
+    getAllLevelByQuery,
+    updateUserLevel,
+    addUserStatus,
+    getModules,
+    getPermissionQuery,
+    getRoleByQuery,
+    addEmojisData,
+    getEmojisData,
+    getEmojisByName,
+    deleteEmojis,
+    getGameHistoryCountByUserId,
+    getWithdrawal,
+    getTodayDeposit,
+    getCashTransaction,
+    getWithdrawlRequestById,
+    updateRedemption,
+    getUserStatus,
+    updateUserStatus,
+    sendNotification,
+    getReferralBonus,
+    createBonusSetting,
+    updateBonusSetting,
 }

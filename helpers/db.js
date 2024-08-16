@@ -89,6 +89,19 @@ async function initialize() {
     db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize,DataTypes);
     db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize,DataTypes);
     db.ludo_shop = require('../models/ludo_shop')(sequelize,DataTypes);
+    // pool ->
+     // init models and add them to the exported db object
+   db.pool_games = require('../models/pool_game')(sequelize, DataTypes);
+   db.pool_emojis = require('../models/pool_emojisModel')(sequelize, DataTypes);
+   db.pool_game_history = require('../models/pool_game_history')(sequelize, DataTypes);
+   db.pool_game_tables = require('../models/pool_game_table')(sequelize, DataTypes);
+   db.pool_table_transaction = require('../models/pool_tableTransactionModel')(sequelize, DataTypes);
+   db.pool_tournaments = require('../models/pool_tournamentModel')(sequelize, DataTypes);
+   db.pool_tournament_tables = require('../models/pool_tournamentTableModel')(sequelize, DataTypes);
+   db.pool_notifications = require('../models/notificationModel')(sequelize, DataTypes);
+   db.pool_block_user = require('../models/blockUser')(sequelize, DataTypes);
+   db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
+    // --<
     db.user_log.belongsTo(db.users, {
         foreignKey: "user_id",
         as: "user_log_user",

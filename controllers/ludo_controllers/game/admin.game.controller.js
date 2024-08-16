@@ -1,32 +1,32 @@
 const {successResponse, errorResponse} = require("../helpers");
-// const {
-//     game_type,
-//     game_varient,
-//     game,
-//     game_history,
-//     user,
-//     sequelize,
-//     tournaments,
-//     bonus_setting,
-//     redemption,
-//     transaction,
-//     user_kyc,
-//     bank_account,
-//     user_wallet,
-//     tds_setting,
-//     shop,
-//     shop_goods,
-//     shop_users,
-//     users,
-//     notifications,
-//     avatar,
-//     setting,
-//     prize_structure,
-//     reward,
-//     admin_bank_Details,
-//     withdrawls_fee
-// } = require("../../models");
-const {sendPushNotification} = require('../../utils/sendnotification');
+const {
+    game_type,
+    game_varient,
+    game,
+    game_history,
+    user,
+    sequelize,
+    tournaments,
+    bonus_setting,
+    redemption,
+    transaction,
+    user_kyc,
+    bank_account,
+    user_wallet,
+    tds_setting,
+    shop,
+    shop_goods,
+    shop_users,
+    users,
+    notifications,
+    avatar,
+    setting,
+    prize_structure,
+    reward,
+    admin_bank_Details,
+    withdrawls_fee
+} = require("../../../models");
+const {sendPushNotification} = require('../../../utils/sendnotification');
 const db = require("../../../helpers/db");
 const moment = require('moment');
 const getPagination = (page,limit) => {
@@ -35,7 +35,7 @@ const getPagination = (page,limit) => {
     return {limit, offset};
 };
 const {Op, fn, col, where} = require("sequelize");
-const {withdrawPayout,payoutStatus} = require('../../utils/payment');
+const {withdrawPayout,payoutStatus} = require('../../../utils/payment');
 // const shop_users = require("../../models/shop_users");
 module.exports.create_gameType = async (req, res) => {
     try {

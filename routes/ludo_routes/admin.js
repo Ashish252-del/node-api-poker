@@ -6,7 +6,7 @@ const adminValidator = require("../../controllers/ludo_controllers/user/admin.va
 const gameValidator = require("../../controllers/ludo_controllers/game/game.validator");
 const adminGameController = require("../../controllers/ludo_controllers/game/admin.game.controller");
 const gameController = require('../../controllers/ludo_controllers/game/game.controller');
-const router = express.Router();
+const  router = express.Router();
 // ===========
 const multer = require("multer");
 const { memoryStorage } = require("multer");

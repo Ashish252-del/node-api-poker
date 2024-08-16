@@ -3515,27 +3515,28 @@ const get_all_avatars = async (req, res) => {
   }
 };
 
-// const delete_avatar = async (req, res) => {
- 
-//   try {
-//       const {id} = req.query;
+const delete_avatar = async (req, res) => {
+ let responseData={}
+  try {
+      let id = req.query.id;
       
-//       // Check if the avatar exists in the database
-//       const existingAvatar = await avatar.findByPk(id);
-//       if (!existingAvatar) {
-//           return res.status(404).json({ error: "Avatar not found" });
-//       }
+      console.log("id-->",id);
+      // Check if the avatar exists in the database
+      const existingAvatar = await adminService.findAvatar({id:id});
+      console.log("existingAvatar-->",existingAvatar);
+      if (!existingAvatar) {
+        responseData.msg= "avatar not found"
+            return responseHelper.error(res,responseData,201);
+      }
+      await adminService.deleteAvatarById({id:id})
+responseData.msg= "Avatar deleted successfully"
 
-//       // Delete the avatar
-//       await existingAvatar.destroy();
-
-//       return res.status(200).json({ message: "Avatar deleted successfully" });
-      
-//   } catch (error) {
-//       responseData.msg = error.message;
-//       return responseHelper.error(res, responseData, 500);
-//   }
-// };
+return responseHelper.success(res, responseData, 200);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
 
 
 
@@ -3635,5 +3636,5 @@ module.exports = {
   running_tables_rummy,
   add_avatar,
   get_all_avatars,
-  // delete_avatar
+  delete_avatar
 };
