@@ -13,8 +13,8 @@ const sendPushNotification = (message) => {
     const payload = {
         notification: {
             title: message.title,
-            body: message.body,
-            imageUrl: message.body
+            body: String(message.message),
+            // imageUrl: message.body
         }
     };
 

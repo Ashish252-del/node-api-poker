@@ -166,5 +166,7 @@ module.exports = () => {
     routes.post("/avatar/add",authenticate,uploadImage.single("image"),adminController.add_avatar);
     routes.get("/avatar/all",authenticate,adminController.get_all_avatars)
     routes.put("/avatar/delete",adminController.delete_avatar)
+
+    routes.post("/send-notification",adminController.sendNotification)
     return routes;
 };

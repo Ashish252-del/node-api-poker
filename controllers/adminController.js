@@ -2,6 +2,7 @@ const userService = require("../services/userService");
 const adminService = require("../services/adminService");
 const pokerService = require("../services/pokerService");
 const responseHelper = require("../helpers/customResponse");
+const {sendPushNotification} = require('../utils/sendnotification')
 const {
   makeString,
   generateUserToken,
@@ -2880,6 +2881,7 @@ const addModule = async (req, res) => {
       req.body;
     console.log("req.body", req.body.is_Sidebar);
     let existingModule = await adminService.getModuleByName(module_name);
+    console.log("existingModule-->",existingModule);
     if (existingModule) {
       responseData.msg = "Module with the same name already exists";
       return responseHelper.error(res, responseData, 201);
@@ -3538,7 +3540,62 @@ return responseHelper.success(res, responseData, 200);
   }
 };
 
+const sendNotification = async (req, res) => {
+  let responseData = {};
+  try {
+      let reqData = req.body;
+      // console.log(reqData);
+      // Check if reqData has the necessary fields
+      if (!reqData || !reqData.user_id || !reqData.title || !reqData.message) {
+          responseData.msg = 'Invalid request data';
+          return responseHelper.error(res,responseData,201);
+      }
+       // Ensure title and message are strings
+       reqData.title = String(reqData.title);
+       reqData.message = String(reqData.message);
 
+      let userId = reqData.user_id.split(',');
+      for (let i = 0; i < userId.length; i++) {
+          let userIDS = userId[i].trim();
+          console.log(`Processing user ID: ${userIDS}`);
+
+          // let checkUser = await user.findOne({ where: {id:userIDS } });
+          let checkUser=await adminService.getUserDetailsById({user_id:userIDS})
+          console.log("checkUser--",checkUser);
+          // console.log(checkUser);
+
+          if (!checkUser) {
+              responseData.msg = `User with ID ${userIDS} not found`;
+              return res.status(404).json(responseData);
+          }
+
+          let data = {
+              sender_user_id: '1',
+              receiver_user_id: userIDS,
+              title: reqData.title,
+              message: reqData.message
+          };
+          console.log(data);
+          await adminService.createNotification(data)
+
+          if (checkUser.device_token) { 
+              let pushData = {
+                  title: reqData.title,
+                  message: reqData.message,
+                  device_token: checkUser.device_token
+              };
+              console.log("pushdata",pushData);
+              let result = await sendPushNotification(pushData);
+              console.log("result",result);
+          }
+      }
+      responseData.msg = 'Notification sent successfully!!!';
+      return responseHelper.success(res, responseData, 200);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
 
 module.exports = {
   adminLogin,
@@ -3636,5 +3693,6 @@ module.exports = {
   running_tables_rummy,
   add_avatar,
   get_all_avatars,
-  delete_avatar
+  delete_avatar,
+  sendNotification
 };

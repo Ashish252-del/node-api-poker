@@ -562,6 +562,9 @@ updateBonusSetting = (data, query) => {
         { where: query }
     );
 }
+const createNotification=(data)=>{
+    return db.notifications.create(data)
+}
 
 module.exports = {
     createPriceStructure,
@@ -671,7 +674,6 @@ module.exports = {
     deleteAvatarById,
 
     // poll exports-> 
-    getUserDetailsById,
     geAdminDetailsById,
     updateAdminByQuery,
     createRole,
@@ -712,4 +714,5 @@ module.exports = {
     getReferralBonus,
     createBonusSetting,
     updateBonusSetting,
+    createNotification
 }
