@@ -84,7 +84,7 @@ async function initialize() {
     db.ludo_game_type = require ('../models/ludo_game_type')(sequelize,DataTypes);
     db.ludo_game_varient = require('../models/ludo_game_varient')(sequelize,DataTypes);
     db.ludo_game = require('../models/ludo_game')(sequelize,DataTypes);
-    db.lodo_leaderboard = require('../models/ludo_leaderboard')(sequelize,DataTypes);
+    db.ludo_leaderboard = require('../models/ludo_leaderboard')(sequelize,DataTypes);
     db.ludo_prize_structure = require('../models/ludo_prize_structure')(sequelize,DataTypes);
     db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize,DataTypes);
     db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize,DataTypes);
