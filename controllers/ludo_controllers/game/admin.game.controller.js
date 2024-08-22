@@ -34,6 +34,7 @@ const getPagination = (page,limit) => {
     const offset = page ? page * limit : 0;
     return {limit, offset};
 };
+const { sequelize } = require("../../../models");
 const {Op, fn, col, where} = require("sequelize");
 // const {withdrawPayout,payoutStatus} = require('../../../utils/payment');
 // const shop_users = require("../../models/shop_users");

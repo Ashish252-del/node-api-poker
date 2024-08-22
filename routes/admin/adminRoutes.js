@@ -167,6 +167,8 @@ module.exports = () => {
     routes.get("/avatar/all",authenticate,adminController.get_all_avatars)
     routes.put("/avatar/delete",adminController.delete_avatar)
 
-    routes.post("/send-notification",adminController.sendNotification)
+    routes.post("/send-notification",authenticate,adminController.sendNotification)
+    routes.get('/get-winning-amount',authenticate, adminController.getWinningAmount)
+    routes.get('/get-game-wise-users', authenticate, adminController.getGameWiseUsers);
     return routes;
 };

@@ -3544,8 +3544,6 @@ const sendNotification = async (req, res) => {
   let responseData = {};
   try {
       let reqData = req.body;
-      // console.log(reqData);
-      // Check if reqData has the necessary fields
       if (!reqData || !reqData.user_id || !reqData.title || !reqData.message) {
           responseData.msg = 'Invalid request data';
           return responseHelper.error(res,responseData,201);
@@ -3557,12 +3555,9 @@ const sendNotification = async (req, res) => {
       let userId = reqData.user_id.split(',');
       for (let i = 0; i < userId.length; i++) {
           let userIDS = userId[i].trim();
-          console.log(`Processing user ID: ${userIDS}`);
 
           // let checkUser = await user.findOne({ where: {id:userIDS } });
           let checkUser=await adminService.getUserDetailsById({user_id:userIDS})
-          console.log("checkUser--",checkUser);
-          // console.log(checkUser);
 
           if (!checkUser) {
               responseData.msg = `User with ID ${userIDS} not found`;
@@ -3570,7 +3565,7 @@ const sendNotification = async (req, res) => {
           }
 
           let data = {
-              sender_user_id: '1',
+              sender_user_id: req.user.admin_id,
               receiver_user_id: userIDS,
               title: reqData.title,
               message: reqData.message
@@ -3584,9 +3579,7 @@ const sendNotification = async (req, res) => {
                   message: reqData.message,
                   device_token: checkUser.device_token
               };
-              console.log("pushdata",pushData);
               let result = await sendPushNotification(pushData);
-              console.log("result",result);
           }
       }
       responseData.msg = 'Notification sent successfully!!!';
@@ -3596,6 +3589,135 @@ const sendNotification = async (req, res) => {
     return responseHelper.error(res, responseData, 500);
   }
 };
+const getWinningAmount = async (req, res) => {
+  let responseData = {};
+  try {
+      let game_type = req.query.game_type;
+      let getUserData;
+      if (game_type) {
+          getUserData = await adminService.getCashTransaction({other_type: 'Winning', category: game_type});
+      } else {
+          getUserData = await adminService.getCashTransaction({other_type: 'Winning'});
+      }
+      if (getUserData.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      getUserData = getUserData.map(async (element, i) => {
+          let getUserD = await adminService.getUserDetailsById({user_id: element.user_id});
+          element.dataValues.user_id = (getUserD && getUserD.username != null) ? getUserD.username : '';
+          return element;
+      })
+      getUserData = await Promise.all(getUserData);
+      responseData.msg = 'Winning Transaction List!!!';
+      responseData.data = getUserData;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+const getGameWiseUsers = async (req, res) => {
+  let responseData = {};
+  try {
+      console.log('dd');
+      const {game_type, page, search_key, from_date, end_date} = req.query;
+      const {limit, offset} = getPagination(page);
+      let query = '';
+      if (game_type) {
+          query += `game_histories.game_category='${game_type}'`;
+      }
+      if (from_date && end_date) {
+          let fromDate = moment(from_date).format('YYYY-MM-DD');
+          let endDate = moment(end_date).format('YYYY-MM-DD');
+          console.log('d');
+          query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+      }
+      if (search_key) {
+          query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%')`;
+      }
+      query += ` group by game_histories.user_id order by createdAt DESC`;
+      let response = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+      let responseTotalCount = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+      // let query1 = {
+      //     attributes:['user_id','createdAt','updatedAt'],
+      //     where: {game_category: game_type},
+      //     group: "user_id",
+      //     order:[[Sequelize.col('createdAt'),'DESC']]
+      // }
+      //
+      // let query = {
+      //     attributes:['user_id','createdAt','updatedAt'],
+      //     where: {game_category: game_type},
+      //     group: "user_id",
+      //     order:[[Sequelize.col('createdAt'),'DESC']],
+      //     limit, offset
+      // }
+      //await adminService.getWiseUsers(query);
+
+
+      let totalCount = responseTotalCount.length;
+      //console.log(response);
+      //response = response.rows;
+      if (response.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+
+      var now = new Date().getTime()
+      let time = Math.floor(now / 1000);
+      response = response.map(async (element, i) => {
+          // console.log(element);
+          let userD = await adminService.getUserDetailsById({user_id: element.user_id});
+          let getUserBlock = await adminService.getUserStatus({user_id: element.user_id, game_id: game_type});
+          let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
+          let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
+          let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
+          let depositAmt = (getDepositAmt && getDepositAmt[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
+          let isBlock = 0;
+          if (getUserBlock && time < getUserBlock.block_timestamp) {
+              isBlock = 1;
+          }
+          element.full_name = (userD) ? userD.full_name : '';
+          element.display_name = (userD) ? userD.display_name : '';
+          element.username = (userD) ? userD.username : '';
+          element.email = (userD) ? userD.email : '';
+          element.mobile = (userD) ? await decryptData(userD.mobile) : '';
+          element.is_email_verified = (userD) ? userD.is_email_verified : '';
+          element.is_mobile_verified = (userD) ? userD.is_mobile_verified : '';
+          element.is_kyc_done = (userD) ? userD.is_kyc_done : '';
+          element.gender = (userD) ? userD.gender : '';
+          element.dob = (userD) ? userD.dob : '';
+          element.profile_image = (userD) ? userD.profile_image : '';
+          element.device_type = (userD) ? userD.device_type : '';
+          element.device_token = (userD) ? userD.device_token : '';
+          element.referral_code = (userD) ? userD.referral_code : '';
+          element.friend_refer_code = (userD) ? userD.friend_refer_code : '';
+          element.last_login = (userD) ? userD.last_login : '';
+          element.commission = (userD) ? userD.commission : '';
+          element.ip = (userD) ? userD.ip : '';
+          element.user_status = (userD) ? userD.user_status : '';
+          element.user_level = 10;
+          element.withdraw_amount = withdrawAmt;
+          element.deposit_amount = depositAmt;
+          element.is_block = isBlock;
+          element.createdAt = userD.createdAt;
+          element.updatedAt = userD.updatedAt;
+          return element;
+      })
+      response = await Promise.all(response);
+      return res.status(200).send({
+          message: 'User List',
+          statusCode: 200,
+          status: true,
+          count: totalCount,
+          data: response
+      });
+  } catch (error) {
+      responseData.msg = error.message
+      return responseHelper.error(res, responseData, 500);
+  }
+}
 
 module.exports = {
   adminLogin,
@@ -3694,5 +3816,8 @@ module.exports = {
   add_avatar,
   get_all_avatars,
   delete_avatar,
-  sendNotification
+  sendNotification,
+  getWinningAmount,
+  getGameWiseUsers
+
 };
