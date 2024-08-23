@@ -199,7 +199,7 @@ module.exports.leaderboard_weekly = async (req, res) => {
             ],
             include: [
                 {
-                    model: user,
+                    model: db.users,
                     attributes: ['username']
                 }
             ],
@@ -216,7 +216,7 @@ module.exports.leaderboard_weekly = async (req, res) => {
         for (let i = 0; i < data.length; i++)
             arr.push({ rank: i + 1, type: 'Weekly', name: data[i].dataValues.user.dataValues.username, amount: data[i].dataValues.Amount, gamePlayed: data[i].dataValues.gamePlayed })
         await db.ludo_leaderboard.bulkCreate(arr);
-        const getData = await leaderboard.findAll({
+        const getData = await db.ludo_leaderboard.findAll({
             where: {type: "Weekly"},
             order: [
                 ['rank', 'ASC'],
@@ -249,7 +249,7 @@ module.exports.leaderboard_monthly = async (req, res) => {
             ],
             include: [
                 {
-                    model: user,
+                    model: db.users,
                     attributes: ['username']
                 }
             ],
@@ -266,7 +266,7 @@ module.exports.leaderboard_monthly = async (req, res) => {
         for (let i = 0; i < data.length; i++)
             arr.push({ rank: i + 1, type: 'Monthly', name: data[i].dataValues.user.dataValues.username, amount: data[i].dataValues.Amount, gamePlayed: data[i].dataValues.gamePlayed })
         await db.ludo_leaderboard.bulkCreate(arr);
-        const getData = await leaderboard.findAll({
+        const getData = await db.ludo_leaderboard.findAll({
             where: {type: "Monthly"},
             order: [
                 ['rank', 'ASC'],

@@ -859,7 +859,7 @@ const gameList = async (req, res) => {
     if(req.query.is_tournament){
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
   }else{
-      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_id:'0', is_tournament:{[Op.ne]: '1'}});
+      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
   }
     if (!getData) {
       responseData.msg = "Game List not found";
@@ -3638,6 +3638,7 @@ const getGameWiseUsers = async (req, res) => {
       }
       query += ` group by game_histories.user_id order by createdAt DESC`;
       let response = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+      console.log("response-->",response);
       let responseTotalCount = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
       // let query1 = {
       //     attributes:['user_id','createdAt','updatedAt'],
@@ -3717,6 +3718,238 @@ const getGameWiseUsers = async (req, res) => {
       responseData.msg = error.message
       return responseHelper.error(res, responseData, 500);
   }
+}
+
+const getGameHistory = async (req, res) => {
+  let responseData = {};
+  try {
+      const {game_type, page, search_key, from_date, end_date} = req.query;
+      const {limit, offset} = getPagination(page);
+      let query = '';
+      if (game_type) {
+          console.log('d');
+          query += `game_category = '${game_type}'`;
+      }
+      if (from_date && end_date) {
+          console.log('d');
+          let fromDate = moment(from_date).format('YYYY-MM-DD');
+          let endDate = moment(end_date).format('YYYY-MM-DD');
+          query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+      }
+      if (search_key) {
+          //let gameType = await adminService.getGameTypeByQuery({name:search_key});
+          let gameType = await sequelize.query(`Select *  from game_types where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
+          if (gameType.length > 0) {
+              query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
+          } else {
+              query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+          }
+
+      }
+      query += ` order by game_history_id DESC`;
+      let response = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query} LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+      let responseTotalCount = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+
+      if (responseTotalCount.length == 0) {
+          responseData.msg = 'Game history not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      response = response.map(async (element) => {
+          //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
+          let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+          let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
+          element.game_category = (getGameType) ? getGameType.name : '';
+          element.username = (getUserDetail) ? getUserDetail.username : '';
+          element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
+          element.win_amount = (element.win_amount) ? element.win_amount : '0';
+          element.hands_record = (element.hands_record) ? JSON.parse(element.hands_record, true) : '';
+          element.community_card = (element.community_card) ? JSON.parse(element.community_card, true) : '';
+          return element;
+      })
+      response = await Promise.all(response);
+      return res.status(200).send({
+          message: 'Game history Data',
+          statusCode: 200,
+          status: true,
+          count: responseTotalCount.length,
+          data: response
+      });
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const getLeaderBoardData = async (req, res) => {
+  let responseData = {};
+  try {
+      const {game_type, type} = req.query;
+      let getLeaderBoard;
+      if (game_type) {
+          if (game_type === "Poker") {
+              let toDate = new Date();
+              let fromDate;
+              if (type === "daily") {
+                  fromDate = new Date(toDate.getTime() - (24 * 60 * 60 * 1000));
+              } else if (type === "weekly") {
+                  fromDate = new Date(toDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+              } else {
+                  fromDate = new Date(toDate.getTime() - (30 * 24 * 60 * 60 * 1000));
+              }
+              let pokerSessionWinnings = await userService.getPokerSessionWinGroupOrder({
+                  attributes: [
+                      'user_id',
+                      'game_type_id',
+                      [sequelize.fn("sum", sequelize.col('winning')), 'total_winning'],
+                      [sequelize.fn("sum", sequelize.col('rounds_played')), 'total_rounds_played']
+                  ],
+                  where: {
+                      createdAt: {
+                          [Op.between]: [fromDate, toDate]
+                      }
+                  },
+                  group: ['user_id', 'game_type_id'],
+                  order: [[sequelize.col('total_winning'), 'DESC']],
+                  raw: true
+              });
+              getLeaderBoard = [];
+              let rank = 1;
+              let users = {};
+              let gameTypes = {};
+              for (let pokerSessionWinning of pokerSessionWinnings) {
+                  let user;
+                  let gameType;
+                  if (users[pokerSessionWinning.user_id]) {
+                      user = users[pokerSessionWinning.user_id];
+                  } else {
+                      user = await userService.getUserDetailsById({user_id: pokerSessionWinning.user_id});
+                      users[pokerSessionWinning.user_id] = user;
+                  }
+                  if (gameTypes[pokerSessionWinning.game_type_id]) {
+                      gameType = gameTypes[pokerSessionWinning.game_type_id];
+                  } else {
+                      gameType = await pokerService.getGameTypeModalDataByQuery({
+                          game_type_id: pokerSessionWinning.game_type_id
+                      });
+                      gameTypes[pokerSessionWinning.game_type_id] = gameType;
+                  }
+                  let result = {
+                      "game_category": "Poker",
+                      "game_type": (gameType) ? gameType.name : '',
+                      "user_id": pokerSessionWinning.user_id,
+                      "username": (user) ? user.username : '',
+                      "rank": rank,
+                      "winning": pokerSessionWinning.total_winning,
+                      "type": type,
+                      "game_played": pokerSessionWinning.total_rounds_played,
+                      "createdAt": new Date(),
+                      "updatedAt": new Date()
+                  }
+                  getLeaderBoard.push(result);
+                  rank++;
+              }
+          } else {
+              getLeaderBoard = await adminService.getLeaderBoard({game_category: game_type, type: type});
+          }
+      } else {
+          getLeaderBoard = await adminService.getLeaderBoard({type: type});
+      }
+
+      if (getLeaderBoard.length == 0) {
+          responseData.msg = 'Leaderboard not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      responseData.msg = 'LeaderBoard Data';
+      responseData.data = getLeaderBoard;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      console.log(error);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+const getRunningTable = async (req, res) => {
+  let responseData = {};
+  try {
+      let gameType = req.query.game_type;
+      let data;
+      if (gameType) {
+          data = await adminService.getRunningTableData({
+              game_category: gameType,
+              game_table_status: ['Active', 'Full']
+          });
+      } else {
+          data = await adminService.getRunningTableData({game_table_status: 'Active'});
+      }
+
+      if (data.length == 0) {
+          responseData.msg = 'No Data Found';
+          return responseHelper.error(res, responseData, 201);
+      }
+
+      data = data.map(async (element) => {
+          let getGame = await adminService.getGameByQuery({game_id: element.game_id})
+          console.log(getGame);
+          if (getGame) {
+              let getGameType = await adminService.getGameTypeByQuery({game_type_id: getGame.dataValues.game_type_id})
+              element.dataValues.game_type = (getGameType) ? getGameType.dataValues.name : '';
+          } else {
+              element.dataValues.game_type = '';
+          }
+
+          return element;
+      })
+
+      data = await Promise.all(data);
+      responseData.msg = 'Running Table!!!';
+      responseData.data = data;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+const getTotalTable = async (req, res) => {
+  let responseData = {};
+  //try {
+
+  let gameType = req.query.game_type;
+  let date = new Date().toISOString().split('T')[0]
+  let query;
+  let data;
+  if (gameType) {
+      let getCategory = await adminService.getGameCategoryByQuery({name: gameType});
+      data = await adminService.getAllGameList({game_category_id: getCategory.game_category_id, game_status: '1'});
+  } else {
+      data = await adminService.getAllGameList();
+  }
+  if (data.length == 0) {
+      responseData.msg = 'No Data Found';
+      return responseHelper.error(res, responseData, 201);
+  }
+  console.log(data);
+  data = data.map(async (element) => {
+      let roomAttributes = element.game_json_data;
+      let roomAttributesObj = JSON.parse(roomAttributes);
+      let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category_id})
+      let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type_id})
+      element.dataValues.game_table_id = element.game_id
+      element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
+      element.dataValues.game_type = (getGameType) ? getGameType.dataValues.name : '';
+      element.dataValues.table_name = roomAttributesObj.room_name;
+      element.dataValues.game_table_status = "Active";
+      return element;
+
+  })
+
+  data = await Promise.all(data);
+  responseData.msg = 'Total Table!!!';
+  responseData.data = data;
+  return responseHelper.success(res, responseData);
+  // } catch (error) {
+  //     responseData.msg = error.message;
+  //     return responseHelper.error(res, responseData, 500);
+  // }
 }
 
 module.exports = {
@@ -3818,6 +4051,10 @@ module.exports = {
   delete_avatar,
   sendNotification,
   getWinningAmount,
-  getGameWiseUsers
+  getGameWiseUsers,
+  getGameHistory,
+  getLeaderBoardData,
+  getRunningTable,
+  getTotalTable
 
 };

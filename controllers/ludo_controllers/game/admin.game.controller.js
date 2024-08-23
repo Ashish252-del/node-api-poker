@@ -477,7 +477,7 @@ module.exports.admin_game_history = async (req, res) => {
             console.log('d');
             let fromDate = moment(from_date).format('YYYY-MM-DD');         
             let endDate = moment(end_date).format('YYYY-MM-DD');
-            query += ` AND DATE(game_history.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            query += ` AND DATE(ludo_game_history.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
         }
         if (search_key) {
             //let gameType = await adminService.getGameTypeByQuery({name:search_key});
@@ -485,24 +485,24 @@ module.exports.admin_game_history = async (req, res) => {
             // if(gameType.length > 0){
             //   query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
             // }else{
-            query += ` AND (users.username like '%${search_key}%' OR users.email like '%${search_key}%' OR users.name like '%${search_key}%' OR game_history.tableId like '%${search_key}%')`;
+            query += ` AND (users.username like '%${search_key}%' OR users.email like '%${search_key}%' OR users.name like '%${search_key}%' OR ludo_game_history.tableId like '%${search_key}%')`;
             //}
 
         }
         if(user_id){
-            query += ` AND game_history.userId='${user_id}'`;
+            query += ` AND ludo_game_history.userId='${user_id}'`;
         }
-        query += ` order by game_history.id DESC`;
-        let response = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, game_history.createdAt as Created_At , username as User_Name ,Score
-     from game_history join game on game.id = game_history.gameId join users on game_history.userId = users.id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
+        query += ` order by ludo_game_history.id DESC`;
+        let response = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
+     from ludo_game_history join ludo_game on ludo+game.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
 
-        let responseTotalCount = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, game_history.createdAt as Created_At , username as User_Name ,Score
-        from game_history join game on game.id = game_history.gameId join users on game_history.userId = users.id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+        let responseTotalCount = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
+        from ludo_game_history join ludo_game on ludo_game.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         for(let i=0; i < response.length; i++){
-            let allPlayers = await game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
+            let allPlayers = await db.ludo_game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
             let playerArray = [];
             for(let k=0; k< allPlayers.length; k++){
-                let userD = await user.findOne({where:{id:allPlayers[k].userId},raw:true});
+                let userD = await db.users.findOne({where:{id:allPlayers[k].userId},raw:true});
                 if(userD){
                     let playerD = {
                         playerName: userD.username,

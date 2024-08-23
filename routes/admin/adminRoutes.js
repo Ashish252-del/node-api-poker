@@ -170,5 +170,9 @@ module.exports = () => {
     routes.post("/send-notification",authenticate,adminController.sendNotification)
     routes.get('/get-winning-amount',authenticate, adminController.getWinningAmount)
     routes.get('/get-game-wise-users', authenticate, adminController.getGameWiseUsers);
+    routes.get('/get-game-history', authenticate, adminController.getGameHistory);
+    routes.get("/get-leaderboard-data",adminController.getLeaderBoardData);
+    routes.get('/get-running-table', authenticate, adminController.getRunningTable);
+    routes.get('/get-total-table', authenticate, adminController.getTotalTable);
     return routes;
 };
