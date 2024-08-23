@@ -124,6 +124,8 @@ router.post("/shop/good/is-selected",userController.selectedShopItem)
 router.get("/shop/all",userController.all_shops)
 router.post("/shop/goods",userController.get_all_goods_by_category)
 router.get('/game/info/:userId', userController.userInfo);
+
+router.get("/get/selected/shop/item",userController.getSelectedShopItem)
 //router.get('/get-referral-history/:userId', userController.getReferralHistory);
 
 // router.post('/add-bank-account',userController.addBankAccount);

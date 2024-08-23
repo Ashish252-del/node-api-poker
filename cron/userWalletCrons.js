@@ -9,7 +9,7 @@ module.exports = cron.schedule("0 * * * *", async () => {
             status: "settled",
             is_balance_unlocked: false,
         });
-        console.log("locked_balance_histories in cron", locked_balance_histories);
+        // console.log("locked_balance_histories in cron", locked_balance_histories);
         for (const history of locked_balance_histories) {
             const dbDate = new Date(history.updatedAt + "");
             const currentDate = new Date();

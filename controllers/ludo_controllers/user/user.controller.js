@@ -1660,6 +1660,7 @@ module.exports.get_all_goods_by_category = async (req, res) => {
 module.exports.buy_shop = async (req, res) => {
     try {
         const { user_id, goods_id, category } = req.body;
+        console.log("req.body",req.body);
 
         const existingUserGoods = await db.ludo_shop_users.findOne({ where: { user_id, goods_id, category } });
         if (existingUserGoods) {
@@ -1670,8 +1671,10 @@ module.exports.buy_shop = async (req, res) => {
             where: { user_id: user_id },
             raw: true,
         });
+        console.log("userWallet-->",userWallet);
 
         let shopdata =await db.ludo_shop_goods.findOne({where:{id:goods_id,category:category}})
+       
         let price=shopdata.price;
         console.log("price-->",price);
 
@@ -1773,7 +1776,6 @@ module.exports.selectedShopItem = async (req, res) => {
             
             // If the goods_id matches, set is_Selected to 1, else set it to 0
             const isSelected = (shopUser.goods_id === goods_id) ? 1 : 0;
-            console.log("isSelected",isSelected);
             
             try {
                 await db.ludo_shop_users.update({ is_Selected: isSelected }, { where: { id: shopUser.id } });
@@ -2261,6 +2263,30 @@ module.exports.getBankDetails = async (req, res) => {
     } catch (error) {
         console.error(`Error retrieving withdrawls_fees: ${error.message}`);
         return res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports.getSelectedShopItem = async (req, res) => {
+    let responseData={};
+    try {
+        
+        const userId = req.query.user_id;
+        const userData = await db.users.findOne({
+            where: {user_id: userId}
+        });
+          // Fetch selected shop items where is_Selected is 1
+          const selectedShopItems = await db.ludo_shop_users.findAll({
+            where: { user_id: userId, is_Selected: 1 }
+        });
+        if(selectedShopItems.length==0){
+            responseData.msg="no shop item selected"
+              return successResponse(req, res, responseData);
+        }
+        responseData.msg="fetch successfully"
+      responseData.data=selectedShopItems;
+        return successResponse(req, res, responseData);
+    } catch (error) {
+        return errorResponse(req, res, error.message);
     }
 };
   
