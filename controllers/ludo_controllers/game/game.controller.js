@@ -105,7 +105,7 @@ module.exports.game_history = async (req, res) => {
                 ['id', 'DESC'],
             ],
             include: [{
-                model: db.ludo_game,
+                model: db.ludo_games,
                 as: 'LudoGame', // Use the correct alias defined in your model association
                 include: [
                     {
