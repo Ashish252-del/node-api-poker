@@ -494,10 +494,10 @@ module.exports.admin_game_history = async (req, res) => {
         }
         query += ` order by ludo_game_history.id DESC`;
         let response = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
-     from ludo_game_history join ludo_games on ludo_game.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
+     from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
 
         let responseTotalCount = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
-        from ludo_game_history join ludo_games on ludo_game.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+        from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         for(let i=0; i < response.length; i++){
             let allPlayers = await db.ludo_game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
             let playerArray = [];
