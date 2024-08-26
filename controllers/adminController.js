@@ -3965,7 +3965,7 @@ const getTotalTable = async (req, res) => {
 }
 
 const tournamentList = async (req, res) => {
-    let responseData = {};
+    //let responseData = {};
     try {
         let game_type = req.query.game_type;
         console.log(game_type);
@@ -3999,10 +3999,10 @@ const tournamentList = async (req, res) => {
         responseData.msg = 'Tournament List';
         responseData.data = getData;
         return responseHelper.success(res, responseData);
-    } catch (error) {
-        responseData.msg = error.message
-        return responseHelper.error(res, responseData, 500);
-    }
+    // } catch (error) {
+    //     responseData.msg = error.message
+    //     return responseHelper.error(res, responseData, 500);
+    // }
 }
 
 const getTypeListByName = async (req, res) => {

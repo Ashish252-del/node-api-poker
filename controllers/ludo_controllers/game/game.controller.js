@@ -99,44 +99,22 @@ module.exports.game_history = async (req, res) => {
     try {
         console.log(req.user.userId);
         const where = {...req.query, userId: req.user.userId};
-        // let data = await db.ludo_game_history.findAll({
-        //     where,
-        //     order: [
-        //         ['id', 'DESC'],
-        //     ],
-        //     include: [{
-        //         model: db.ludo_game,
-        //         as: db.ludo_game.id,
-        //         include: [{
-        //             model: db.ludo_game_varient,
-        //             as: db.ludo_game_varient.varient_id,
-        //             model: db.ludo_game_type,
-        //             as: db.ludo_game_type.type_id
-        //         }]
-        //     }]
-        // });
-
-        await db.ludo_game_history.findAll({
+        let data = await db.ludo_game_history.findAll({
             where,
             order: [
                 ['id', 'DESC'],
             ],
             include: [{
                 model: db.ludo_game,
-                as: 'ludo_games', // Replace with the correct alias if needed
-                include: [
-                    {
-                        model: db.ludo_game_varient,
-                        as: 'ludo_game_varient', // Replace with the correct alias if needed
-                    },
-                    {
-                        model: db.ludo_game_type,
-                        as: 'ludo_game_type', // Replace with the correct alias if needed
-                    }
-                ]
+                as: db.ludo_game.id,
+                include: [{
+                    model: db.ludo_game_varient,
+                    as: db.ludo_game_varient.varient_id,
+                    model: db.ludo_game_type,
+                    as: db.ludo_game_type.type_id
+                }]
             }]
         });
-
         console.log(data);
         if(data.length > 0){
             data.map((element) => {
