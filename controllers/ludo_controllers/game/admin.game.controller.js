@@ -502,7 +502,7 @@ module.exports.admin_game_history = async (req, res) => {
             let allPlayers = await db.ludo_game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
             let playerArray = [];
             for(let k=0; k< allPlayers.length; k++){
-                let userD = await db.users.findOne({where:{id:allPlayers[k].userId},raw:true});
+                let userD = await db.users.findOne({where:{user_id:allPlayers[k].userId},raw:true});
                 if(userD){
                     let playerD = {
                         playerName: userD.username,
