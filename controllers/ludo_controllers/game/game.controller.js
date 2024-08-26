@@ -105,8 +105,8 @@ module.exports.game_history = async (req, res) => {
                 ['id', 'DESC'],
             ],
             include: [{
-                model: db.ludo_games,
-                as: db.ludo_games.id,
+                model: db.ludo_game,
+                as: db.ludo_game.id,
                 include: [{
                     model: db.ludo_game_varient,
                     as: db.ludo_game_varient.varient_id,

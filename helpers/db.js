@@ -175,11 +175,10 @@ async function initialize() {
     db.avatar.hasMany(db.users, {
         foreignKey: 'avatarId',
     })
-    db.ludo_game_history.belongsTo(db.ludo_games,{
+    db.ludo_game_history.belongsTo(db.ludo_game,{
         foreignKey: "gameId",
-        as: 'LudoGame'
       });
-      db.ludo_games.hasMany(db.ludo_game_history , {
+      db.ludo_game.hasMany(db.ludo_game_history , {
         foreignKey: "gameId"
       })
       db.ludo_game_history.belongsTo(db.users,{
