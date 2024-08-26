@@ -177,6 +177,7 @@ async function initialize() {
     })
     db.ludo_game_history.belongsTo(db.ludo_game,{
         foreignKey: "gameId",
+        as: 'LudoGame'
       });
       db.ludo_game.hasMany(db.ludo_game_history , {
         foreignKey: "gameId"

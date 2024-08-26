@@ -106,15 +106,20 @@ module.exports.game_history = async (req, res) => {
             ],
             include: [{
                 model: db.ludo_game,
-                as: db.ludo_game.id,
-                include: [{
-                    model: db.ludo_game_varient,
-                    as: db.ludo_game_varient.varient_id,
-                    model: db.ludo_game_type,
-                    as: db.ludo_game_type.type_id
-                }]
+                as: 'LudoGame', // Use the correct alias defined in your model association
+                include: [
+                    {
+                        model: db.ludo_game_varient,
+                        as: 'LudoGameVarient' // Use the correct alias defined in your model association
+                    },
+                    {
+                        model: db.ludo_game_type,
+                        as: 'LudoGameType' // Use the correct alias defined in your model association
+                    }
+                ]
             }]
         });
+
         console.log(data);
         if(data.length > 0){
             data.map((element) => {

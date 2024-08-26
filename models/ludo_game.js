@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-    const game = sequelize.define(
+    const ludo_game = sequelize.define(
         "ludo_game",
         {
             id: {
@@ -32,6 +32,6 @@ module.exports = (sequelize, DataTypes) => {
             timestamps: false,
         }
     );
-    return game;
+    return ludo_game;
 };
   
