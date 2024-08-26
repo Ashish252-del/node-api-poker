@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
     const game = sequelize.define(
-      "game",
+      "ludo_games",
       { 
         id: {
           allowNull: false,
