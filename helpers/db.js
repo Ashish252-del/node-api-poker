@@ -64,6 +64,7 @@ async function initialize() {
     db.club_trade_history = require('../models/clubTradeHistoryModel')(sequelize, DataTypes);
     db.leaderboard = require('../models/leaderboardModel')(sequelize, DataTypes);
 
+    db.tournaments = require('../models/tournamentModel')(sequelize, DataTypes);
     db.club_agent = require('../models/clubAgentModel')(sequelize, DataTypes);
     db.vip_priviledge = require('../models/vipPriviledgeModel')(sequelize, DataTypes);
     db.modules = require('../models/module')(sequelize, DataTypes);
