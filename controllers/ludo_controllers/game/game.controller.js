@@ -96,7 +96,7 @@ module.exports.games = async (req, res) => {
 };
 
 module.exports.game_history = async (req, res) => {
-    try {
+    //try {
         console.log(req.user.userId);
         const where = {...req.query, userId: req.user.userId};
         let data = await db.ludo_game_history.findAll({
@@ -128,9 +128,9 @@ module.exports.game_history = async (req, res) => {
         }
         data = await Promise.all(data)
         return successResponse(req, res, data);
-    } catch (error) {
-        return errorResponse(req, res, error.message);
-    }
+    // } catch (error) {
+    //     return errorResponse(req, res, error.message);
+    // }
 };
 
 module.exports.leaderboard_daily = async (req, res) => {
