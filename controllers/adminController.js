@@ -3976,11 +3976,11 @@ const tournamentList = async (req, res) => {
       let str = element.tournament_json_data;
       element.dataValues.tournament_json_data = JSON.parse(str, true);
 
-      let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
-      element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
-
-      let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
-      element.dataValues.game_type_name = (getGameType) ? getGameType.dataValues.name : '';
+      // let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
+      // element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
+      //
+      // let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+      // element.dataValues.game_type_name = (getGameType) ? getGameType.dataValues.name : '';
       return element;
     })
     getData = await Promise.all(getData);
