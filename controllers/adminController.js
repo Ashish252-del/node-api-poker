@@ -4106,7 +4106,49 @@ const updateTournament = async (req, res) => {
   }
 }
 
+const updateTournamentStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const {tournament_id, status} = req.body;
+    let checkTournament = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!checkTournament) {
+      responseData.msg = 'Tournament not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let dataObj = {
+      tournament_status: status,
+      updated_by: req.user.admin_id
+    }
+    await adminService.updateTournamentById(dataObj, {tournament_id: tournament_id});
+    responseData.msg = 'Status Updated';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
 
+const cancelTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    const {tournament_id} = req.query;
+    let checkTournament = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!checkTournament) {
+      responseData.msg = 'Tournament not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let dataObj = {
+      is_cancel: '1',
+      updated_by: req.user.admin_id
+    }
+    await adminService.updateTournamentById(dataObj, {tournament_id: tournament_id});
+    responseData.msg = 'Tournament cancelled successfully';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
 const getTypeListByName = async (req, res) => {
   let responseData = {};
   try {
@@ -4241,6 +4283,8 @@ module.exports = {
   tournamentDetail,
   tournamentList,
   updateTournament,
+  updateTournamentStatus,
+  cancelTournament,
   getTypeListByName
 
 };
