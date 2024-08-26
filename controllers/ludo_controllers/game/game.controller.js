@@ -123,7 +123,7 @@ module.exports.game_history = async (req, res) => {
             ],
             include: [{
                 model: db.ludo_game,
-                as: 'ludo_game', // Replace with the correct alias if needed
+                as: 'ludo_games', // Replace with the correct alias if needed
                 include: [
                     {
                         model: db.ludo_game_varient,
