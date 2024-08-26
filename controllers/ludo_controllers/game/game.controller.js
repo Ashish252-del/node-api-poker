@@ -96,7 +96,7 @@ module.exports.games = async (req, res) => {
 };
 
 module.exports.game_history = async (req, res) => {
-    //try {
+    try {
         console.log(req.user.userId);
         const where = {...req.query, userId: req.user.userId};
         let data = await db.ludo_game_history.findAll({
@@ -106,20 +106,15 @@ module.exports.game_history = async (req, res) => {
             ],
             include: [{
                 model: db.ludo_games,
-                as: 'LudoGame', // Use the correct alias defined in your model association
-                include: [
-                    {
-                        model: db.ludo_game_varient,
-                        as: 'LudoGameVarient' // Use the correct alias defined in your model association
-                    },
-                    {
-                        model: db.ludo_game_type,
-                        as: 'LudoGameType' // Use the correct alias defined in your model association
-                    }
-                ]
+                as: db.ludo_games.id,
+                include: [{
+                    model: db.ludo_game_varient,
+                    as: db.ludo_game_varient.varient_id,
+                    model: db.ludo_game_type,
+                    as: db.ludo_game_type.type_id
+                }]
             }]
         });
-
         console.log(data);
         if(data.length > 0){
             data.map((element) => {
@@ -128,9 +123,9 @@ module.exports.game_history = async (req, res) => {
         }
         data = await Promise.all(data)
         return successResponse(req, res, data);
-    // } catch (error) {
-    //     return errorResponse(req, res, error.message);
-    // }
+    } catch (error) {
+        return errorResponse(req, res, error.message);
+    }
 };
 
 module.exports.leaderboard_daily = async (req, res) => {
