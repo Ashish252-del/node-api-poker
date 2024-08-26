@@ -3993,6 +3993,120 @@ const tournamentList = async (req, res) => {
   }
 }
 
+const createTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    let redisClient = await getRedisClient();
+    let {game_category, game_type, player_type, tournament_name, tournament_json_data} = req.body;
+    //
+    let check = await adminService.getTournamentByQuery({tournament_name: tournament_name});
+    if (check) {
+      responseData.msg = 'Already Added';
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    // rummy_tournament
+    if(game_category == 'Rummy')
+    {  let rummy_tourney = {
+      game_category: game_category,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+    }
+      let save = await adminService.createTournament(rummy_tourney);
+      let tournamentInRedis = await redisClient.hKeys('RummyTournamentId')
+      if (tournamentInRedis || tournamentInRedis.length > 0) {
+        tournamentInRedis.push(save.tournament_id);
+      }
+      //store created tournament id in redis
+      await redisClient.hSet("RummyTournamentId", ""+ save.tournament_id, JSON.stringify(save.tournament_id));
+      responseData.msg = 'Tournament Added Done';
+      return responseHelper.success(res, responseData);
+    }
+    //console.log('player_type',player_type);
+    let scheduleDate = tournament_json_data.tourney_start;
+    if (game_category == 4) {
+      scheduleDate = tournament_json_data.game_date + ' ' + tournament_json_data.game_time;
+    }
+    let data = {
+      game_category: game_category,
+      game_type: game_type,
+      player_type: tournament_json_data.player_type,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+      scheduled_date: scheduleDate,
+      added_by: req.user.admin_id
+    }
+
+    //console.log(data);
+    //return false;
+
+    let save = await adminService.createTournament(data);
+    responseData.msg = 'Tournament Added Done';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const tournamentDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let tournamentId = req.params.id;
+    let getData = await adminService.getTournamentByQuery({tournament_id: tournamentId});
+    if (!getData) {
+      responseData.msg = 'Tournament Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let str = getData.tournament_json_data;
+    getData.tournament_json_data = JSON.parse(str, true);
+    responseData.msg = 'Tournament Detail';
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const updateTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    let redisClient = await getRedisClient();
+    let {tournament_id, game_category, player_type, game_type, tournament_name, tournament_json_data} = req.body;
+    let scheduleDate = tournament_json_data.tourney_start;
+    if (game_category == 4) {
+      scheduleDate = tournament_json_data.game_date + ' ' + tournament_json_data.game_time;
+    }
+    let data = {
+      game_category: game_category,
+      game_type: game_type,
+      player_type: tournament_json_data.player_type,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+      scheduled_date: scheduleDate,
+      updated_by: req.user.admin_id
+    }
+
+    let getData = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!getData) {
+      responseData.msg = 'Game Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let updateData = await adminService.updateTournamentById(data, {tournament_id: tournament_id});
+    let tournamentInRedis = await redisClient.hKeys('tournament')
+    if(!tournamentInRedis.includes(updateData.tournament_id)){
+      tournamentInRedis.push(updateData);
+    }
+    responseData.msg = 'Tournament Update Successfully';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+
 const getTypeListByName = async (req, res) => {
   let responseData = {};
   try {
@@ -4123,7 +4237,10 @@ module.exports = {
   getRunningTable,
   getTotalTable,
 
+  createTournament,
+  tournamentDetail,
   tournamentList,
+  updateTournament,
   getTypeListByName
 
 };

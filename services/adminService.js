@@ -583,11 +583,26 @@ const getLeaderBoard = (query) => {
     });
 }
 
+const createTournament = (query) => {
+    return db.tournaments.create(query);
+}
+
+const getTournamentByQuery = (query) => {
+    return db.tournaments.findOne({where : query});
+}
+
 const getAllTournamentList = (query) => {
-    if (query) {
-        return db.tournaments.findAll({where: query, order: [['tournament_id', 'DESC']]});
+    if(query){
+        return db.tournaments.findAll({where : query,order:[['tournament_id','DESC']]});
     }
     return db.tournaments.findAll();
+}
+
+const updateTournamentById = (data, query) => {
+    return db.tournaments.update(
+        data,
+        { where: query }
+    );
 }
 
 module.exports = {
@@ -740,5 +755,8 @@ module.exports = {
     updateBonusSetting,
     createNotification,
     getLeaderBoard,
-    getAllTournamentList
+    createTournament,
+    getTournamentByQuery,
+    getAllTournamentList,
+    updateTournamentById,
 }
