@@ -174,5 +174,9 @@ module.exports = () => {
     routes.get("/get-leaderboard-data",adminController.getLeaderBoardData);
     routes.get('/get-running-table', authenticate, adminController.getRunningTable);
     routes.get('/get-total-table', authenticate, adminController.getTotalTable);
+
+    routes.get("/tournament-list", authenticate, adminController.tournamentList);
+    routes.get('/get-type-list-by-name',authenticate,adminController.getTypeListByName);
+
     return routes;
 };
