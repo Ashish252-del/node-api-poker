@@ -11,11 +11,11 @@ function model(sequelize) {
         },
 
         game_category : {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: true,
         },
         game_type: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: true,
         },
         winner_id: {
