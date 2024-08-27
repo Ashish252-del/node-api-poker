@@ -44,6 +44,10 @@ message TableRoomDataResponse{
   float auto_extension_time = 37;
   bool auto_open = 38;
   float table_time = 39;
+   bool authorized_to_buyIn = 40;
+  int64 added_by = 41;
+  float fee = 42;
+  float cap = 43;
 }
 
 message JoinTableDataRequest {

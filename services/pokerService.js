@@ -156,6 +156,28 @@ const updatePriceStructureModalDataByQuery = (updateData, query) => {
 const bulkUpdate = (data,query) => {
    return db.games.bulkCreate(data, query);
 }
+const getAllBuyInRequest = (query) =>{
+   return db.buy_in_records.findAll({where:query, 
+      include:[
+         {
+            model:db.users,
+            attributes:["username"]
+         }
+      ],
+      raw:true})
+}
+const getBuyInRequestInfo = (query) =>{
+   return db.buy_in_records.findOne({where:query, raw:true});
+}
+const createNewBuyInRequest = (createData)=>{
+   return db.buy_in_records.create(createData);
+}
+const updateBuyInRequest = (updateData, query) =>{
+   return db.buy_in_records.update(updateData, {where: query, raw: true})
+}
+const bulkUpdateBuyInRequests = (updateData, query) =>{
+   return db.buy_in_records.update(updateData, {where: query, raw: true})
+}
 
 module.exports = {
    getGameModalDataByQuery,
@@ -194,5 +216,11 @@ module.exports = {
    getPriceStructureModalDataByQuery,
    createPriceStructureModalData,
    updatePriceStructureModalDataByQuery,
-   bulkUpdate
+   bulkUpdate,
+   getBuyInRequestInfo,
+   createNewBuyInRequest,
+   getAllBuyInRequest,
+   updateBuyInRequest,
+   bulkUpdateBuyInRequests
+
 }

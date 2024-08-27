@@ -10,6 +10,8 @@ const db = require("../helpers/db");
 const { sequelize } = require("../models");
 const userController = require("./userController");
 const { getRedisClient } = require("../helpers/redis");
+const { updateMember, createTableCommisionRecord, getClubByUserId } = require("../services/clubService");
+const { geAdminDetailsById, updateAdminByQuery } = require('../services/adminService');
 
 const getPokerTableRoomData = async (tableRoomDataRequest) => {
    try {
@@ -59,6 +61,8 @@ const getPokerTableRoomData = async (tableRoomDataRequest) => {
             : roomAttributesObj.maximum_player,
          minPlayers: roomAttributesObj.minimum_player,
          animation: roomAttributesObj.animation,
+         fee: roomAttributesObj.fee ?? 0,
+         cap: roomAttributesObj.cap ?? 0,
          commission: roomAttributesObj.commission === undefined ? 0 : roomAttributesObj.commission,
          commission_cap: roomAttributesObj.commission_cap === undefined ? 0 : roomAttributesObj.commission_cap,
          turn_timmer: roomAttributesObj.turn_timmer,
@@ -76,24 +80,7 @@ const getPokerTableRoomData = async (tableRoomDataRequest) => {
          status: true,
          message: "Room data fetched successfully"
       }
-      if (gameModalData.club_id && gameModalData.club_id != 0) {
-         obj.selected_small_blind = roomAttributesObj.selected_small_blind === undefined ? 0 : roomAttributesObj.selected_small_blind;
-         obj.selected_big_blind = roomAttributesObj.selected_big_blind === undefined ? 0 : roomAttributesObj.selected_big_blind;
-         obj.selected_maximum_player = roomAttributesObj.selected_maximum_player === undefined ? 0 : roomAttributesObj.selected_maximum_player;
-         obj.selected_buyin = roomAttributesObj.selected_buyin === undefined ? 0 : roomAttributesObj.selected_buyin;
-         obj.password = roomAttributesObj.password === undefined ? '' : roomAttributesObj.password;
-         obj.exclusive_table = roomAttributesObj.exclusive_table === undefined ? false : roomAttributesObj.exclusive_table;
-         obj.auto_start = roomAttributesObj.auto_start === undefined ? false : roomAttributesObj.auto_start;
-         obj.auto_start_player = roomAttributesObj.auto_start_player === undefined ? 2 : roomAttributesObj.auto_start_player;
-         obj.is_table_started_by_owner = roomAttributesObj.is_table_started_by_owner === undefined ? false : roomAttributesObj.is_table_started_by_owner;
-         obj.ban_chatting = roomAttributesObj.ban_chatting === undefined ? false : roomAttributesObj.ban_chatting;
-
-         obj.runmulti_time = roomAttributesObj.runmulti_time === undefined ? false : roomAttributesObj.runmulti_time;
-         obj.auto_extension = roomAttributesObj.auto_extension === undefined ? false : roomAttributesObj.auto_extension;
-         obj.auto_extension_time = roomAttributesObj.auto_extension_time === undefined ? 0 : roomAttributesObj.auto_extension_time;
-         obj.auto_open = roomAttributesObj.auto_open === undefined ? false : roomAttributesObj.auto_open;
-         obj.table_time = roomAttributesObj.table_time === undefined ? null : roomAttributesObj.table_time;
-      }
+      if (gameModalData.club_id && gameModalData.club_id != 0) return addRoomAttributes(obj, gameModalData, roomAttributesObj);
       return obj;
       // return {
       //    buyIn: buyin,
@@ -218,7 +205,7 @@ const getOrCreateTable = async (joinTableDataRequest) => {
                userName: game_type_name.startsWith("ANONYMOUS") ? "XXXXX" : userData.username,
                stack: joinTableDataRequest.chips
             }],
-            leftPlayers: [],
+            //  leftPlayers: [],
             maxPlayers: table_attributes.maxPlayers,
             minPlayers: table_attributes.minPlayers,
             minimum_buyin: table_attributes.minimum_buyin,
@@ -257,7 +244,7 @@ const getOrCreateTable = async (joinTableDataRequest) => {
                table_attributes: JSON.stringify({
                   roomId: joinTableDataRequest.tableId,
                   players: [],
-                  leftPlayers: [],
+                  //                  leftPlayers: [],
                   maxPlayers: maxPlayers,
                   minPlayers: roomAttributesObj.minimum_player
                }),
@@ -499,6 +486,220 @@ const getOrCreateMultiTable = async (joinMultiTableDataRequest) => {
    }
 }
 
+const getOrCreateMultiTableForClub = async (joinMultiTableDataRequest) => {
+   try {
+      console.log("joinMultiTableDataRequest is ", joinMultiTableDataRequest)
+      if (!joinMultiTableDataRequest.userId) {
+         throw new Error("User id is required");
+      }
+      if (!joinMultiTableDataRequest.gameId) {
+         throw new Error("gameId id is required");
+      }
+      let userData = await userService.getUserDetailsById({ user_id: joinMultiTableDataRequest.userId });
+      if (!userData) {
+         throw new Error("User not found");
+      }
+      let game_id = joinMultiTableDataRequest.gameId;
+      let gameModalData = await pokerService.getGameModalDataByQuery({ game_id: joinMultiTableDataRequest.gameId });
+      if (!gameModalData) {
+         throw new Error("Game table not found");
+      }
+      let clubId = 0;
+      // if it is a club room then set the club_id
+      if (gameModalData.club_id && gameModalData.club_id != 0) {
+         clubId = gameModalData.club_id
+      }
+      let gameType = await getGameTypeModalDataByQuery({
+         game_type_id: gameModalData.game_type_id
+      });
+      let game_type_name = gameType.name;
+      let roomAttributes = gameModalData.game_json_data;
+      let roomAttributesObj = JSON.parse(roomAttributes);
+      let maxPlayers = roomAttributesObj.maximum_player;
+      // getting all tables of that particular room whose game_table_status are active 
+      let game_tables = await pokerService.getGameTableModalDataByQuery({
+         game_id,
+         game_table_status: "Active"
+      });
+      // in case no active table found then create new one and send response 
+      if (game_tables.length === 0) {
+         let tableData = {
+            roomId: game_id,
+            players: [],
+            maxPlayers: maxPlayers,
+            minPlayers: roomAttributesObj.minimum_player,
+            minimum_buyin: roomAttributesObj.minimum_buyin,
+            maximum_buyin: roomAttributesObj.maximum_buyin,
+            smallBlind: roomAttributesObj.small_blind,
+            bigBlind: roomAttributesObj.big_blind,
+         }
+         // if it is a club room then set the club_id
+         if (gameModalData.club_id && gameModalData.club_id != 0) tableData.club_id = gameModalData.club_id
+         let pokerTableData = {
+            game_id: game_id,
+            table_name: roomAttributesObj.room_name,
+            game_table_status: "Active",
+            game_category: "Poker",
+            club_id: clubId
+         }
+         // creating a table 
+         let pokerTable = await pokerService.createGameTableModalData(pokerTableData);
+         pokerTable = pokerTable.toJSON();
+         console.log("pokerTable after creation in multitable ", pokerTable);
+         // creatung a tableRond with active status --> tableRond will consist all the information abour table like how many players are there on table 
+         let tableRoundData = {
+            game_table_id: pokerTable.game_table_id,
+            table_attributes: JSON.stringify(tableData),
+            result_json: JSON.stringify({}),
+            table_round_status: "Active",
+         }
+         await pokerService.createTableRoundModalData(tableRoundData);
+         tableData.game_type_name = game_type_name;
+         tableData.table_name = roomAttributesObj.room_name;
+
+         pokerTable.tableAttributes = JSON.stringify(tableData);
+         // send response by grpc and return 
+         return addRoomAttributes(pokerTable, gameModalData, roomAttributesObj);
+      }
+      for (let i = 0; i < game_tables.length; i++) {
+         let game_table = game_tables[i];
+         // fetching table round of a particular game which is active 
+         let tableRoundData = await pokerService.getTableRoundByQuery({
+            game_table_id: game_table.game_table_id,
+            table_round_status: "Active"
+         });
+         if (tableRoundData) {
+            game_table.table_attributes = tableRoundData.table_attributes;
+            let tableAttributes = tableRoundData.table_attributes;
+            let tableAttributesObj = JSON.parse(tableAttributes);
+            // if (tableAttributesObj.players.length >= maxPlayers)  continue;
+            // if (tableAttributesObj.players.find(player => player.userId === joinMultiTableDataRequest.userId)) continue;
+            // write logic to send by grpc 
+            tableAttributesObj.game_type_name = game_type_name;
+            tableAttributesObj.table_name = roomAttributesObj.room_name;
+            game_table.table_attributes = JSON.stringify(tableAttributesObj);
+            return addRoomAttributes(game_table, gameModalData, roomAttributesObj);
+         } else {
+            // if table round is not active then create new one 
+            game_table.table_attributes = {
+               roomId: game_id,
+               players: [],
+               maxPlayers: maxPlayers,
+               minPlayers: roomAttributesObj.minimum_player,
+               game_type_name: game_type_name,
+               table_name: roomAttributesObj.room_name
+            }
+            let tableData = {
+               roomId: game_id,
+               players: [],
+               maxPlayers: maxPlayers,
+               minPlayers: roomAttributesObj.minimum_player,
+               minimum_buyin: roomAttributesObj.minimum_buyin,
+               maximum_buyin: roomAttributesObj.maximum_buyin,
+               smallBlind: roomAttributesObj.small_blind,
+               bigBlind: roomAttributesObj.big_blind,
+
+            }
+            // if it is a club room then set the club_id
+            if (gameModalData.club_id && gameModalData.club_id != 0) tableData.club_id = gameModalData.club_id
+            tableRoundData = {
+               game_table_id: game_table.game_table_id,
+               table_attributes: JSON.stringify(tableData),
+               result_json: JSON.stringify({}),
+               table_round_status: "Active",
+            }
+            await pokerService.createTableRoundModalData(tableRoundData);
+            tableData.game_type_name = game_type_name;
+            tableData.table_name = roomAttributesObj.room_name;
+            // game_table.table_attributes = JSON.stringify(game_table.table_attributes) // commented this 
+            game_table.tableAttributes = JSON.stringify(tableData);
+            // write logic to send by grpc 
+            return addRoomAttributes(game_table, gameModalData, roomAttributesObj);
+         }
+      }
+      // in case no active table found or playerIs already on active tables then create new one and send response 
+      let tableData = {
+         roomId: game_id,
+         players: [],
+         maxPlayers: maxPlayers,
+         minPlayers: roomAttributesObj.minimum_player,
+         minimum_buyin: roomAttributesObj.minimum_buyin,
+         maximum_buyin: roomAttributesObj.maximum_buyin,
+         smallBlind: roomAttributesObj.small_blind,
+         bigBlind: roomAttributesObj.big_blind,
+      }
+      // if it is a club room then set the club_id
+      let clubIds = 0;
+      if (gameModalData.club_id && gameModalData.club_id != 0) {
+         tableData.club_id = gameModalData.club_id
+         clubIds = gameModalData.club_id
+      }
+      let pokerTableData = {
+         game_id: game_id,
+         table_name: roomAttributesObj.room_name,
+         game_table_status: "Active",
+         game_category: "Poker",
+         club_id: clubIds
+      }
+      // creating a table 
+      let pokerTable = await pokerService.createGameTableModalData(pokerTableData);
+      pokerTable = pokerTable.toJSON();
+      console.log("pokerTable after creation in multitable ", pokerTable);
+      // creatung a tableRond with active status --> tableRond will consist all the information abour table like how many players are there on table 
+      let tableRoundData = {
+         game_table_id: pokerTable.game_table_id,
+         table_attributes: JSON.stringify(tableData),
+         result_json: JSON.stringify({}),
+         table_round_status: "Active",
+      }
+      await pokerService.createTableRoundModalData(tableRoundData);
+      tableData.game_type_name = game_type_name;
+      tableData.table_name = roomAttributesObj.room_name;
+
+      pokerTable.tableAttributes = JSON.stringify(tableData);
+      // send response by grpc and return 
+      return addRoomAttributes(pokerTable, gameModalData, roomAttributesObj);
+   } catch (error) {
+      console.log("Error in joinMultiTable  ", error);
+      return {
+         status: false,
+         message: error.message
+      }
+   }
+}
+
+function addRoomAttributes(obj, gameModalData, roomAttributesObj) {
+   return {
+      ...obj,
+      selected_small_blind: roomAttributesObj.small_blind === undefined ? 0 : roomAttributesObj.small_blind,
+      selected_big_blind: roomAttributesObj.big_blind === undefined ? 0 : roomAttributesObj.big_blind,
+      selected_maximum_player: roomAttributesObj.selected_maximum_player === undefined ? 0 : roomAttributesObj.selected_maximum_player,
+      selected_buyin: roomAttributesObj.selected_buyin === undefined ? 0 : roomAttributesObj.selected_buyin,
+      password: roomAttributesObj.password === undefined ? '' : roomAttributesObj.password,
+      exclusive_table: roomAttributesObj.exclusive_table === undefined ? false : roomAttributesObj.exclusive_table,
+      action_time: roomAttributesObj.action_time == undefined ? 0 : roomAttributesObj.action_time,
+      record_privacy: roomAttributesObj.record_privacy == undefined ? false : roomAttributesObj.record_privacy,
+      auto_start: roomAttributesObj.auto_start === undefined ? false : roomAttributesObj.auto_start,
+      auto_start_player: roomAttributesObj.auto_start_player === undefined ? 2 : roomAttributesObj.auto_start_player,
+      is_table_started_by_owner: roomAttributesObj.is_table_started_by_owner === undefined ? false : roomAttributesObj.is_table_started_by_owner,
+      ban_chatting: roomAttributesObj.ban_chatting === undefined ? false : roomAttributesObj.ban_chatting,
+      runmulti_time: roomAttributesObj.runmulti_time === undefined ? false : roomAttributesObj.runmulti_time,
+      run_twice: (roomAttributesObj.run_twice) ? roomAttributesObj.run_twice : false,
+      run_twice_value: (roomAttributesObj.run_twice_value) ? roomAttributesObj.run_twice_value : "",
+      turn_timmer: roomAttributesObj.turn_timmer,
+      auto_extension: roomAttributesObj.auto_extension === undefined ? false : roomAttributesObj.auto_extension,
+      auto_extension_time: roomAttributesObj.auto_extension_time === undefined ? 0 : roomAttributesObj.auto_extension_time,
+      auto_open: roomAttributesObj.auto_open === undefined ? false : roomAttributesObj.auto_open,
+      table_time: roomAttributesObj.table_time === undefined ? null : roomAttributesObj.table_time,
+      authorized_to_buyIn: roomAttributesObj.authorized_to_buyIn === undefined ? null : roomAttributesObj.authorized_to_buyIn,
+      added_by: gameModalData.added_by == undefined ? null : gameModalData.added_by,
+      isGameStarted: false,
+      isGameEnded: false,
+      tableTimeCounter: (roomAttributesObj.table_time) ? (roomAttributesObj.table_time * 60 * 60) : 0,
+      tableTimeCounterStarted: false,
+      straddle: (roomAttributesObj.straddle) ? roomAttributesObj.straddle : false
+   }
+}
 const createTableAndJoinTournament = async (joinTournamentDataRequest) => {
    try {
       let game_id = joinTournamentDataRequest.gameId;
@@ -580,13 +781,19 @@ const updateStatusAndCloneTable = async (request) => {
       if (!pokerTable) {
          throw new Error("Table not found");
       }
-      
-      // update table status to completed
+
+      // update table status to completed if auto open is false 
+      if (!request.autoOpen)  await pokerService.updateGameByQuery({ game_status: "3" }, { game_id: pokerTable.game_id });
       await pokerService.updateGameTableModalDataByQuery({
          game_table_status: "Completed"
       }, { game_table_id: pokerTable.game_table_id });
-
       let gameModalData = await pokerService.getGameModalDataByQuery({ game_id: pokerTable.game_id });
+      if (gameModalData && gameModalData.club_id) {
+         await (await getRedisClient()).del(`CLUBROOM${gameModalData.club_id}`);
+      }
+      console.log("request.autoOpen", request.autoOpen, typeof (request.autoOpen))
+      if (!request.autoOpen) return { message: "Table Completed." };
+
       let clubId = 0;
       // if it is a club room then set the club_id
       if (gameModalData.club_id && gameModalData.club_id != 0) {
@@ -609,7 +816,7 @@ const updateStatusAndCloneTable = async (request) => {
          table_attributes: JSON.stringify({
             roomId: pokerTable.game_id,
             players: [],
-            leftPlayers: [],
+            //  leftPlayers: [],
             maxPlayers: roomAttributesObj.maximum_player,
             minPlayers: roomAttributesObj.minimum_player
          }),
@@ -1096,8 +1303,8 @@ const leaveTable = async (leaveTableRequest) => {
       }
       let leftPlayer = tableAttributesObj.players.splice(playerIndex, 1)[0];
       // Add removed player to leftPlayers array
-      if (tableAttributesObj.leftPlayers != undefined)
-         tableAttributesObj.leftPlayers.push(leftPlayer);
+      // if (tableAttributesObj.leftPlayers != undefined)
+      //    tableAttributesObj.leftPlayers.push(leftPlayer);
       tableRoundData.table_attributes = JSON.stringify(tableAttributesObj);
       await pokerService.updateTableRoundModalDataByQuery({
          table_attributes: tableRoundData.table_attributes,
@@ -1117,7 +1324,7 @@ const leaveTable = async (leaveTableRequest) => {
          message: "Player left successfully",
       }
    } catch (error) {
-      console.log("Error in leave table ", error);
+      console.error("Error in leave table ", error);
       return {
          status: false,
          message: error.message
@@ -1130,32 +1337,10 @@ const isNewPlayer = async (data) => {
       if (!data.tableId) {
          throw new Error("Table id is required");
       }
-
-      let tableRoundData = await pokerService.getTableRoundByQuery({
-         game_table_id: data.tableId,
-         table_round_status: "Active"
-      });
-      if (!tableRoundData) {
-         throw new Error("Table round not found");
-      }
-
-      let tableAttributes = tableRoundData.table_attributes;
-      let tableAttributesObj = JSON.parse(tableAttributes);
       let userId = data.userId;
-      // Ensure players and leftPlayers arrays are defined
-      let players = tableAttributesObj.players || [];
-      let leftPlayers = tableAttributesObj.leftPlayers || [];
-
-      // Check if userId is present in either the players or leftPlayers array
-      let isUserInPlayers = players.some(player => player.userId === userId);
-      let isUserInLeftPlayers = leftPlayers.some(player => player.userId === userId);
-
-      // Return false if userId is found in any of the arrays, otherwise return true
-      let isNewPlayer = !(isUserInPlayers || isUserInLeftPlayers);
-
-
-      return isNewPlayer;
-
+      let res = pokerService.getBuyInRequestInfo({ userId: userId, table_id: data.tableId })
+      if (res && (res.request_status == "Accepted" || res.request_status == "Na")) return true;
+      return false;
    } catch (error) {
       console.log("Error in checking new player: ", error);
       return {
@@ -1424,13 +1609,14 @@ const getTablesByGameId = async (req, res) => {
             minimum_buyin: roomAttributesObj.minimum_buyin,
             maximum_buyin: roomAttributesObj.maximum_buyin,
             smallBlind: roomAttributesObj.small_blind,
-            bigBlind: roomAttributesObj.big_blind,
+            bigBlind: roomAttributesObj.big_blind
          }
          let clubId = 0;
          // if it is a club room then set the club_id
          if (gameModalData.club_id && gameModalData.club_id != 0) {
-            tableData.club_id = gameModalData.club_id
-            clubId = gameModalData.club_id
+            tableData.club_id = gameModalData.club_id;
+            tableData.table_time = roomAttributesObj.table_time;
+            clubId = gameModalData.club_id;
          }
          let pokerTableData = {
             game_id: game_id,
@@ -1439,11 +1625,12 @@ const getTablesByGameId = async (req, res) => {
             game_category: "Poker",
             club_id: clubId
          }
-         if (clubId != 0) tableData.leftPlayers = [];
+         //  if (clubId != 0) tableData.leftPlayers = [];
          console.log('pokerTableData', pokerTableData)
          // creating a table 
          let pokerTable = await pokerService.createGameTableModalData(pokerTableData);
          pokerTable = pokerTable.toJSON();
+         pokerTable.tableTimeCounter = (roomAttributesObj.table_time) ? (roomAttributesObj.table_time * 60 * 60) : 0;
          console.log("pokerTable after creation ", pokerTable);
          // creatung a tableRond with active status --> tableRond will consist all the information abour table like how many players are there on table 
          let tableRoundData = {
@@ -1483,7 +1670,10 @@ const getTablesByGameId = async (req, res) => {
                bigBlind: roomAttributesObj.big_blind,
             }
             // if it is a club room then set the club_id
-            if (gameModalData.club_id && gameModalData.club_id != 0) tableData.club_id = gameModalData.club_id
+            if (gameModalData.club_id && gameModalData.club_id != 0) {
+               tableData.club_id = gameModalData.club_id
+            }
+
             tableRoundData = {
                game_table_id: game_table.game_table_id,
                table_attributes: JSON.stringify(tableData),
@@ -1492,6 +1682,7 @@ const getTablesByGameId = async (req, res) => {
             }
             await pokerService.createTableRoundModalData(tableRoundData);
          }
+         game_table.tableTimeCounter = (roomAttributes.table_time) ? (roomAttributes.table_time * 60 * 60) : 0;
          game_tables[i] = game_table;
       }
       responseData.msg = 'Game List';
@@ -2118,7 +2309,7 @@ const getOrCreateTableForJoinViewer = async (joinTableDataRequest) => {
          let tableData = {
             roomId: table_attributes.roomId,
             players: [],
-            leftPlayers: [],
+            // leftPlayers: [],
             maxPlayers: table_attributes.maxPlayers,
             minPlayers: table_attributes.minPlayers,
             minimum_buyin: table_attributes.minimum_buyin,
@@ -2157,7 +2348,7 @@ const getOrCreateTableForJoinViewer = async (joinTableDataRequest) => {
                table_attributes: JSON.stringify({
                   roomId: joinTableDataRequest.tableId,
                   players: [],
-                  leftPlayers: [],
+                  //  leftPlayers: [],
                   maxPlayers: maxPlayers,
                   minPlayers: roomAttributesObj.minimum_player
                }),
@@ -2187,6 +2378,170 @@ const getOrCreateTableForJoinViewer = async (joinTableDataRequest) => {
          status: false,
          message: error.message
       }
+   }
+}
+
+const saveCommisionRecords = async (request) => {
+   if (!request.tableId) throw new Error("Table id is required");
+
+   let tableRoundData = await pokerService.getTableRoundByQuery({
+      game_table_id: request.tableId,
+      table_round_status: "Active"
+   });
+
+   if (!tableRoundData) throw new Error("Table round not found");
+   const adminDetails = await geAdminDetailsById({ admin_id: 1 });
+
+   if ((await storeCommisionRecords(request, tableRoundData, null, null, adminDetails))) {
+      return {
+         message: "Commision added to Admin Account!"
+      }
+   } else {
+      for (let count = 5; count > 0; count--) {
+         const resp = await storeCommisionRecords(request, tableRoundData, null, null, adminDetails)
+         if (resp.status) return { message: "Commision added to admin Account!" }
+         else if (count === 1) {
+            await (await getRedisClient()).hSet("FAILED-COMMISSION-TRNS", JSON.stringify(request));
+            return {
+               message: error.message
+            }
+         }
+      }
+   }
+}
+
+const saveCommisionRecordsForClub = async (request) => {
+   if (!request.tableId) throw new Error("Table id is required");
+   if (!request.club_id) throw new Error("Club id is required");
+
+   let tableRoundData = await pokerService.getTableRoundByQuery({
+      game_table_id: request.tableId,
+      table_round_status: "Active"
+   });
+
+   if (!tableRoundData) throw new Error("Table round not found");
+   let clubAdmin = await getClubByUserId({ clubId: request.club_id, is_club_admin: "1" });
+   if (!clubAdmin) throw new Error("Club admin not found!");
+   if (parseInt(request.clubOwnerId) !== parseInt(clubAdmin[0].user_id)) throw new Error(`Club admin id is invalid! ${request.clubOwnerId}, ${clubAdmin[0].user_id}`);
+   let userWallet = await userService.getUserWalletDetailsByQuery({ user_id: request.clubOwnerId });
+
+   if ((await storeCommisionRecords(request, tableRoundData, userWallet, clubAdmin))) {
+      return {
+         message: "Commision added to wallet!"
+      }
+   } else {
+      for (let count = 5; count > 0; count--) {
+         const resp = await storeCommisionRecords(request, tableRoundData, userWallet, clubAdmin)
+         if (resp.status) return { message: "Commision added to wallet!" }
+         else if (count === 1) {
+            await (await getRedisClient()).hSet("FAILED-COMMISSION-TRNS", JSON.stringify(request));
+            return {
+               message: error.message
+            }
+         }
+      }
+   }
+}
+
+async function storeCommisionRecords(request, tableRoundData, userWallet, clubAdmin, adminDetails = undefined) {
+   const transaction = await sequelize.transaction();  // creating transaction for commit and rollback
+   try {
+      if (adminDetails) {
+         await createTableCommisionRecord({
+            table_round_id: tableRoundData.table_round_id,
+            game_table_id: request.tableId,
+            commision_amount: request.tableTotalCalculatedCommision,
+            createdAt: new Date(),
+            updatedAt: new Date()
+         }, { transaction });
+   
+         console.log(adminDetails, "admin Details")
+         if (Object.keys(JSON.parse(request.commisionedPlayer)).length) {
+            let insertArr = []
+            for (const [user_id, fee] of Object.entries(JSON.parse(request.commisionedPlayer))) {
+               insertArr.push({
+                  user_id: parseInt(user_id.split('_')[0]),
+                  table_id: request.tableId,
+                  type: "DR",
+                  other_type: "Table Commision",
+                  reference: tableRoundData.table_round_id,
+                  amount: parseFloat(fee.toFixed(2))
+               })
+            }
+            if (insertArr.length) await userService.createTransaction(insertArr, { transaction });
+         }
+   
+         // creating new transaction
+         await userService.createTransaction({
+            user_id: adminDetails.admin_id,
+            table_id: request.tableId,
+            type: "CR",
+            other_type: "Admin Table Commision",
+            reference: tableRoundData.table_round_id,
+            amount: parseFloat(request.tableTotalCalculatedCommision),
+            opening_balance: parseFloat(adminDetails.commission),
+            closing_balance: parseFloat(adminDetails.commission - 0 + request.tableTotalCalculatedCommision),
+         }, { transaction });
+   
+         // updating user wallet
+         await updateAdminByQuery({
+            commision: parseFloat(adminDetails.commission - 0 + request.tableTotalCalculatedCommision)
+         }, { admin_id: adminDetails.admin_id }, transaction);   
+      } else {
+         await createTableCommisionRecord({
+            table_round_id: tableRoundData.table_round_id,
+            game_table_id: request.tableId,
+            commision_amount: request.tableTotalCalculatedCommision,
+            createdAt: new Date(),
+            updatedAt: new Date()
+         }, { transaction });
+   
+         if (Object.keys(JSON.parse(request.commisionedPlayer)).length) {
+            let insertArr = []
+            for (const [user_id, fee] of Object.entries(JSON.parse(request.commisionedPlayer))) {
+               insertArr.push({
+                  user_id: parseInt(user_id.split('_')[0]),
+                  table_id: request.tableId,
+                  type: "DR",
+                  other_type: "Table Commision",
+                  reference: tableRoundData.table_round_id,
+                  amount: parseFloat(fee)
+               })
+            }
+            if (insertArr.length) await userService.createTransaction(insertArr, { transaction });
+         }
+   
+         // creating new transaction
+         await userService.createTransaction({
+            user_id: request.clubOwnerId,
+            table_id: request.tableId,
+            type: "CR",
+            other_type: "Table Commision",
+            reference: tableRoundData.table_round_id,
+            amount: parseFloat(request.tableTotalCalculatedCommision),
+            opening_balance: parseFloat(userWallet.commision_amount),
+            closing_balance: parseFloat(userWallet.commision_amount - 0 + request.tableTotalCalculatedCommision),
+         }, { transaction });
+   
+         // updating user wallet
+         await userService.updateUserWallet({
+            commision_amount: parseFloat(userWallet.commision_amount - 0 + request.tableTotalCalculatedCommision)
+         }, { user_wallet_id: userWallet.user_wallet_id }, transaction);
+   
+         // updating club admin amount in club
+         await updateMember({
+            amount: (parseFloat(clubAdmin[0].amount) - 0 + request.tableTotalCalculatedCommision).toFixed(2)
+         }, { where: { user_id: request.clubOwnerId, clubId: request.club_id }, transaction })
+      }
+
+      await transaction.commit();
+      return true
+   } catch (error) {
+      console.log("Error in saving table commision result ", error);
+      if (transaction) {
+         await transaction.rollback();
+      }
+      return false
    }
 }
 
@@ -2273,6 +2628,8 @@ const savePokerResultForClub = async (pokerResultRequest) => {
          pots: pokerResultRequest.pots,
          players: pokerResultRequest.playerCardsAndChips,
          communityCards: pokerResultRequest.communityCards,
+         communityExtraCards: pokerResultRequest.communityExtraCards ?? [],
+         communityExtraExtraCards: pokerResultRequest.communityExtraExtraCards ?? []
       }
       tableRoundData.result_json = JSON.stringify(resultJson);
       tableRoundData.hand_histories = JSON.stringify(pokerResultRequest.handHistories);
@@ -2500,6 +2857,170 @@ const savePokerResultForClub = async (pokerResultRequest) => {
    }
 }
 
+const isRoomDisabledOrDeleted = async (pokerResultRequest) =>{
+  try {
+   if (!pokerResultRequest.tableId) {
+      throw new Error("Table id is required");
+   }
+   let pokerTable = await pokerService.getOneGameTableModalDataByQuery({
+      game_table_id: pokerResultRequest.tableId
+   });
+
+   if (!pokerTable) {
+      throw new Error("Table not found");
+   }
+   let pokerRoom = await pokerService.getGameModalDataByQuery({
+      game_id: pokerTable.game_id
+   });
+   return {
+      status: true,
+      message: "Success",
+      isRoomDisabledOrDeleted: (pokerRoom.game_status === '0' || pokerRoom.game_status === '3') // sending response that is room is disabledordeleted
+   }
+  } catch (error) {
+   console.log("Error in save poker result ", error);
+   return {
+      status: false,
+      message: error.message
+   }
+  }
+}
+// authorized to buyIn club controllers 
+const getBuyInRequestStatus = async (getBuyInRequest) => {
+   try {
+      let userId = getBuyInRequest.userId;
+      let clubId = getBuyInRequest.club_id;
+      let tableId = getBuyInRequest.table_id;
+      let res = await pokerService.getBuyInRequestInfo({ user_id: userId, club_id: clubId, table_id: tableId });
+      if (res == null) return {
+         status: "Not Found",
+         message: "Success"
+      }
+      return {
+         status: res.request_status,
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in getBuyInRequestStatus ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+
+const findAllBuyInRequest = async (allBuyInRequest) => {
+   try {
+      let clubOwnerId = allBuyInRequest.club_owner_id;
+      let clubId = allBuyInRequest.club_id;
+      let tableId = allBuyInRequest.table_id;
+      let res = await pokerService.getAllBuyInRequest({ club_owner_id: clubOwnerId, club_id: clubId, table_id: tableId, request_status: 'Pending' });
+      console.log("res of findAllBuyInRequest =======>", res);
+
+      return {
+         json_data: JSON.stringify(res),
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in findAllBuyInRequest ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+
+const updateBuyInRequestStatus = async (updateBuyInRequest) => {
+   try {
+      let userId = updateBuyInRequest.userId;
+      let clubId = updateBuyInRequest.club_id;
+      let tableId = updateBuyInRequest.table_id;
+      let clubOwnerId = updateBuyInRequest.club_owner_id;
+      let status = updateBuyInRequest.status;
+      let res = await pokerService.updateBuyInRequest({ request_status: status }, { club_owner_id: clubOwnerId, club_id: clubId, table_id: tableId, user_id: userId });
+      return {
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in updateBuyInRequestStatus ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+
+const bulkUpdateBuyInRequestStatus = async (updateBuyInRequest) => {
+   try {
+      let clubId = updateBuyInRequest.club_id;
+      let tableId = updateBuyInRequest.table_id;
+      let clubOwnerId = updateBuyInRequest.club_owner_id;
+      let status = updateBuyInRequest.status;
+      let res = await pokerService.bulkUpdateBuyInRequests({ request_status: status }, { club_owner_id: clubOwnerId, club_id: clubId, table_id: tableId, request_status: 'Pending' });
+      return {
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in bulkUpdateBuyInRequestStatus ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+
+const sendBuyInRequest = async (buyInRequest) => {
+   try {
+      let userId = buyInRequest.userId;
+      let clubId = buyInRequest.club_id;
+      let tableId = buyInRequest.table_id;
+      let clubOwnerId = buyInRequest.club_owner_id;
+      let gameId = buyInRequest.game_id
+      let old = await pokerService.getBuyInRequestInfo({ user_id: userId, club_id: clubId, table_id: tableId });
+      if (old != null && old && old.request_status == "Rejected") {
+         let res = await pokerService.updateBuyInRequest({ request_status: "Pending" }, { club_owner_id: clubOwnerId, club_id: clubId, table_id: tableId, user_id: userId });
+         return {
+            status: res.request_status,
+            message: "Success"
+         }
+      }
+      if (old != null && old) return {
+         status: old.request_status,
+         message: "Success"
+      }
+      let res = await pokerService.createNewBuyInRequest({ user_id: userId, club_id: clubId, table_id: tableId, club_owner_id: clubOwnerId, game_id: gameId });
+      return {
+         status: res.request_status,
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in sendBuyInRequest ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+const createPlayerBuyInRequest = async (buyInRequest) => {
+   try {
+      let userId = buyInRequest.userId;
+      let clubId = buyInRequest.club_id;
+      let tableId = buyInRequest.table_id;
+      let clubOwnerId = buyInRequest.club_owner_id;
+      let gameId = buyInRequest.game_id
+      let old = await pokerService.getBuyInRequestInfo({ user_id: userId, club_id: clubId, table_id: tableId });
+      if (old != null && old) return {
+         status: old.request_status,
+         message: "Success"
+      }
+      let res = await pokerService.createNewBuyInRequest({ user_id: userId, club_id: clubId, table_id: tableId, club_owner_id: clubOwnerId, game_id: gameId, request_status: "Na" });
+      return {
+         status: res.request_status,
+         message: "Success"
+      }
+   } catch (error) {
+      console.error("Error in sendBuyInRequest ", error);
+      return {
+         message: error.message
+      }
+   }
+}
+
 module.exports = {
    getPokerTableRoomData,
    getOrCreateTable,
@@ -2529,7 +3050,20 @@ module.exports = {
    getPrivateTable,
    isNewPlayer,
    getOrCreateTableForJoinViewer,
+   saveCommisionRecordsForClub,
    savePokerResultForClub,
    UpdateTableRoomDataForClub,
-   updateStatusAndCloneTable
+   getOrCreateMultiTableForClub,
+   updateStatusAndCloneTable,
+   getBuyInRequestStatus,
+   findAllBuyInRequest,
+   updateBuyInRequestStatus,
+   bulkUpdateBuyInRequestStatus,
+   sendBuyInRequest,
+   createPlayerBuyInRequest,
+   saveCommisionRecords,
+   isRoomDisabledOrDeleted
+
+
+
 }

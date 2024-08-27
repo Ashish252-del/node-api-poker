@@ -105,6 +105,7 @@ async function initialize() {
    db.pool_block_user = require('../models/blockUser')(sequelize, DataTypes);
    db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
     // --<
+    db.buy_in_records = require('../models/buyInRequest')(sequelize, DataTypes)
     db.user_log.belongsTo(db.users, {
         foreignKey: "user_id",
         as: "user_log_user",
@@ -200,6 +201,13 @@ async function initialize() {
       db.ludo_game_varient.hasMany(db.ludo_game, {
         foreignKey: "varient_id",
       });
+      db.buy_in_records.belongsTo(db.users, {
+        foreignKey: "user_id"
+    })
+
+    db.users.hasMany(db.buy_in_records, {
+        foreignKey: "user_id"
+    })
       
     
      
