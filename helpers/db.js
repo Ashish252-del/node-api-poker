@@ -89,6 +89,7 @@ async function initialize() {
     db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize,DataTypes);
     db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize,DataTypes);
     db.ludo_shop = require('../models/ludo_shop')(sequelize,DataTypes);
+    db.banners = require('../models/bannerModel')(sequelize, DataTypes);
     // pool ->
      // init models and add them to the exported db object
    db.pool_games = require('../models/pool_game')(sequelize, DataTypes);

@@ -3952,6 +3952,96 @@ const getTotalTable = async (req, res) => {
   // }
 }
 
+const addBanner = async (req, res) => {
+  let responseData = {};
+  try{
+      let bannerObj = {
+          image:req.file.location,
+          added_by: req.user.admin_id
+      }
+      await adminService.createBanner(bannerObj);
+      responseData.msg = 'Banner Added Done';
+      return responseHelper.success(res, responseData);
+  }catch(error){
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData,500);
+  }
+}
+
+const bannerList = async (req, res) => {
+  let responseData = {};
+  try{
+      let getBanners = await adminService.getAllBanners({status:{[Op.ne]: '2' }});
+      if(getBanners.length==0) {
+          responseData.msg = 'Banners not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      responseData.msg = 'Banners List';
+      responseData.data = getBanners;
+      return responseHelper.success(res, responseData);
+  }catch(error){
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData,500);
+  }
+}
+
+const bannerById = async (req, res) => {
+  let responseData = {};
+  try{
+      let getBanners = await adminService.getBannerByQuery({id:req.params.id});
+      if(!getBanners){
+          responseData.msg = 'Banner not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      responseData.msg = 'Banner List';
+      responseData.data = getBanners;
+      return responseHelper.success(res, responseData);
+  }catch(error){
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData,500);
+  }
+}
+
+const updateBannerById = async (req, res) => {
+  let responseData = {};
+  try{
+      const id = req.body.id;
+      let getBanner = await adminService.getBannerByQuery({id:id });
+      let roleObj = {
+          image:(typeof req.file!='undefined') ? req.file.location : getBanner.image,
+          updated_by: req.user.admin_id
+      }
+      await adminService.updateBanner(roleObj,{id:id});
+      responseData.msg = 'Banner Updated Done';
+      return responseHelper.success(res, responseData);
+  }catch(error){
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData,500);
+  }
+}
+
+const changeBannerStatus = async (req, res) => {
+  let responseData = {};
+  try{
+      const id = req.body.id;
+      const status  = req.body.status;
+      let getBanner = await adminService.getBannerByQuery({id:id });
+      if(!getBanner){
+          responseData.msg = 'Banner Not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      let roleObj = {
+          status: status
+      }
+      await adminService.updateBanner(roleObj,{id:id});
+      responseData.msg = 'Banner Status Changed Done';
+      return responseHelper.success(res, responseData);
+  }catch(error){
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData,500);
+  }
+}
+
 module.exports = {
   adminLogin,
   addRole,
@@ -4055,6 +4145,11 @@ module.exports = {
   getGameHistory,
   getLeaderBoardData,
   getRunningTable,
-  getTotalTable
+  getTotalTable,
+  addBanner,
+  updateBannerById,
+  bannerList,
+  bannerById,
+  changeBannerStatus,
 
 };

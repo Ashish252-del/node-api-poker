@@ -566,6 +566,28 @@ const createNotification=(data)=>{
     return db.notifications.create(data)
 }
 
+const createBanner = (data) => {
+    return db.banners.create(data);
+}
+
+const updateBanner = (data,query) => {
+    return db.banners.update(
+        data,
+        { where: query }
+    );
+}
+
+const getBannerByQuery = (query) => {
+    return db.banners.findOne({where:query});
+}
+
+const getAllBanners = (query) => {
+    if(query){
+        return db.banners.findAll({where:query});
+    }
+    return db.banners.findAll();
+}
+
 module.exports = {
     createPriceStructure,
     getPriceStructureByQuery,
@@ -714,5 +736,9 @@ module.exports = {
     getReferralBonus,
     createBonusSetting,
     updateBonusSetting,
-    createNotification
+    createNotification,
+    createBanner,
+    updateBanner,
+    getBannerByQuery,
+    getAllBanners,
 }

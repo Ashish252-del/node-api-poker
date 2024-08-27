@@ -174,5 +174,11 @@ module.exports = () => {
     routes.get("/get-leaderboard-data",adminController.getLeaderBoardData);
     routes.get('/get-running-table', authenticate, adminController.getRunningTable);
     routes.get('/get-total-table', authenticate, adminController.getTotalTable);
+
+    routes.post("/add-banner", authenticate, uploadImage.single("image"), adminController.addBanner);
+    routes.get("/banner-list", authenticate, adminController.bannerList);
+    routes.get("/banner-detail/:id", authenticate, adminController.bannerById);
+    routes.post("/update-banner", authenticate,uploadImage.single("image"),adminController.updateBannerById);
+    routes.post("/change-banner-status", authenticate,adminController.changeBannerStatus);
     return routes;
 };

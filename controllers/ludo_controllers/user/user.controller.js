@@ -2182,7 +2182,6 @@ module.exports.get_reward_status = async (req, res) => {
                 break;
             }
         }
-
         responseData.user_id = userId;
         responseData.rewards = rewardsWithClaimedStatus;
         responseData.last_visit = userReward.lastVisit;

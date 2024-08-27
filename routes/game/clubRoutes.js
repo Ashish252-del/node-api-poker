@@ -54,7 +54,6 @@ module.exports = () => {
     routes.get("/remove-player",authenticate,clubController.removalOfPlayer)
     // handHistory in admin
     routes.get("/hand-history-admin",authenticate,clubController.handHistoryAdmin)
-
     return routes;
 }
 
