@@ -207,6 +207,13 @@ function model(sequelize) {
             type: DataTypes.BOOLEAN,
             defaultValue:false
           },
+
+        is_pool_bot: {
+            type: DataTypes.ENUM,
+            allowNull: false,
+            values: ['0','1'],
+            defaultValue: '0',
+        },
           inGame:{
             type:DataTypes.BOOLEAN,
             defaultValue: false,
