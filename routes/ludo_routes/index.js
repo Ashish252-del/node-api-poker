@@ -4,7 +4,7 @@ const express = require("express");
 const userRoutes = require("./user");
 const gameRoutes = require("./game");
 //const walletRoutes = require("./wallet");
-//const botRoutes= require("./bot");
+const botRoutes= require("./bot");
 const adminRoutes = require("./admin");
 const adminMiddleware = require("../../middleware/adminAuth");
 const authenticate = require("../../middleware/auth")
@@ -17,5 +17,5 @@ Router.use("/admin",authenticate, adminRoutes);
 Router.use("/user", authenticate, userRoutes);
 Router.use("/game", gameRoutes);
 //Router.use("/api/ludo/wallet", authenticate, walletRoutes);
-//Router.use("/api/ludo/bot", botRoutes)
+Router.use("/bot", botRoutes)
 module.exports = Router;
