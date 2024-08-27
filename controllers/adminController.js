@@ -95,7 +95,7 @@ const adminLogin = async (req, res) => {
     `;
 
     allRoles = await sequelize.query(getRoles, {
-      replacements: { adminId }, 
+      replacements: { adminId },
       type: QueryTypes.SELECT,
     });
     const formattedRoles = allRoles.map((roleObj) => {
@@ -382,7 +382,7 @@ const roleById = async (req, res) => {
       type: QueryTypes.SELECT,
     });
 
-    let adminRoles = []; 
+    let adminRoles = [];
 
     if (userData_admin) {
       const user_id = userData_admin.admin_id;
@@ -394,7 +394,7 @@ const roleById = async (req, res) => {
         INNER JOIN roles ON roles.role_id = user_roles.roleId
         WHERE admins.admin_id = :user_id
       `;
-     
+
       adminRoles = await sequelize.query(adminRolesQuery, {
         replacements: { user_id },
         type: QueryTypes.SELECT,
@@ -584,7 +584,7 @@ const changeGameTypeStatus = async (req, res) => {
       return responseHelper.error(res, responseData, 201);
     }
     let roleObj = {
-      
+
       game_type_status: status,
       updated_by: req.user.admin_id,
     };
@@ -606,13 +606,13 @@ const changeGameStatus = async (req, res) => {
           responseData.msg = 'Game not found';
           return responseHelper.error(res, responseData, 201);
       }
-    if(checkRole.game_category_id == 2)  await (await getRedisClient()).del("ROOM"); // for poker 
+    if(checkRole.game_category_id == 2)  await (await getRedisClient()).del("ROOM"); // for poker
     if(checkRole.game_category_id == 3 && await (await getRedisClient()).hExists("gameRules", ""+id)) {
       let currentGamesRules = JSON.parse(await (await getRedisClient()).hGet("gameRules", ""+id));
       let game = await (await getRedisClient()).hGet("games", ""+id)
-      if(game) {game = JSON.parse(game); 
+      if(game) {game = JSON.parse(game);
       if(game.rooms.length>0)
-     { currentGamesRules.isDeleted = 1; 
+     { currentGamesRules.isDeleted = 1;
       await (await getRedisClient()).hSet("gameRules", ""+id, JSON.stringify(currentGamesRules));}
   }
       else {
@@ -971,9 +971,9 @@ const updateGame = async (req, res) => {
 
       if(game_category_id == 3) {
       let game = await (await getRedisClient()).hGet("games", ""+game_id)
-      if(game) {game = JSON.parse(game); 
+      if(game) {game = JSON.parse(game);
       if(game.rooms.length>0)
-     { 
+     {
       throw new Error("Can't update now as tables of this game is running ")
      }
   }
@@ -984,7 +984,7 @@ const updateGame = async (req, res) => {
           console.error("---------------------Game Data not found -----------");
           return responseHelper.error(res, responseData, 201);
       }
-    if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker 
+    if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker
     if(game_category_id == 3) {
       if(!game_json_data.rummy_code || !game_json_data.maximum_player || !game_json_data.commission || !game_json_data.name){
           throw new Error("Missing data in game_json_data");
@@ -997,19 +997,19 @@ const updateGame = async (req, res) => {
       updatedGamerules.Name       = game_json_data.name;
       if(game_json_data.rummy_code == 1) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || !game_json_data.is_practice) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
+          updatedGamerules.Points = parseFloat(game_json_data.point_value);
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           if(game_json_data.is_practice) updatedGamerules.is_practice = parseInt(game_json_data.is_practice)
       }
       if(game_json_data.rummy_code == 2) {
           if(!game_json_data.pool_type || !game_json_data.entry_fee) throw new Error("Missing data in game_json_data");
-          updatedGamerules.break_Score = parseInt(game_json_data.pool_type); 
+          updatedGamerules.break_Score = parseInt(game_json_data.pool_type);
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
 
       }
       if(game_json_data.rummy_code == 3) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || game_json_data.deal_type) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
+          updatedGamerules.Points = parseFloat(game_json_data.point_value);
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
       }
@@ -3206,7 +3206,7 @@ const updateUserRole = async (req, res) => {
     console.log("userData_admin--->",userData_admin);
     // Check if any permitted role already exists
     for (const role_id of permit_role_ids) {
-     
+
       const existingUserRole = await adminService.getUserRoleByUserIdAndRoleId({
         userId: userData_admin.admin_id,
         roleId: role_id,
@@ -3220,7 +3220,7 @@ const updateUserRole = async (req, res) => {
     }
 
     for (const role_id of permit_role_ids) {
-     
+
       const newUserRole = {
         userId: userData_admin.admin_id,
         roleId: role_id,
@@ -3230,7 +3230,7 @@ const updateUserRole = async (req, res) => {
     }
 
     for (const role_id of not_permit_role_ids) {
-     
+
       const existingUserRole = await adminService.getUserRoleByUserIdAndRoleId({
         userId: userData_admin.admin_id,
         roleId: role_id,
@@ -3438,7 +3438,7 @@ const running_tables_rummy = async (req, res) => {
   try {
       let redisClient = await getRedisClient();
       let rooms = await redisClient.hGetAll("ROOMS");
-      
+
       // Define page size and get page number from request parameters
       const pageSize = 10;
       const page = parseInt(req.query.page) || 1;
@@ -3489,7 +3489,7 @@ const add_avatar=async(req,res)=>{
       //   responseData.msg= "This URL has already been added"
       //     return responseHelper.error(res,responseData,201);
       // }
-   
+
       const obj={
           url:req.file.location,
       }
@@ -3497,7 +3497,7 @@ const add_avatar=async(req,res)=>{
    responseData.msg="New avatar added successfully";
    responseData.data=newAvatar;
    return responseHelper.success(res, responseData);
-      
+
   } catch (error) {
       responseData.msg = error.message;
       return responseHelper.error(res, responseData, 500);
@@ -3510,7 +3510,7 @@ const get_all_avatars = async (req, res) => {
       responseData.msg="all avatar fetch successfully"
       responseData.data=avatars
       return responseHelper.success(res, responseData, 200);
-      
+
   } catch (error) {
       responseData.msg = error.message;
       return responseHelper.error(res, responseData, 500);
@@ -3521,7 +3521,7 @@ const delete_avatar = async (req, res) => {
  let responseData={}
   try {
       let id = req.query.id;
-      
+
       console.log("id-->",id);
       // Check if the avatar exists in the database
       const existingAvatar = await adminService.findAvatar({id:id});
@@ -3573,7 +3573,7 @@ const sendNotification = async (req, res) => {
           console.log(data);
           await adminService.createNotification(data)
 
-          if (checkUser.device_token) { 
+          if (checkUser.device_token) {
               let pushData = {
                   title: reqData.title,
                   message: reqData.message,
@@ -4041,6 +4041,227 @@ const changeBannerStatus = async (req, res) => {
       return responseHelper.error(res, responseData,500);
   }
 }
+const tournamentList = async (req, res) => {
+  let responseData = {};
+  try {
+    let game_type = req.query.game_type;
+    console.log(game_type);
+    let getData;
+    if (game_type) {
+      getData = await adminService.getAllTournamentList({game_category: game_type});
+    } else {
+      getData = await adminService.getAllTournamentList();
+    }
+    if (!getData) {
+      responseData.msg = 'Tournament List not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    getData = getData.map(async (element, i) => {
+      let getUserD = await adminService.geAdminDetailsById({admin_id: element.added_by});
+      element.dataValues.added_by = (getUserD && getUserD.full_name != null) ? getUserD.full_name : '';
+      let getUserDD = await adminService.geAdminDetailsById({admin_id: element.updated_by});
+      element.dataValues.updated_by = (getUserDD && getUserDD.full_name != null) ? getUserDD.full_name : '';
+
+      let str = element.tournament_json_data;
+      element.dataValues.tournament_json_data = JSON.parse(str, true);
+
+      // let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
+      // element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
+      //
+      // let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+      // element.dataValues.game_type_name = (getGameType) ? getGameType.dataValues.name : '';
+      return element;
+    })
+    getData = await Promise.all(getData);
+    responseData.msg = 'Tournament List';
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const createTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    let redisClient = await getRedisClient();
+    let {game_category, game_type, player_type, tournament_name, tournament_json_data} = req.body;
+    //
+    let check = await adminService.getTournamentByQuery({tournament_name: tournament_name});
+    if (check) {
+      responseData.msg = 'Already Added';
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    // rummy_tournament
+    if(game_category == 'Rummy')
+    {  let rummy_tourney = {
+      game_category: game_category,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+    }
+      let save = await adminService.createTournament(rummy_tourney);
+      let tournamentInRedis = await redisClient.hKeys('RummyTournamentId')
+      if (tournamentInRedis || tournamentInRedis.length > 0) {
+        tournamentInRedis.push(save.tournament_id);
+      }
+      //store created tournament id in redis
+      await redisClient.hSet("RummyTournamentId", ""+ save.tournament_id, JSON.stringify(save.tournament_id));
+      responseData.msg = 'Tournament Added Done';
+      return responseHelper.success(res, responseData);
+    }
+    //console.log('player_type',player_type);
+    let scheduleDate = tournament_json_data.tourney_start;
+    if (game_category == 4) {
+      scheduleDate = tournament_json_data.game_date + ' ' + tournament_json_data.game_time;
+    }
+    let data = {
+      game_category: game_category,
+      game_type: game_type,
+      player_type: tournament_json_data.player_type,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+      scheduled_date: scheduleDate,
+      added_by: req.user.admin_id
+    }
+
+    //console.log(data);
+    //return false;
+
+    let save = await adminService.createTournament(data);
+    responseData.msg = 'Tournament Added Done';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const tournamentDetail = async (req, res) => {
+  let responseData = {};
+  try {
+    let tournamentId = req.params.id;
+    let getData = await adminService.getTournamentByQuery({tournament_id: tournamentId});
+    if (!getData) {
+      responseData.msg = 'Tournament Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let str = getData.tournament_json_data;
+    getData.tournament_json_data = JSON.parse(str, true);
+    responseData.msg = 'Tournament Detail';
+    responseData.data = getData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const updateTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    let redisClient = await getRedisClient();
+    let {tournament_id, game_category, player_type, game_type, tournament_name, tournament_json_data} = req.body;
+    let scheduleDate = tournament_json_data.tourney_start;
+    if (game_category == 4) {
+      scheduleDate = tournament_json_data.game_date + ' ' + tournament_json_data.game_time;
+    }
+    let data = {
+      game_category: game_category,
+      game_type: game_type,
+      player_type: tournament_json_data.player_type,
+      tournament_name: tournament_name,
+      tournament_json_data: JSON.stringify(tournament_json_data),
+      scheduled_date: scheduleDate,
+      updated_by: req.user.admin_id
+    }
+
+    let getData = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!getData) {
+      responseData.msg = 'Game Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let updateData = await adminService.updateTournamentById(data, {tournament_id: tournament_id});
+    let tournamentInRedis = await redisClient.hKeys('tournament')
+    if(!tournamentInRedis.includes(updateData.tournament_id)){
+      tournamentInRedis.push(updateData);
+    }
+    responseData.msg = 'Tournament Update Successfully';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const updateTournamentStatus = async (req, res) => {
+  let responseData = {};
+  try {
+    const {tournament_id, status} = req.body;
+    let checkTournament = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!checkTournament) {
+      responseData.msg = 'Tournament not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let dataObj = {
+      tournament_status: status,
+      updated_by: req.user.admin_id
+    }
+    await adminService.updateTournamentById(dataObj, {tournament_id: tournament_id});
+    responseData.msg = 'Status Updated';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const cancelTournament = async (req, res) => {
+  let responseData = {};
+  try {
+    const {tournament_id} = req.query;
+    let checkTournament = await adminService.getTournamentByQuery({tournament_id: tournament_id});
+    if (!checkTournament) {
+      responseData.msg = 'Tournament not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let dataObj = {
+      is_cancel: '1',
+      updated_by: req.user.admin_id
+    }
+    await adminService.updateTournamentById(dataObj, {tournament_id: tournament_id});
+    responseData.msg = 'Tournament cancelled successfully';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+const getTypeListByName = async (req, res) => {
+  let responseData = {};
+  try {
+    let getType = req.query.game_type;
+    let getCategorys = await adminService.getGameCategoryByQuery({name: getType, game_category_status: '1'});
+
+    if (!getCategorys) {
+      responseData.msg = 'Data not not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+
+    let gameTypeD = await adminService.getAllGameType({game_category_id: getCategorys.game_category_id});
+    if (gameTypeD.length == 0) {
+      responseData.msg = 'Data not not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    responseData.msg = 'Game Type List';
+    responseData.data = gameTypeD;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message
+    return responseHelper.error(res, responseData, 500);
+  }
+}
 
 module.exports = {
   adminLogin,
@@ -4152,4 +4373,12 @@ module.exports = {
   bannerById,
   changeBannerStatus,
 
-};
+  createTournament,
+  tournamentDetail,
+  tournamentList,
+  updateTournament,
+  updateTournamentStatus,
+  cancelTournament,
+  getTypeListByName,
+
+}

@@ -231,6 +231,11 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true
         },
+        isAdmin: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
         added_by: {
             type: DataTypes.INTEGER,
             allowNull: true

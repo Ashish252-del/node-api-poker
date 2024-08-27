@@ -180,5 +180,13 @@ module.exports = () => {
     routes.get("/banner-detail/:id", authenticate, adminController.bannerById);
     routes.post("/update-banner", authenticate,uploadImage.single("image"),adminController.updateBannerById);
     routes.post("/change-banner-status", authenticate,adminController.changeBannerStatus);
+    routes.post("/create-tournament", authenticate,adminController.createTournament);
+    routes.get("/tournament-list", authenticate, adminController.tournamentList);
+    routes.get("/tournament-detail/:id", authenticate, adminController.tournamentDetail);
+    routes.post("/update-tournament", authenticate, adminController.updateTournament);
+    routes.post('/update-status-tournament',authenticate,adminController.updateTournamentStatus);
+    routes.get('/cancel-tournament',authenticate,adminController.cancelTournament);
+    routes.get('/get-type-list-by-name',authenticate,adminController.getTypeListByName);
+
     return routes;
 };

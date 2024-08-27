@@ -1,24 +1,24 @@
 const db = require("../helpers/db");
-const { Op, Sequelize } = require("sequelize");
-const { query } = require("express");
+const {Op, Sequelize} = require("sequelize");
+const {query} = require("express");
 //User Related Query
 const geAdminDetailsById = (query) => {
-    return db.admins.findOne({where:  query,raw:true });
+    return db.admins.findOne({where: query, raw: true});
 }
 
 const getAdminUserActivityLogs = (query) => {
-    return db.admin_activity_logs.findAll({where:  query });
+    return db.admin_activity_logs.findAll({where: query});
 }
 
 const updateAdminByQuery = (data, query) => {
     return db.admins.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getUserDetailsById = (query) => {
-    return db.users.findOne({where:  query,raw:true});
+    return db.users.findOne({where: query, raw: true});
 }
 
 
@@ -27,9 +27,9 @@ const createRole = (query) => {
 }
 
 const getUserList = (query) => {
-    if(query==1){
+    if (query == 1) {
         return db.users.findAll()
-    }else{
+    } else {
         return db.users.findAll(query)
     }
 
@@ -44,30 +44,30 @@ const createGame = (query) => {
 }
 
 const getGameByQuery = (query) => {
-    return db.games.findOne({where : query});
+    return db.games.findOne({where: query});
 }
 
 const getAllGameList = (query) => {
-    return db.games.findAll({where:query, order:[['game_id','DESC']]});
+    return db.games.findAll({where: query, order: [['game_id', 'DESC']]});
 }
 
 const updateGameById = (data, query) => {
     return db.games.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getWithdrawl = (query) => {
     return db.redemptions.findAll({
-        where : query,
+        where: query,
         attributes: [[Sequelize.fn('sum', Sequelize.col('redeem_amount')), 'redeem_amount']]
     })
 }
 
 const getDeposit = (query) => {
     return db.transactions.findAll({
-        where : query,
+        where: query,
         attributes: [[Sequelize.fn('sum', Sequelize.col('amount')), 'amount']]
     })
 }
@@ -81,20 +81,20 @@ const getRunningTableData = (query) => {
 
     return db.game_table.findAll({
         where: query,
-        order:[['game_table_id','DESC']],
+        order: [['game_table_id', 'DESC']],
         include: [{
             model: db.games,
             as: 'game_table_game_id',
-            where: {game_status:'1'}
+            where: {game_status: '1'}
         }]
     });
 }
 
 const getTotalTableData = (query) => {
-    if(query){
-        return db.game_table.findAll({where:query, group: "table_name", order:[['game_table_id','DESC']]});
+    if (query) {
+        return db.game_table.findAll({where: query, group: "table_name", order: [['game_table_id', 'DESC']]});
     }
-    return db.game_table.findAll({group: "table_name",order:[['game_table_id','DESC']]});
+    return db.game_table.findAll({group: "table_name", order: [['game_table_id', 'DESC']]});
 }
 
 const addUserStatus = (data) => {
@@ -102,25 +102,29 @@ const addUserStatus = (data) => {
 }
 
 const getUserStatus = (query) => {
-    return db.user_game_status.findOne({where:query});
+    return db.user_game_status.findOne({where: query});
 }
 
-const updateUserStatus = (data,query) => {
+const updateUserStatus = (data, query) => {
     return db.user_game_status.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const gameHistory = (query) => {
-    if(query){
-        return db.game_history.findAll({where:query,order: [
+    if (query) {
+        return db.game_history.findAll({
+            where: query, order: [
                 ['game_history_id', 'DESC']
-            ]});
+            ]
+        });
     }
-    return db.game_history.findAll({order: [
-        ['game_history_id', 'DESC']
-    ]});
+    return db.game_history.findAll({
+        order: [
+            ['game_history_id', 'DESC']
+        ]
+    });
 }
 
 const gameHistoryWithCount = (query) => {
@@ -132,7 +136,7 @@ const sendNotification = (data) => {
 }
 
 const getCoins = (query) => {
-    return db.coins.findOne({where:query});
+    return db.coins.findOne({where: query});
 }
 
 const getAllCoinsData = () => {
@@ -143,10 +147,10 @@ const addCoins = (data) => {
     return db.coins.create(data);
 }
 
-const updateCoins = (data,query) => {
+const updateCoins = (data, query) => {
     return db.coins.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
@@ -155,8 +159,8 @@ const createAdminUser = (data) => {
 }
 
 const getAgentList = (query) => {
-    if(query){
-        return db.admins.findAll({where:query});
+    if (query) {
+        return db.admins.findAll({where: query});
     }
     return db.admins.findAll();
 }
@@ -165,23 +169,23 @@ const addRole = (data) => {
     return db.roles.create(data);
 }
 
-const updateRole = (data,query) => {
+const updateRole = (data, query) => {
     return db.roles.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getRoleByQuery = (query) => {
-    return db.roles.findOne({where:query});
+    return db.roles.findOne({where: query});
 }
 const getRoleById = (query) => {
-    return db.roles.findOne({ where:query });
+    return db.roles.findOne({where: query});
 };
 
 const getAllRoles = (query) => {
-    if(query){
-        return db.roles.findAll({where:query});
+    if (query) {
+        return db.roles.findAll({where: query});
     }
     return db.roles.findAll();
 }
@@ -190,20 +194,20 @@ const addGameCategory = (data) => {
     return db.game_category.create(data);
 }
 
-const updateGameCategory = (data,query) => {
+const updateGameCategory = (data, query) => {
     return db.game_category.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getGameCategoryByQuery = (query) => {
-    return db.game_category.findOne({where:query});
+    return db.game_category.findOne({where: query});
 }
 
 const getAllGameCategory = (query) => {
-    if(query){
-        return db.game_category.findAll({where:query});
+    if (query) {
+        return db.game_category.findAll({where: query});
     }
     return db.game_category.findAll();
 }
@@ -212,43 +216,49 @@ const addGameType = (data) => {
     return db.game_type.create(data);
 }
 
-const updateGameType = (data,query) => {
+const updateGameType = (data, query) => {
     return db.game_type.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getGameTypeByQuery = (query) => {
-    return db.game_type.findOne({where:query});
+    return db.game_type.findOne({where: query});
 }
 
 const getAllGameType = (query) => {
-    if(query){
-        return db.game_type.findAll({where:query, order: [
+    if (query) {
+        return db.game_type.findAll({
+            where: query, order: [
                 ['game_type_id', 'DESC']
-            ]});
+            ]
+        });
     }
-    return db.game_type.findAll({order: [
+    return db.game_type.findAll({
+        order: [
             ['game_type_id', 'DESC']
-        ]});
+        ]
+    });
 }
 const createLoginLog = (data) => {
     return db.admin_login_logs.create(data);
 }
 
 const getWithdrawal = (query) => {
-    return db.redemptions.findAll({where:query});
+    return db.redemptions.findAll({where: query});
 }
 
 const getTodayDeposit = (query) => {
-    return db.transactions.findAll({where:query});
+    return db.transactions.findAll({where: query});
 }
 
 const getCashTransaction = (query) => {
-    return db.transactions.findAll({where:query,order: [
+    return db.transactions.findAll({
+        where: query, order: [
             ['transaction_id', 'DESC']
-        ]});
+        ]
+    });
 }
 
 const getModules = () => {
@@ -263,15 +273,15 @@ const addRolePermission = (data) => {
     return db.role_permissions.create(data);
 }
 
-const updateRolePermission = (data,query) => {
+const updateRolePermission = (data, query) => {
     return db.role_permissions.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
 const getGameHistoryCountByUserId = (query) => {
-    return db.game_history.count({ col:'user_id',where: query });
+    return db.game_history.count({col: 'user_id', where: query});
 }
 
 const createPriceStructure = (query) => {
@@ -279,17 +289,17 @@ const createPriceStructure = (query) => {
 }
 
 const getPriceStructureByQuery = (query) => {
-    return db.price_structures.findOne({where : query});
+    return db.price_structures.findOne({where: query});
 }
 
 const getAllPriceStructureList = (query) => {
-    return db.price_structures.findAll({where:query, order:[['price_id','DESC']]});
+    return db.price_structures.findAll({where: query, order: [['price_id', 'DESC']]});
 }
 
 const updatePriceStructureById = (data, query) => {
     return db.price_structures.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
@@ -299,17 +309,17 @@ const createBlindStructure = (query) => {
 }
 
 const getBlindStructureByQuery = (query) => {
-    return db.blind_structures.findOne({where : query});
+    return db.blind_structures.findOne({where: query});
 }
 
 const getAllBlindStructureList = (query) => {
-    return db.blind_structures.findAll({where:query, order:[['blind_id','DESC']]});
+    return db.blind_structures.findAll({where: query, order: [['blind_id', 'DESC']]});
 }
 
 const updateBlindStructureById = (data, query) => {
     return db.blind_structures.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 
@@ -325,12 +335,12 @@ const getClubDetailById = (query) => {
 // };
 
 
-const updateClubById = (data,query) => {
-    return db.club.update(data,{where:query});
+const updateClubById = (data, query) => {
+    return db.club.update(data, {where: query});
 }
 
 const getJoinedclub = (query) => {
-    console.log("query",query);
+    console.log("query", query);
     return db.clubRegisteredUser.findAll(query);
 }
 
@@ -346,8 +356,8 @@ const getAllVipPriviledge = (query) => {
     return db.vip_priviledge.findAll(query);
 }
 
-const updateVipPriviledge = (data,query) => {
-    return db.vip_priviledge.update(data,query);
+const updateVipPriviledge = (data, query) => {
+    return db.vip_priviledge.update(data, query);
 }
 
 const addClubLevel = (data) => {
@@ -362,8 +372,8 @@ const getAllClubLevel = (query) => {
     return db.club_level.findAll(query);
 }
 
-const updateClubLevel = (data,query) => {
-    return db.club_level.update(data,query);
+const updateClubLevel = (data, query) => {
+    return db.club_level.update(data, query);
 }
 
 const addShop = (data) => {
@@ -378,8 +388,8 @@ const getAllShop = (query) => {
     return db.shop.findAll(query);
 }
 
-const updateShop = (data,query) => {
-    return db.shop.update(data,query);
+const updateShop = (data, query) => {
+    return db.shop.update(data, query);
 }
 
 const addMission = (data) => {
@@ -394,15 +404,15 @@ const getAllMission = (query) => {
     return db.mission.findAll(query);
 }
 
-const updateMission = (data,query) => {
-    return db.mission.update(data,query);
+const updateMission = (data, query) => {
+    return db.mission.update(data, query);
 }
 
 const getModuleByName = (moduleName) => {
-    return db.modules.findOne({ where: { moduleName: moduleName } });
+    return db.modules.findOne({where: {moduleName: moduleName}});
 }
 const getModuleById = (module_id) => {
-    return db.modules.findOne({ where: { moduleId: module_id} });
+    return db.modules.findOne({where: {moduleId: module_id}});
 }
 
 
@@ -417,11 +427,11 @@ const createclubMemberRoleModule = (moduleData) => {
 }
 
 const deleteModule = (moduleId) => {
-    return db.modules.destroy({ where: { moduleId: moduleId } });
+    return db.modules.destroy({where: {moduleId: moduleId}});
 }
 
 const getRoleModuleByModuleIdAndRoleId = (query) => {
-    return db.role_modules.findOne({ where: query });
+    return db.role_modules.findOne({where: query});
 }
 
 const createRoleModule = (query) => {
@@ -429,53 +439,53 @@ const createRoleModule = (query) => {
 }
 
 const deleteRoleModule = (Id) => {
-    return db.role_modules.destroy({where:{id:Id}});
+    return db.role_modules.destroy({where: {id: Id}});
 }
 
-const updateModule = (data,query) => {
-    return db.modules.update(data,query);
+const updateModule = (data, query) => {
+    return db.modules.update(data, query);
 }
 const createUserRole = (query) => {
     return db.user_roles.create(query);
 }
-const getUserRoleByUserIdAndRoleId= (query) => {
-    return db.user_roles.findOne({ where: query });
+const getUserRoleByUserIdAndRoleId = (query) => {
+    return db.user_roles.findOne({where: query});
 }
 const deleteUserRole = (Id) => {
-    return db.user_roles.destroy({where:{id:Id}});
+    return db.user_roles.destroy({where: {id: Id}});
 }
 
 // createUserRole,getUserRoleByUserIdAndRoleId,deleteRoleModule
 const deletePrice = (query) => {
-    return db.price_structures.destroy({ where: query });
+    return db.price_structures.destroy({where: query});
 }
 const deleteBlindStructures = (query) => {
-    return db.blind_structures.destroy({ where: query });
+    return db.blind_structures.destroy({where: query});
 }
 const getAllModules = (query) => {
-    return db.modules.findAll({where:query,raw:true});
+    return db.modules.findAll({where: query, raw: true});
 }
 
 const getUserRoles = (query) => {
-    return db.user_roles.findAll({where:  query,raw:true });
+    return db.user_roles.findAll({where: query, raw: true});
 }
 const getRoleModules = (query) => {
-    return db.role_modules.findAll({where:  query,raw:true });
+    return db.role_modules.findAll({where: query, raw: true});
 }
-const createClubMemberRole=(query)=>{
+const createClubMemberRole = (query) => {
     return db.club_member_roles.create(query)
 }
-const createAvatar=(data)=>{
+const createAvatar = (data) => {
     return db.avatar.create(data)
 }
-const findAvatar=(data)=>{
-    return db.avatar.findOne({where:data})
+const findAvatar = (data) => {
+    return db.avatar.findOne({where: data})
 }
-const getAllAvatar=(data)=>{
-    return db.avatar.findAll({where:data})
+const getAllAvatar = (data) => {
+    return db.avatar.findAll({where: data})
 }
-const deleteAvatarById=(query)=>{
-return db.avatar.destroy({where:query})
+const deleteAvatarById = (query) => {
+    return db.avatar.destroy({where: query})
 }
 
 // 8ball poll services->
@@ -488,14 +498,14 @@ addPolicy = (data) => {
 updatePolicy = (data, query) => {
     return db.policy.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
-getFilterTableData = (query,type) => {
-    if(type==1){
-        return db.game_table.findAll({where:query});
-    }else{
-        return db.user_join_table.findAll({where:query});
+getFilterTableData = (query, type) => {
+    if (type == 1) {
+        return db.game_table.findAll({where: query});
+    } else {
+        return db.user_join_table.findAll({where: query});
     }
 }
 
@@ -504,17 +514,17 @@ addUserLevel = (data) => {
 }
 
 getLevelByQuery = (query) => {
-    return db.user_level.findOne({where:query});
+    return db.user_level.findOne({where: query});
 }
 
 getAllLevelByQuery = () => {
     return db.user_level.findAll();
 }
 
-updateUserLevel = (data,query) => {
+updateUserLevel = (data, query) => {
     return db.user_level.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
 addEmojisData = (data) => {
@@ -522,7 +532,7 @@ addEmojisData = (data) => {
 }
 
 getEmojisByName = (query) => {
-    return db.emojis.findOne({where:query});
+    return db.emojis.findOne({where: query});
 }
 
 getEmojisData = () => {
@@ -530,21 +540,20 @@ getEmojisData = () => {
 }
 
 deleteEmojis = (query) => {
-    return db.emojis.destroy({where:query});
+    return db.emojis.destroy({where: query});
 }
 
 
 getWithdrawlRequestById = (query) => {
-    return db.redemptions.findOne({where:query});
+    return db.redemptions.findOne({where: query});
 }
 
-updateRedemption = (data,query) => {
+updateRedemption = (data, query) => {
     return db.redemptions.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
-
 
 
 getReferralBonus = (query) => {
@@ -559,10 +568,10 @@ createBonusSetting = (data) => {
 updateBonusSetting = (data, query) => {
     return db.referral_bonus_settings.update(
         data,
-        { where: query }
+        {where: query}
     );
 }
-const createNotification=(data)=>{
+const createNotification = (data) => {
     return db.notifications.create(data)
 }
 
@@ -570,8 +579,38 @@ const createBanner = (data) => {
     return db.banners.create(data);
 }
 
+
 const updateBanner = (data,query) => {
     return db.banners.update(
+        data,
+        { where: query }
+    );
+}
+const getLeaderBoard = (query) => {
+    return db.leaderboard.findAll({
+        where: query, order: [
+            ['rank', 'ASC'],
+        ]
+    });
+}
+
+const createTournament = (query) => {
+    return db.tournaments.create(query);
+}
+
+const getTournamentByQuery = (query) => {
+    return db.tournaments.findOne({where : query});
+}
+
+const getAllTournamentList = (query) => {
+    if(query){
+        return db.tournaments.findAll({where : query,order:[['tournament_id','DESC']]});
+    }
+    return db.tournaments.findAll();
+}
+
+const updateTournamentById = (data, query) => {
+    return db.tournaments.update(
         data,
         { where: query }
     );
@@ -741,4 +780,9 @@ module.exports = {
     updateBanner,
     getBannerByQuery,
     getAllBanners,
+    getLeaderBoard,
+    createTournament,
+    getTournamentByQuery,
+    getAllTournamentList,
+    updateTournamentById,
 }

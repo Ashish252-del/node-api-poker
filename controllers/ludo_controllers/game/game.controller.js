@@ -97,7 +97,7 @@ module.exports.games = async (req, res) => {
 
 module.exports.game_history = async (req, res) => {
     try {
-        console.log(req.user.userId);
+        console.log(req.user.userId,'@@@1111111');
         const where = {...req.query, userId: req.user.userId};
         let data = await db.ludo_game_history.findAll({
             where,
