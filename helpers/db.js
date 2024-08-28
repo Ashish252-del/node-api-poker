@@ -122,10 +122,14 @@ async function initialize() {
         as: "user_kyc_user_id",
     });
 
-    db.user_wallet.belongsTo(db.users, {
-        foreignKey: "user_id",
-        as: "user_wallet_user_id",
-    });
+    // db.user_wallet.belongsTo(db.users, {
+    //     foreignKey: "user_id",
+    //     as: "user_wallet_user_id",
+    // });
+    db.users.hasOne(db.user_wallet, {
+      foreignKey: 'user_id',
+      as: 'user_wallet_user_id'
+  });
 
     db.transactions.belongsTo(db.users, {
         foreignKey: "user_id",

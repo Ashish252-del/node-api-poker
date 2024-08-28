@@ -33,7 +33,7 @@ const addBot= async function (req,res){
 
             userObject.username=name;
           //  userObject.name=name;
-            userObject.avatarId=0;
+            userObject.avatarId=1;
             userObject.profile_image=url;
             userObject.mobile=Math.floor(Math.random() * 90000) + 10000,
             userObject.kyc='NO'
@@ -94,11 +94,12 @@ const getBots = async function (req, res) {
     try {
         let respData = await db.users.findAll({
             include: [
-                { model: db.user_wallet },
+                { model: db.user_wallet, as: 'user_wallet_user_id' }, // Use the correct alias
                 { model: db.avatar, attributes: ['url'] }
             ],
-            where: { isBot: true }
+            where: { is_ludo_bot: true }
         });
+     
 
         return successResponse(req, res, { resp: respData });
     } catch (error) {
@@ -109,9 +110,7 @@ const getBots = async function (req, res) {
 const updateBot = async function (req, res) {
     let responsedata={}
     try {
-        console.log("abhay");
         const { userId, winningBalance, mainBalance, bonusBalance, name } = req.body;
-        console.log("this is the request body for update api#####################", req.body);
 
         let walletUpdateResponse = await db.user_wallet.update(
             {
@@ -163,8 +162,7 @@ const getBotById = async function (req, res) {
 
         // Fetch user name
         const userData = await db.users.findOne({ 
-            where: { user_id: id },
-            attributes: [['username']]
+            where: { user_id: id }
         });
 
         if (!userData) {
@@ -175,18 +173,18 @@ const getBotById = async function (req, res) {
 
        // Fetch user wallet balances
         const walletData = await db.user_wallet.findOne({ 
-            where: { user_id: id },
-            attributes: [['win_amount','winningBalance'], ['real_amount','mainBalance'], ['bonus_amount','bonusBalance']]
+            where: { user_id: id }
         });
+        console.log("walletData-->",walletData);
 
         if (!walletData) {
             return res.status(404).json({ message: 'Bot wallet Data not found' });
         }
 
         responsedata.data = {
-            winningBalance: walletData.winningBalance,
-            mainBalance: walletData.mainBalance,
-            bonusBalance: walletData.bonusBalance
+            winningBalance: walletData.win_amount,
+            mainBalance: walletData.real_amount,
+            bonusBalance: walletData.bonus_amount
         };
 
         return successResponse(req, res, { responsedata });
