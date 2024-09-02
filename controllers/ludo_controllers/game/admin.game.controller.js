@@ -123,16 +123,17 @@ module.exports.Update_varientStatus = async (req, res) => {
 
 module.exports.create_game = async (req, res) => {
     try {
-        const {cap, comission, varient_id, type_id, status} = req.body;
+        const {cap, comission, varient_id, type_id, status,player_type} = req.body;
         const existingGame = await db.ludo_game.findOne({
             where: {
                 type_id: type_id,
                 varient_id: varient_id,
+                player_type:player_type,
                 isPrivate: 0
             }
         });
         if (existingGame) {
-            return errorResponse(req, res, "Game already created with the same game type and varient");
+            return errorResponse(req, res, "Game already created with the same game type and varient and player type");
         }
         let a = await db.ludo_game_type.findOne({
             attributes: ["name"],
@@ -142,13 +143,13 @@ module.exports.create_game = async (req, res) => {
         });
 
         let b = await db.ludo_game_varient.findOne({
-            attributes: ["value","player_type"],
+            attributes: ["value"],
             where: {
                 id: varient_id,
             },
         });
        
-        let player_type=b.player_type;
+        // let player_type=b.player_type;
        
         const name = `Game type is ${a.dataValues.name} and varient is ${b.dataValues.value}`;
         
@@ -159,7 +160,8 @@ module.exports.create_game = async (req, res) => {
             varient_id,
             type_id,
             status,
-            player_type
+            player_type,
+
         });
         return successResponse(req, res, {
             message: "New game is created successfully",

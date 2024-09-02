@@ -60,6 +60,8 @@ module.exports.create_game = {
     status: Joi.number().required(),
     varient_id: Joi.number().required(),
     type_id: Joi.number().required(),
+    player_type:Joi.string().required()
+    
   }),
 };
 
