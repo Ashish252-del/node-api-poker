@@ -1493,7 +1493,7 @@ module.exports.updatePrizeStructureById = async (req, res) => {
         };
 
         // Update the price structure
-        await prize_structure.update(data, { where: { prize_id: id } });
+        await db.ludo_prize_structure.update(data, { where: { prize_id: id } });
 
         responseData.msg = 'Prize Updated Successfully';
         return res.status(200).json(responseData);
@@ -1520,7 +1520,7 @@ module.exports.deletePrizeStructure = async (req, res) => {
         }
 
         // Delete the price structure
-        await prize_structure.destroy({ where: { prize_id: id } });
+        await db.ludo_prize_structure.destroy({ where: { prize_id: id } });
 
         responseData.msg = 'Price deleted successfully';
         return res.status(200).json(responseData);
