@@ -20,7 +20,7 @@ const getGameDetailsById = async (req, res) => {
     try {
         const query = {
             where: {
-                id: req.params.id
+                game_id: req.params.id
             }
         }
         console.log("req.params.id-->",req.params.id);
@@ -81,12 +81,6 @@ const updateGame = async (req, res) => {
         }
 
         const [affectedRows] = await poolGameServices.updateGame(gameObj, query);
-        if (affectedRows === 0) {
-            return res.status(404).json({
-                status: false,
-                msg: 'No rows updated'
-            });
-        }
 
         return res.status(200).json({
             status: true,
