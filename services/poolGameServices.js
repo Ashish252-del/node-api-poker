@@ -21,7 +21,7 @@ const addGame = (gameObj) => {
 const updateGame = (data, query) => {
     return db.pool_games.update(
         data,
-        { where: query }
+        query
     );
 }
 

@@ -62,24 +62,35 @@ const addGame = async (req, res) => {
 
 const updateGame = async (req, res) => {
     try {
-        const gameObj = req.body;
+        // Extract the gameObj from the request body
+        const gameObj = req.body.gameObj;
+
         const query = {
             where: {
                 game_id: req.params.id
             }
-        }
+        };
+
         const game = await poolGameServices.getGameDetailsById(query);
-        console.log("game-->",game);
+
         if (!game) {
             return res.status(404).json({
                 status: false,
                 msg: 'Game not found'
             });
         }
-        const gameDetails = await poolGameServices.updateGame(gameObj, query);
+
+        const [affectedRows] = await poolGameServices.updateGame(gameObj, query);
+        if (affectedRows === 0) {
+            return res.status(404).json({
+                status: false,
+                msg: 'No rows updated'
+            });
+        }
+
         return res.status(200).json({
             status: true,
-            data: gameDetails
+            msg: 'Game updated successfully'
         });
     } catch (error) {
         return res.status(500).json({
@@ -87,7 +98,8 @@ const updateGame = async (req, res) => {
             msg: error.message
         });
     }
-}
+};
+
 
 const deleteGame = async (req, res) => {
     try {
