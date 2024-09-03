@@ -431,23 +431,39 @@ const changeGameStatus = async (req, res) => {
     let responseData = {};
     try {
         const { id, status } = req.body;
+
+        // Validate input
+        if (!id || !status) {
+            responseData.msg = 'Invalid input';
+            return responseHelper.error(res, responseData, 400);
+        }
+
+        // Check if game exists
         let checkRole = await adminService.getGameByQuery({ game_id: id });
         if (!checkRole) {
             responseData.msg = 'Game not found';
-            return responseHelper.error(res, responseData, 201);
+            return responseHelper.error(res, responseData, 404);
         }
+
+        // Update game status
         let roleObj = {
             game_status: status,
             updated_by: req.user.admin_id
-        }
-        await adminService.updateGameById(roleObj, { game_id: id });
+        };
+        console.log("roleObj-->",roleObj);
+
+        const data=await adminService.updateGameById(roleObj, { game_id: id });
+
         responseData.msg = 'Status Updated';
+        responseData.data=data;
         return responseHelper.success(res, responseData);
     } catch (error) {
+        console.error('Error updating game status:', error); // Log the error
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 500);
     }
-}
+};
+
 
 const addGameType = async (req, res) => {
     let responseData = {};

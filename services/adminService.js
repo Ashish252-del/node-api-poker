@@ -40,19 +40,19 @@ const CountAll = (query) => {
 }
 
 const createGame = (query) => {
-    return db.games.create(query);
+    return db.pool_games.create(query);
 }
 
 const getGameByQuery = (query) => {
-    return db.games.findOne({where: query});
+    return db.pool_games.findOne({where: query});
 }
 
 const getAllGameList = (query) => {
-    return db.games.findAll({where: query, order: [['game_id', 'DESC']]});
+    return db.pool_games.findAll({where: query, order: [['game_id', 'DESC']]});
 }
 
 const updateGameById = (data, query) => {
-    return db.games.update(
+    return db.pool_games.update(
         data,
         {where: query}
     );
