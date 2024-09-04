@@ -4465,7 +4465,17 @@ const todayDeposit = async (req, res) => {
           console.log(element.user_id);
           let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
           console.log('getUserD', getUserD.display_name);
-          element.dataValues.user_id = (getUserD && getUserD.display_name != null) ? getUserD.display_name : '';
+         // Check if getUserD is not null and has a display_name property
+         const displayName = getUserD && getUserD.display_name ? getUserD.display_name : '';
+
+         // Ensure dataValues exists
+         if (!element.dataValues) {
+             element.dataValues = {};
+         }
+
+         element.dataValues.user_id = displayName;
+
+
           return element;
       })
       getUserData = await Promise.all(getUserData);
@@ -4497,6 +4507,15 @@ const cashTransaction = async (req, res) => {
           let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
           console.log('getUserD', getUserD.username);
           element.dataValues.user_id = (getUserD && getUserD.username != null) ? getUserD.username : '';
+            // Check if getUserD is not null and has a username property
+            const username = getUserD && getUserD.username ? getUserD.username : '';
+
+            // Ensure dataValues exists
+            if (!element.dataValues) {
+                element.dataValues = {};
+            }
+            
+            element.dataValues.user_id = username;
           return element;
       })
       getUserData = await Promise.all(getUserData);
