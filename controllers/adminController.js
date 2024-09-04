@@ -855,6 +855,7 @@ const createGame = async (req, res) => {
 const gameList = async (req, res) => {
   let responseData = {};
   try {
+    console.log("abhay");
     let getData;
     if(req.query.is_tournament){
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
@@ -1127,7 +1128,7 @@ const userList = async (req, res) => {
       { type: sequelize.QueryTypes.SELECT }
     );
     let totalCount = responseTotalCount.length;
-    console.log(response);
+    // console.log(response);
     if (response.length == 0) {
       responseData.msg = "No users found";
       return responseHelper.error(res, responseData, 201);
@@ -1149,7 +1150,9 @@ const userList = async (req, res) => {
           : 0;
       element.withdraw_amount = withdrawAmt;
       element.deposit_amount = depositAmt;
-      element.mobile = await decryptData(element.mobile);
+// console.log("element.mobile--.>",element.mobile);
+      // element.mobile = await decryptData(element.mobile);
+      element.mobile = element.mobile;
       element.user_level = 10;
       return element;
     });

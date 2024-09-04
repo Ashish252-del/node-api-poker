@@ -34,7 +34,6 @@ const decryptData = (encryptedData)  => {
     ) // Decrypts data and converts to utf8
 }
 
-
 const makeString = (length) => {
     let result = "";
     const characters =
