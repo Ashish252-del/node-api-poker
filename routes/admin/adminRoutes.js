@@ -188,5 +188,11 @@ module.exports = () => {
     routes.get('/cancel-tournament',authenticate,adminController.cancelTournament);
     routes.get('/get-type-list-by-name',authenticate,adminController.getTypeListByName);
 
+    routes.get('/pending-withdrawal', authenticate, adminController.pendingWithdrawal)
+    routes.get('/today-withdrawal', authenticate, adminController.todayWithdrawal)
+    routes.post('/change-withdrawl-status', authenticate, adminController.changeWithDrawlStatus)
+    routes.get('/today-deposit', authenticate, adminController.todayDeposit)
+    routes.get('/cash-transaction', authenticate, adminController.cashTransaction)
+
     return routes;
 };

@@ -4266,6 +4266,249 @@ const getTypeListByName = async (req, res) => {
   }
 }
 
+const pendingWithdrawal = async (req, res) => {
+  let responseData = {};
+  try {
+      let query = { redemption_status: { [Op.ne]: 'Withdraw' } };
+      let getUserData = await adminService.getWithdrawal(query);
+      if (getUserData.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      getUserData = getUserData.map(async (element, i) => {
+          console.log(element.user_id);
+          let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
+          console.log('getUserD', getUserD.display_name);
+          element.dataValues.user_id = (getUserD && getUserD.display_name != null) ? getUserD.display_name : '';
+          return element;
+      })
+      getUserData = await Promise.all(getUserData);
+      responseData.msg = 'Pending Withdrawal List!!!';
+      responseData.data = getUserData;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const todayWithdrawal = async (req, res) => {
+  let responseData = {};
+  try {
+      let date = new Date().toISOString().split('T')[0]
+      let query = { redemption_status: 'Withdraw' };
+      let getUserData = await adminService.getWithdrawal(query);
+      if (getUserData.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      getUserData = getUserData.map(async (element, i) => {
+          console.log(element.user_id);
+          let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
+          console.log('getUserD', getUserD.display_name);
+          element.dataValues.user_id = (getUserD && getUserD.display_name != null) ? getUserD.display_name : '';
+          return element;
+      })
+      getUserData = await Promise.all(getUserData);
+      responseData.msg = 'Total Withdrawal List!!!';
+      responseData.data = getUserData;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const changeWithDrawlStatus = async (req, res) => {
+  let responseData = {};
+  try {
+      let requestId = req.body.request_id;
+      let requestStatus = req.body.status;
+      let redemeptionData = await adminService.getWithdrawlRequestById({ redemption_id: requestId });
+
+      if (!redemeptionData) {
+          responseData.msg = 'No Data Found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      let data = {
+          redemption_status: requestStatus
+      }
+
+      let userId = redemeptionData.user_id;
+      let userD = await userService.getUserDetailsById({ user_id: userId });
+      let userWallet = await userService.getUserWalletDetailsById({ user_id: userId });
+
+      let orderId = 'order_' + new Date().getTime();
+      let redemAmount = redemeptionData.redeem_amount;
+      if (requestStatus != 'Withdraw') {
+          await adminService.updateRedemption({ redemption_status: requestStatus }, { redemption_id: requestId })
+          responseData.msg = 'Status changed';
+          return responseHelper.success(res, responseData);
+      }
+      let getBankDetails = await userService.getUserBankDetailsById({ user_id: userId });
+      if (!getBankDetails) {
+          responseData.msg = 'Bank Details not found.Please contact to user';
+          return responseHelper.error(res, responseData, 201);
+      }
+      if (userWallet && (parseInt(userWallet.win_amount) < parseInt(redemAmount))) {
+          responseData.msg = 'Winning amount is low';
+          return responseHelper.error(res, responseData, 201);
+      }
+
+
+      /*TDS Calculation Start*/
+      // var todayDate = new Date();
+      // let fiscalyear;
+      // if ((todayDate.getMonth() + 1) <= 3) {
+      //     fiscalyear = (todayDate.getFullYear() - 1) + "-04-01";
+      // } else {
+      //     fiscalyear = todayDate.getFullYear() + "-04-01";
+      // }
+      // let getTdsSetting = await adminService.getTdsSetting();
+      // let fromDate = (userWallet.last_withdraw_date) ? userWallet.last_withdraw_date : fiscalyear;
+      // let toDate = moment(todayDate).format('YYYY-MM-DD');
+      // let totalDeposit = await sequelize.query(`Select SUM(amount) as totaldeposit from transactions where user_id=${userId} AND other_type= 'Deposit' AND DATE(transactions.createdAt) BETWEEN '${fromDate}' AND '${toDate}'`, {type: sequelize.QueryTypes.SELECT});
+      // console.log('totalDeposit', totalDeposit[0].totaldeposit);
+      // let totalWinningAmount = await sequelize.query(`Select SUM(win_amount) as totalwinning from game_histories where user_id=${userId} AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${toDate}'`, {type: sequelize.QueryTypes.SELECT});
+      // console.log('totalWinningAmount', totalWinningAmount[0].totalwinning);
+      //
+      // if ((+totalWinningAmount[0].totalwinning) > (+totalDeposit[0].totaldeposit)) {
+      //     totalWinningAmount = (+totalWinningAmount[0].totalwinning) - (+totalDeposit[0].totaldeposit);
+      // }
+      // console.log(totalWinningAmount);
+      // let tdsAmount = 0.00;
+      // let isTds = false;
+      // if (getTdsSetting && ((+totalWinningAmount) >= (+getTdsSetting.tds_amount_limit))) {
+      //     isTds = true;
+      //     tdsAmount = parseFloat(totalWinningAmount * (getTdsSetting.tds_percentage / 100)).toFixed(2);
+      // }
+      // console.log('1',redemAmount);
+      // console.log('2',parseFloat(tdsAmount));
+      // let closingBalance = (+userWallet.win_amount) - (+redemAmount);
+      // if(parseFloat(redemAmount) > parseFloat(tdsAmount)){
+      //     redemAmount = redemAmount - parseFloat(tdsAmount);
+      // }
+      // console.log('3',redemAmount);
+      //
+
+      console.log('Real', userWallet.real_amount);
+      let winAmountUpdate = (+userWallet.real_amount) - (+redemAmount);
+
+      let transferD = {
+          beneId: getBankDetails.beneficiary_id,
+          amount: redemAmount + '.00',
+          transferId: orderId,
+      }
+
+      let withdrawStatus = await bankWithdraw(transferD);
+      //return false;
+      let openingBalnace = userWallet.real_amount;
+
+
+      let walletData = {
+          real_amount: winAmountUpdate,
+      }
+      let savewalet = await userService.updateUserWallet(walletData, { user_wallet_id: userWallet.user_wallet_id });
+
+      let dataTransactions = {
+          user_id: userId,
+          order_id: orderId,
+          closing_balance: openingBalnace,
+          opening_balance: openingBalnace,
+          type: 'DR',
+          other_type: 'Withdraw',
+          amount: redemAmount,
+          transaction_status: 'SUCCESS'
+      }
+      console.log(dataTransactions);
+
+
+      let redemData = {
+          user_id: userId,
+          account_id: getBankDetails.user_account_id,
+          redeem_amount: redemAmount,
+          redemption_status: 'Withdraw',
+          bank_reference_id: withdrawStatus.data.referenceId,
+          transaction_id: orderId
+      }
+      let userLog = {
+          user_id: userId,
+          device_token: userD.device_token,
+          activity_type: 'redeem',
+          old_value: '',
+          new_value: JSON.stringify(redemData)
+      }
+      let save = await adminService.updateRedemption(redemData, { redemption_id: requestId });
+      let saveTransactions = await userService.createTransaction(dataTransactions);
+
+
+      // await adminService.updateRedemption(data, {redemption_id: requestId})
+      responseData.msg = 'Status changed';
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const todayDeposit = async (req, res) => {
+  let responseData = {};
+  try {
+      let date = new Date().toISOString().split('T')[0]
+      let query = { other_type: 'Deposit' };
+      let getUserData = await adminService.getTodayDeposit(query);
+      if (getUserData.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      getUserData = getUserData.map(async (element, i) => {
+          console.log(element.user_id);
+          let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
+          console.log('getUserD', getUserD.display_name);
+          element.dataValues.user_id = (getUserD && getUserD.display_name != null) ? getUserD.display_name : '';
+          return element;
+      })
+      getUserData = await Promise.all(getUserData);
+      responseData.msg = 'Total Deposit List!!!';
+      responseData.data = getUserData;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const cashTransaction = async (req, res) => {
+  let responseData = {};
+  try {
+      let game_type = req.query.game_type;
+      let getUserData;
+      if (game_type) {
+          getUserData = await adminService.getCashTransaction({ other_type: { [Op.ne]: 'Coin' }, category: game_type });
+      } else {
+          getUserData = await adminService.getCashTransaction({ other_type: { [Op.ne]: 'Coin' } });
+      }
+      if (getUserData.length == 0) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      getUserData = getUserData.map(async (element, i) => {
+          console.log(element.user_id);
+          let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
+          console.log('getUserD', getUserD.username);
+          element.dataValues.user_id = (getUserD && getUserD.username != null) ? getUserD.username : '';
+          return element;
+      })
+      getUserData = await Promise.all(getUserData);
+      responseData.msg = 'Cash Transaction List!!!';
+      responseData.data = getUserData;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
 module.exports = {
   adminLogin,
   addRole,
@@ -4383,5 +4626,11 @@ module.exports = {
   updateTournamentStatus,
   cancelTournament,
   getTypeListByName,
+
+  pendingWithdrawal,
+  todayWithdrawal,
+  changeWithDrawlStatus,
+  todayDeposit,
+  cashTransaction,
 
 }
