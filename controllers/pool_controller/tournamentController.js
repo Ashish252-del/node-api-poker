@@ -61,10 +61,10 @@ const getAllTournamentList = async (req, res) => {
 
 const updateTournament = async (req, res) => {
     try {
-        const tournamentObj = req.body;
+        const tournamentObj = req.body.tournamentObj;
         const query = {
             where: {
-                id: req.params.id
+                tournament_id: req.params.id
             }
         }
         const tournamentDetails = await poolTournamentServices.updateTournament(tournamentObj, query);
