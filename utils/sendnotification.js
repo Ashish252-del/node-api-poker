@@ -8,23 +8,43 @@ firebase.initializeApp({
 });
 
 
-const sendPushNotification = (message) => {
+const sendPushNotification = async (message) => {
     const firebaseToken = message.device_token;
+  
+    // Ensure the token is valid and not empty
+    if (!firebaseToken) {
+      throw new Error('Device token is required for sending push notifications');
+    }
+  
     const payload = {
-        notification: {
-            title: message.title,
-            body: String(message.message),
-            // imageUrl: message.body
-        }
-    };
-
-    const options = {
+      token: firebaseToken, // Set token field correctly
+      notification: {
+        title: message.title,
+        body: String(message.message),
+      },
+      android: {
         priority: 'high',
-        timeToLive: 60 * 60 * 24, // 1 day
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+          },
+        },
+      },
     };
-
-    return firebase.messaging().sendToDevice(firebaseToken, payload, options);
-}
+  
+    try {
+      const response = await firebase.messaging().send(payload);
+      console.log('Successfully sent message:', response);
+      return response;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+  };
+  
+  
 
 
 module.exports = {
