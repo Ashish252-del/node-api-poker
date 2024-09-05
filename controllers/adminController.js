@@ -1151,8 +1151,8 @@ const userList = async (req, res) => {
       element.withdraw_amount = withdrawAmt;
       element.deposit_amount = depositAmt;
 // console.log("element.mobile--.>",element.mobile);
-      element.mobile = await decryptData(element.mobile);
-      //element.mobile = element.mobile;
+      // element.mobile = await decryptData(element.mobile);
+      element.mobile = element.mobile;
       element.user_level = 10;
       return element;
     });
@@ -1170,65 +1170,57 @@ const userList = async (req, res) => {
     return responseHelper.error(res, responseData, 500);
   }
 };
-
 const userDetail = async (req, res) => {
   let responseData = {};
   try {
     let user_id = req.params.id;
-    console.log("user_id--->",user_id);
-    let getList = await userService.getUserDetailsById({ user_id: user_id });
-    console.log("getList-->",getList);
+    console.log("user_id--->", user_id);
+
+    // Fetch user details
+    let getList = await userService.getUserDetailsById({ user_id });
+    console.log("getList-->", getList);
+
+    // Check if user details exist
     if (!getList) {
       responseData.msg = "No users found";
       return responseHelper.error(res, responseData, 201);
     }
-    let getWithDrawAmt = await adminService.getWithdrawl({
-      user_id: getList.user_id,
-    });
-    let getWallet = await userService.getUserWalletDetailsById({
-      user_id: getList.user_id,
-    });
-    let withdrawAmt = getWithDrawAmt[0].redeem_amount;
-    if (getWithDrawAmt[0].redeem_amount == null) {
-      withdrawAmt = 0;
-    }
 
-    let depositAmt = getWallet.real_amount;
-    let getUserLevel = await adminService.getGameHistoryCountByUserId({
-      user_id: getList.user_id,
-    });
-    let getUserWinGame = await adminService.getGameHistoryCountByUserId({
-      user_id: getList.user_id,
-      is_win: "1",
-    });
-    let getUserLoseGame = await adminService.getGameHistoryCountByUserId({
-      user_id: getList.user_id,
-      is_win: "0",
-    });
+    // Fetch withdrawal amount
+    let getWithDrawAmt = await adminService.getWithdrawl({ user_id: getList.user_id });
+    let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount || 0;
+
+    // Fetch wallet details
+    let getWallet = await userService.getUserWalletDetailsById({ user_id: getList.user_id });
+    let depositAmt = getWallet?.real_amount || 0;
+    let winWalletAmt = getWallet?.win_amount || 0;
+    let bonusAmt = getWallet?.bonus_amount || 0;
+
+    // Fetch game history
+    let getUserLevel = await adminService.getGameHistoryCountByUserId({ user_id: getList.user_id });
+    let getUserWinGame = await adminService.getGameHistoryCountByUserId({ user_id: getList.user_id, is_win: "1" });
+    let getUserLoseGame = await adminService.getGameHistoryCountByUserId({ user_id: getList.user_id, is_win: "0" });
+
     console.log("usr_lvl", getUserLevel);
-    
-    getList.dataValues.mobile = await decryptData(getList.dataValues.mobile);
-    getList.dataValues.email = getList.dataValues.email
-      ? await decryptData(getList.dataValues.email)
-      : "";
-    getList.dataValues.total_games = getUserLevel;
-    getList.dataValues.is_email_verified =
-      getList.is_email_verified == 1 ? "Yes" : "No";
-    getList.dataValues.is_mobile_verified =
-      getList.is_mobile_verified == 1 ? "Yes" : "No";
-    getList.dataValues.is_kyc_done = getList.is_kyc_done == 1 ? "Yes" : "No";
-    getList.dataValues.game_win = getUserWinGame;
-    getList.dataValues.game_lose = getUserLoseGame;
-    getList.dataValues.win_wallet =
-      getWallet && getWallet.win_amount ? getWallet.win_amount : 0;
-    getList.dataValues.withdraw_amount = withdrawAmt;
-    getList.dataValues.deposit_amount = depositAmt;
-    getList.dataValues.wallet_amount =
-      getWallet && getWallet.real_amount
-        ? parseFloat(getWallet.real_amount) + parseFloat(getWallet.win_amount)
-        : 0;
-    getList.dataValues.bonus_amount =
-      getWallet && getWallet.bonus_amount ? getWallet.bonus_amount : 0;
+
+    // Decrypt sensitive data
+    getList.mobile = await decryptData(getList.mobile);
+    getList.email = getList.email ? await decryptData(getList.email) : "";
+
+    // Assign additional details to user
+    getList.total_games = getUserLevel;
+    getList.is_email_verified = getList.is_email_verified == 1 ? "Yes" : "No";
+    getList.is_mobile_verified = getList.is_mobile_verified == 1 ? "Yes" : "No";
+    getList.is_kyc_done = getList.is_kyc_done == 1 ? "Yes" : "No";
+    getList.game_win = getUserWinGame;
+    getList.game_lose = getUserLoseGame;
+    getList.win_wallet = winWalletAmt;
+    getList.withdraw_amount = withdrawAmt;
+    getList.deposit_amount = depositAmt;
+    getList.wallet_amount = depositAmt + winWalletAmt;
+    getList.bonus_amount = bonusAmt;
+
+    // Determine user level
     let level = 0;
     if (getUserLevel > 0 && getUserLevel < 100) {
       level = 1;
@@ -1241,7 +1233,8 @@ const userDetail = async (req, res) => {
     } else if (getUserLevel > 3001) {
       level = 5;
     }
-    getList.dataValues.user_level = "Level " + level;
+    getList.user_level = "Level " + level;
+
     responseData.msg = "User Detail";
     responseData.data = getList;
     return responseHelper.success(res, responseData);
@@ -1250,6 +1243,87 @@ const userDetail = async (req, res) => {
     return responseHelper.error(res, responseData, 500);
   }
 };
+
+// const userDetail = async (req, res) => {
+//   let responseData = {};
+//   try {
+//     let user_id = req.params.id;
+//     console.log("user_id--->",user_id);
+//     let getList = await userService.getUserDetailsById({ user_id: user_id });
+//     console.log("getList.dataValues-->",getList.dataValues);
+//     console.log("getList-->",getList);
+  
+//     if (!getList) {
+//       responseData.msg = "No users found";
+//       return responseHelper.error(res, responseData, 201);
+//     }
+//     let getWithDrawAmt = await adminService.getWithdrawl({
+//       user_id: getList.user_id,
+//     });
+//     let getWallet = await userService.getUserWalletDetailsById({
+//       user_id: getList.user_id,
+//     });
+//     let withdrawAmt = getWithDrawAmt[0].redeem_amount;
+//     if (getWithDrawAmt[0].redeem_amount == null) {
+//       withdrawAmt = 0;
+//     }
+
+//     let depositAmt = getWallet.real_amount;
+//     let getUserLevel = await adminService.getGameHistoryCountByUserId({
+//       user_id: getList.user_id,
+//     });
+//     let getUserWinGame = await adminService.getGameHistoryCountByUserId({
+//       user_id: getList.user_id,
+//       is_win: "1",
+//     });
+//     let getUserLoseGame = await adminService.getGameHistoryCountByUserId({
+//       user_id: getList.user_id,
+//       is_win: "0",
+//     });
+//     console.log("usr_lvl", getUserLevel);
+//     getList.dataValues.mobile = await decryptData(getList.dataValues.mobile);
+//     getList.dataValues.email = getList.dataValues.email
+//       ? await decryptData(getList.dataValues.email)
+//       : "";
+//     getList.dataValues.total_games = getUserLevel;
+//     getList.dataValues.is_email_verified =
+//       getList.is_email_verified == 1 ? "Yes" : "No";
+//     getList.dataValues.is_mobile_verified =
+//       getList.is_mobile_verified == 1 ? "Yes" : "No";
+//     getList.dataValues.is_kyc_done = getList.is_kyc_done == 1 ? "Yes" : "No";
+//     getList.dataValues.game_win = getUserWinGame;
+//     getList.dataValues.game_lose = getUserLoseGame;
+//     getList.dataValues.win_wallet =
+//       getWallet && getWallet.win_amount ? getWallet.win_amount : 0;
+//     getList.dataValues.withdraw_amount = withdrawAmt;
+//     getList.dataValues.deposit_amount = depositAmt;
+//     getList.dataValues.wallet_amount =
+//       getWallet && getWallet.real_amount
+//         ? parseFloat(getWallet.real_amount) + parseFloat(getWallet.win_amount)
+//         : 0;
+//     getList.dataValues.bonus_amount =
+//       getWallet && getWallet.bonus_amount ? getWallet.bonus_amount : 0;
+//     let level = 0;
+//     if (getUserLevel > 0 && getUserLevel < 100) {
+//       level = 1;
+//     } else if (getUserLevel > 101 && getUserLevel < 500) {
+//       level = 2;
+//     } else if (getUserLevel > 501 && getUserLevel < 1000) {
+//       level = 3;
+//     } else if (getUserLevel > 1001 && getUserLevel < 3000) {
+//       level = 4;
+//     } else if (getUserLevel > 3001) {
+//       level = 5;
+//     }
+//     getList.dataValues.user_level = "Level " + level;
+//     responseData.msg = "User Detail";
+//     responseData.data = getList;
+//     return responseHelper.success(res, responseData);
+//   } catch (error) {
+//     responseData.msg = error.message;
+//     return responseHelper.error(res, responseData, 500);
+//   }
+// };
 
 const userKycDetail = async (req, res) => {
   let responseData = {};
