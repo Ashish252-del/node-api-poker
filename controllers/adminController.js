@@ -4585,8 +4585,8 @@ const cashTransaction = async (req, res) => {
       getUserData = getUserData.map(async (element, i) => {
           console.log(element.user_id);
           let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
-          console.log('getUserD', getUserD.username);
-          element.dataValues.user_id = (getUserD && getUserD.username != null) ? getUserD.username : '';
+          // console.log('getUserD', getUserD);
+          element.dataValues.user_id = (getUserD && getUserD.user_id!= null) ? getUserD.user_id : '';
             // Check if getUserD is not null and has a username property
             const username = getUserD && getUserD.username ? getUserD.username : '';
 
