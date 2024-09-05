@@ -98,14 +98,15 @@ const deleteTournament = async (req, res) => {
 
 const endTournament = async (req, res) => {
     try {
-        const tournamentObj = await poolTournamentServices.getTournamentDetailsById(req.params.id);
+        let tournamentId=req.params.id
+        const tournamentObj = await poolTournamentServices.getTournamentDetailsById({ where: {tournament_id:tournamentId } });
         if (!tournamentObj) {
             return res.status(404).json({
                 status: false,
                 msg: 'Tournament not found'
             });
         }
-        const tournament = poolTournamentServices.endTournament({ ending_time: new Date() }, { id: req.params.id });
+        const tournament = poolTournamentServices.endTournament(tournamentId, { ending_time: new Date() });
         return res.status(200).json({
             status: true,
             data: tournament

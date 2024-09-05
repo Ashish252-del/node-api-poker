@@ -30,7 +30,7 @@ const deleteTournament = (query) => {
 const endTournament = (tournamentId, tournamentObj) => {
     return db.pool_tournaments.update(
         tournamentObj,
-        { where: { id: tournamentId } }
+        { where: { tournament_id: tournamentId } }
     );
 }
 
