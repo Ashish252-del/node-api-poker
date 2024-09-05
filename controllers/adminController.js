@@ -1175,7 +1175,9 @@ const userDetail = async (req, res) => {
   let responseData = {};
   try {
     let user_id = req.params.id;
+    console.log("user_id--->",user_id);
     let getList = await userService.getUserDetailsById({ user_id: user_id });
+    console.log("getList-->",getList);
     if (!getList) {
       responseData.msg = "No users found";
       return responseHelper.error(res, responseData, 201);
@@ -1204,6 +1206,7 @@ const userDetail = async (req, res) => {
       is_win: "0",
     });
     console.log("usr_lvl", getUserLevel);
+    
     getList.dataValues.mobile = await decryptData(getList.dataValues.mobile);
     getList.dataValues.email = getList.dataValues.email
       ? await decryptData(getList.dataValues.email)
@@ -4527,6 +4530,47 @@ const cashTransaction = async (req, res) => {
       return responseHelper.error(res, responseData, 500);
   }
 }
+const bonusUpdate = async (req, res) => {
+  let responseData = {};
+  try {
+      const { welcome_bonus, referral_bonus, deposit_bonus, registration_bonus, bet_bonus_amount } = req.body;
+      let info = req.body
+      console.log("re.user",req.user);
+      const checkBonus = await adminService.getReferralBonus();
+      if (!checkBonus) {
+          // info.added_by = req.user.admin_id
+          console.log(info);
+          await adminService.createBonusSetting(info);
+      } else {
+          console.log(info);
+          // info.updated_by = req.user.admin_id
+          console.log(info);
+          await adminService.updateBonusSetting(info, { refer_bonus_id: checkBonus.refer_bonus_id });
+      }
+      responseData.msg = 'Bonus Setting Update';
+      responseData.data = {};
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+const getBonusData = async (req, res) => {
+  let responseData = {};
+  try {
+      const checkBonus = await adminService.getReferralBonus();
+      if (!checkBonus) {
+          responseData.msg = 'Data not found';
+          return responseHelper.error(res, responseData, 201);
+      }
+      responseData.msg = 'Bonus Data';
+      responseData.data = checkBonus;
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message
+      return responseHelper.error(res, responseData, 500);
+  }
+}
 
 module.exports = {
   adminLogin,
@@ -4651,5 +4695,7 @@ module.exports = {
   changeWithDrawlStatus,
   todayDeposit,
   cashTransaction,
+  getBonusData,
+  bonusUpdate
 
 }

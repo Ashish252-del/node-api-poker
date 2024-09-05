@@ -194,5 +194,8 @@ module.exports = () => {
     routes.get('/today-deposit', authenticate, adminController.todayDeposit)
     routes.get('/cash-transaction', authenticate, adminController.cashTransaction)
 
+    routes.post('/bonus-update',authenticate,adminController.bonusUpdate);
+    routes.get('/get-bonus-setting-data',authenticate,adminController.getBonusData);
+
     return routes;
 };
