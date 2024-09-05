@@ -7,7 +7,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const {encodeRequest, signRequest} = require("../utils/payment");
 const axios = require('axios');
-module.exports = cron.schedule("*/15 * * * *", async () => {
+module.exports = cron.schedule("*/2 * * * *", async () => {
     console.log("---------------------");
     console.log("running a task every 15 Minutes");
     let d = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
@@ -20,36 +20,29 @@ module.exports = cron.schedule("*/15 * * * *", async () => {
                 let transactionId = results[i].order_id;
                 let userId = results[i].user_id;
                 let amount = results[i].amount;
-                const sign = '/pg/v1/status/' + process.env.PHONEPE_MERCHANTID + '/' + transactionId + process.env.PHONEPE_SALT_KEY;
-                const X_VERIFY = signRequest(sign) + "###1";
-                // console.log(X_VERIFY);
-                // console.log(process.env.PHONEPE_URL+'/pg/v1/status/'+process.env.PHONEPE_MERCHANTID+'/'+transactionId);
-                const options = {
-                    method: 'GET',
-                    url: process.env.PHONEPE_URL + '/pg/v1/status/' + process.env.PHONEPE_MERCHANTID + '/' + transactionId,
+                let data = JSON.stringify({
+                    "operatortype": results[i].operator_type,
+                    "invoiceNo": results[i].order_id
+                });
+
+                let options = {
+                    method: 'post',
+                    maxBodyLength: Infinity,
+                    url: process.env.EZIPAYURL+'collectstatus',
                     headers: {
-                        accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-VERIFY': X_VERIFY,
-                        'X-MERCHANT-ID': process.env.PHONEPE_MERCHANTID
-                    }
+                        'API-KEY': process.env.EZIPAYAPIKEY,
+                        'Content-Type': 'application/json'
+                    },
+                    data : data
                 };
-                const response = await axios.request(options);
-                let responseData = response.data;
+
+                let response = await axios.request(options);
+                response = JSON.parse(JSON.stringify(response.data));
                 //console.log(responseData);
 
-                let status;
-                if(responseData.code == 'TXN_AUTO_FAILED' || responseData.code=='PAYMENT_ERROR' || responseData.code=='PAYMENT_DECLINED'){
-                    status = 'FAILED';
-                }else if(responseData.code == 'PAYMENT_SUCCESS'){
-                    status = 'SUCCESS';
-                }else if(responseData.code == 'PAYMENT_PENDING'){
-                    status = 'TXN_PENDING';
-                }else{
-                    status = 'FAILED';
-                }
+                let status = response.message;
                 await userService.updateTransaction({transaction_status: status}, {order_id: transactionId})
-                if (responseData.data.responseCode == 'SUCCESS') {
+                if (status == 'Successful' || status == 'SUCCESSFUL') {
                     const getUserWallet = await userService.getUserWalletDetailsById({
                         user_id: userId
                     })

@@ -8,10 +8,12 @@ const {
     addBeneficiary,
     bankWithdraw,
     bankDetailsVerify,
-    verifyPanCard,
     getBeneficiaryId,
-    encodeRequest, signRequest
+    signRequest
 } = require("../utils/payment");
+const {
+    getRandomAlphanumeric
+} = require("../utils/index");
 const sendEmail = require("../utils/sendEmail");
 const config = require("../config/config.json");
 const {Op, fn, col} = require("sequelize");
@@ -507,185 +509,155 @@ const addBankAccount = async (req, res) => {
         return responseHelper.error(res, responseData, 500);
     }
 }
-// const addAmount = async (req, res) => {
-//     let responseData = {};
-//     try {
-//         console.log(req.body);
-//         let amount = req.body.amount;
-//
-//         let userId = req.user.user_id;
-//         let userD = await userService.getUserDetailsById({user_id: userId});
-//         if (!userD) {
-//             responseData.msg = 'user not found';
-//             return responseHelper.error(res, responseData, 201);
-//         }
-//
-//         let mobile = await decryptData(userD.mobile);
-//         //let couponCode = req.body.coupon_code;
-//
-//         // if (couponCode) {
-//         //    let couponDet = await userService.getCouoponDetail({where: {coupon_code: couponCode}});
-//         //    if (couponDet) {
-//         //       let bonusAmount;
-//         //       if (couponDet.amount_type == 'Flat') {
-//         //          bonusAmount = couponDet.amount;
-//         //       } else {
-//         //          bonusAmount = amount * (couponDet.amount / 100);
-//         //       }
-//         //       let bonusAmt = {
-//         //          order_id: "MT" + Date.now(),
-//         //          user_id: userId,
-//         //          type: 'CR',
-//         //          other_type: 'Deposit',
-//         //          reference: 'Bonus',
-//         //          amount: bonusAmount,
-//         //          transaction_status: 'PENDING'
-//         //       }
-//         //       await userService.createTransaction(bonusAmt);
-//         //    }
-//         // }
-//
-//         let transactionId = "MT" + Date.now();
-//         let walletD = {
-//             order_id: transactionId,
-//             user_id: userId,
-//             type: 'CR',
-//             other_type: 'Deposit',
-//             reference: 'Deposit',
-//             amount: amount,
-//             transaction_status: 'PENDING'
-//
-//         }
-//         await userService.createTransaction(walletD);
-//         var data = {
-//             "merchantId": process.env.PHONEPE_MERCHANTID,
-//             "merchantTransactionId": transactionId,
-//             "merchantUserId": "MUID" + Date.now(),
-//             "amount": amount + '00',
-//             "redirectUrl": process.env.APPURL + 'payment-status',
-//             "redirectMode": "POST",
-//             "callbackUrl": process.env.APPURL + 'payment-status',
-//             "mobileNumber": mobile,
-//             "paymentInstrument": {
-//                 "type": "PAY_PAGE"
-//             }
-//         };
-//
-//         console.log(process.env.PHONEPAY_URL + 'pg/v1/pay');
-//         console.log(data);
-//         const base64 = await encodeRequest(data);
-//         const sign = base64 + '/pg/v1/pay' + process.env.PHONEPE_SALT_KEY;
-//         const X_VERIFY = await signRequest(sign) + "###1";
-//         console.log(X_VERIFY);
-//         console.log(base64);
-//
-//         const options = {
-//             method: 'POST',
-//             url: process.env.PHONEPE_URL + '/pg/v1/pay',
-//             headers: {
-//                 accept: 'application/json',
-//                 'Content-Type': 'application/json',
-//                 'X-VERIFY': X_VERIFY
-//             },
-//             data: {
-//                 request: base64
-//             }
-//         };
-//         // const response = await axios(options);
-//         // console.log('dddd',response);
-//         axios
-//             .request(options)
-//             .then(function (response) {
-//                 console.log(JSON.stringify(response.data));
-//                 let returnData = JSON.parse(JSON.stringify(response.data));
-//                 if (returnData.success == true) {
-//                     let payLink = {
-//                         transaction_id: transactionId,
-//                         payment_link: returnData.data.instrumentResponse.redirectInfo.url
-//                     }
-//                     responseData.msg = 'Amount Added Successfully';
-//                     responseData.data = payLink
-//                     return responseHelper.success(res, responseData);
-//                 } else {
-//                     responseData.msg = 'Something went wrong!!!';
-//                     return responseHelper.error(res, responseData, 500);
-//                 }
-//
-//             })
-//             .catch(function (error) {
-//                 responseData.msg = error.message;
-//                 return responseHelper.error(res, responseData, 500);
-//             });
-//     } catch (error) {
-//         responseData.msg = error.message;
-//         return responseHelper.error(res, responseData, 201);
-//     }
-// }
-
 const addAmount = async (req, res) => {
-    let responseData = {}
+    let responseData = {};
     try {
+        console.log(req.body);
+        let amount = req.body.amount;
+
         let userId = req.user.user_id;
-        let query = {
-            user_id: userId
-        }
-        let userD = await userService.getUserDetailsById(query);
-        let userWallet = await userService.getUserWalletDetailsById({user_id: userId});
+        let userD = await userService.getUserDetailsById({user_id: userId});
         if (!userD) {
             responseData.msg = 'user not found';
             return responseHelper.error(res, responseData, 201);
         }
-        let amount, category;
-        if (req.body.amount != '') {
-            amount = req.body.amount;
-        }
 
-        let openingBalnace, closingBalance, savewalet;
-        if (!userWallet) {
-            openingBalnace = amount;
-            closingBalance = amount;
-            let walletData = {
-                user_id: userId,
-                real_amount: amount
-            }
-            savewalet = await userService.createUserWallet(walletData);
-        } else {
-            openingBalnace = userWallet.real_amount;
-            closingBalance = (+userWallet.real_amount) + (+amount);
-
-            let walletData = {
-                real_amount: closingBalance
-            }
-            savewalet = await userService.updateUserWallet(walletData, {user_wallet_id: userWallet.user_wallet_id});
-        }
-        let transactionId = "MT" + Date.now();
-        let data = {
+        let mobile = await decryptData(userD.mobile);
+        let random = await getRandomAlphanumeric(8);
+        let transactionId = "ADC01-2024-" + random;
+        let currency = "GHS";
+        let country = "GH";
+        let walletD = {
+            order_id: transactionId,
             user_id: userId,
-            closing_balance: closingBalance,
-            opening_balance: openingBalnace,
             type: 'CR',
             other_type: 'Deposit',
-            amount: amount,
-            order_id: transactionId,
             reference: 'Deposit',
-            transaction_status: 'Success'
+            amount: amount,
+            is_deposit: 1,
+            transaction_status: 'PENDING'
         }
-        let userLog = {
-            user_id: userId,
-            activity_type: 'add amount',
-            old_value: '',
-            new_value: JSON.stringify(data)
-        }
+        await userService.createTransaction(walletD);
+        const sign = process.env.EZIPAYAPIKEY+amount+mobile+transactionId;
+        let signature = await signRequest(sign)
+        let data = JSON.stringify({
+            "service": "MobileMoney",
+            "serviceType": "Debit",
+            "channel": "momo",
+            "invoiceNo": transactionId,
+            "amount": amount,
+            "customer": '233554740356',
+            "currency": currency,
+            "country": country,
+            "signature": signature
+        });
+        console.log(data);
+        //return;
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: process.env.EZIPAYURL+'collect',
+            headers: {
+                'API-KEY': process.env.EZIPAYAPIKEY,
+                'Content-Type': 'application/json'
+            },
+            data : data
+        };
 
-        let save = await userService.createTransaction(data);
-        let updateLog = await userService.addUserLog(userLog);
-        responseData.msg = 'Amount Added Successfully';
-        return responseHelper.success(res, responseData);
-    } catch (err) {
-        responseData.msg = err;
-        return responseHelper.error(res, responseData, 500);
+        axios.request(config)
+            .then(async(response) => {
+
+                let returnData = JSON.parse(JSON.stringify(response.data));
+                console.log(returnData.operatorType);
+                let transactions = await userService.getTransactionById({order_id:transactionId})
+                if(transactions){
+                    await userService.updateTransaction({operator_type:returnData.operatorType, transaction_status: returnData.message},{order_id:transactionId})
+                }
+                if(returnData.message=='FAILED'){
+                    responseData.msg = 'Your request has been Failed...';
+                    responseData.data = {}
+                    return responseHelper.success(res, responseData);
+                }else{
+                    responseData.msg = 'Your request has been successfully submitted...Please wait for sometimes for deposit amount';
+                    responseData.data = {}
+                    return responseHelper.success(res, responseData);
+                }
+
+            })
+            .catch((error) => {
+                responseData.msg = error.message;
+                return responseHelper.error(res, responseData, 500);
+            });
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 201);
     }
 }
+
+// const addAmount = async (req, res) => {
+//     let responseData = {}
+//     try {
+//         let userId = req.user.user_id;
+//         let query = {
+//             user_id: userId
+//         }
+//         let userD = await userService.getUserDetailsById(query);
+//         let userWallet = await userService.getUserWalletDetailsById({user_id: userId});
+//         if (!userD) {
+//             responseData.msg = 'user not found';
+//             return responseHelper.error(res, responseData, 201);
+//         }
+//         let amount, category;
+//         if (req.body.amount != '') {
+//             amount = req.body.amount;
+//         }
+//
+//         let openingBalnace, closingBalance, savewalet;
+//         if (!userWallet) {
+//             openingBalnace = amount;
+//             closingBalance = amount;
+//             let walletData = {
+//                 user_id: userId,
+//                 real_amount: amount
+//             }
+//             savewalet = await userService.createUserWallet(walletData);
+//         } else {
+//             openingBalnace = userWallet.real_amount;
+//             closingBalance = (+userWallet.real_amount) + (+amount);
+//
+//             let walletData = {
+//                 real_amount: closingBalance
+//             }
+//             savewalet = await userService.updateUserWallet(walletData, {user_wallet_id: userWallet.user_wallet_id});
+//         }
+//         let transactionId = "MT" + Date.now();
+//         let data = {
+//             user_id: userId,
+//             closing_balance: closingBalance,
+//             opening_balance: openingBalnace,
+//             type: 'CR',
+//             other_type: 'Deposit',
+//             amount: amount,
+//             order_id: transactionId,
+//             reference: 'Deposit',
+//             transaction_status: 'Success'
+//         }
+//         let userLog = {
+//             user_id: userId,
+//             activity_type: 'add amount',
+//             old_value: '',
+//             new_value: JSON.stringify(data)
+//         }
+//
+//         let save = await userService.createTransaction(data);
+//         let updateLog = await userService.addUserLog(userLog);
+//         responseData.msg = 'Amount Added Successfully';
+//         return responseHelper.success(res, responseData);
+//     } catch (err) {
+//         responseData.msg = err;
+//         return responseHelper.error(res, responseData, 500);
+//     }
+// }
 const updatePaymentStatus = async (transactionId, checksum) => {
     try {
         if (!transactionId) {

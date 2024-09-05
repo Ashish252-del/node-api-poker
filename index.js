@@ -28,7 +28,7 @@ app.use(errorHandler);
 app.set('view engine', 'ejs');
 const directory = path.join(__dirname, '/upload/user');
 app.use('/user', express.static(directory));
-require('./cron')
+//require('./cron')
 
 app.get('/', async (req, res) => {
    res.send("Hello world!");
@@ -48,21 +48,21 @@ app.post('/payment-status', async (req, res) => {
 });
 
 app.post('/callback-url', async (req, res) => {
-   let paymentStatus = await userController.callBackStatus(req);
-   console.log(paymentStatus);
-   if(paymentStatus.code=='Invalid Request' || paymentStatus.code=='PAYMENT_ERROR'){
-      return res.status(201).send({
-         message: paymentStatus.code,
-         statusCode: 201,
-         status: false
-      })
-   }else{
-      return res.status(200).send({
-         message: paymentStatus.code,
-         statusCode: 200,
-         status: true
-      })
-   }
+   // let paymentStatus = await userController.callBackStatus(req);
+   // console.log(paymentStatus);
+   // if(paymentStatus.code=='Invalid Request' || paymentStatus.code=='PAYMENT_ERROR'){
+   //    return res.status(201).send({
+   //       message: paymentStatus.code,
+   //       statusCode: 201,
+   //       status: false
+   //    })
+   // }else{
+   //    return res.status(200).send({
+   //       message: paymentStatus.code,
+   //       statusCode: 200,
+   //       status: true
+   //    })
+   // }
 });
 
 app.get('/success', (req, res) => {

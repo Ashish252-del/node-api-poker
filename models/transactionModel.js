@@ -62,6 +62,10 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        operator_type:{
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         is_admin: {
             type: DataTypes.ENUM,
             allowNull: false,
