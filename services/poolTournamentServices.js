@@ -16,8 +16,8 @@ const getAllTournamentList = (query) => {
 
 const updateTournament = (data, query) => {
     return db.pool_tournaments.update(
-        data,
-         query 
+       data,
+        {where: query}
     );
 }
 
