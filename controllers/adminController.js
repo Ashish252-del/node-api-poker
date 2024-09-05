@@ -4536,6 +4536,7 @@ const todayDeposit = async (req, res) => {
       let date = new Date().toISOString().split('T')[0]
       let query = { other_type: 'Deposit' };
       let getUserData = await adminService.getTodayDeposit(query);
+
       if (getUserData.length == 0) {
           responseData.msg = 'Data not found';
           return responseHelper.error(res, responseData, 201);
@@ -4543,16 +4544,16 @@ const todayDeposit = async (req, res) => {
       getUserData = getUserData.map(async (element, i) => {
           console.log(element.user_id);
           let getUserD = await adminService.getUserDetailsById({ user_id: element.user_id });
-          console.log('getUserD', getUserD.display_name);
+          // console.log('getUserD',getUserD);
          // Check if getUserD is not null and has a display_name property
-         const displayName = getUserD && getUserD.display_name ? getUserD.display_name : '';
+         const username = getUserD && getUserD.username ? getUserD.username : '';
 
          // Ensure dataValues exists
          if (!element.dataValues) {
              element.dataValues = {};
          }
 
-         element.dataValues.user_id = displayName;
+         element.dataValues.username = username;
 
 
           return element;
@@ -4594,7 +4595,7 @@ const cashTransaction = async (req, res) => {
                 element.dataValues = {};
             }
             
-            element.dataValues.user_id = username;
+            element.dataValues.username = username;
           return element;
       })
       getUserData = await Promise.all(getUserData);
