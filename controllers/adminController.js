@@ -3283,6 +3283,7 @@ const updateUserRole = async (req, res) => {
     // }
 
     let userData_admin = await adminService.geAdminDetailsById({ user_id: user_id });
+    console.log("req.user",req.user);
     console.log("userData_admin--->",userData_admin);
     // Check if any permitted role already exists
     for (const role_id of permit_role_ids) {
@@ -3299,12 +3300,13 @@ const updateUserRole = async (req, res) => {
       }
     }
 
+
     for (const role_id of permit_role_ids) {
 
       const newUserRole = {
         userId: userData_admin.admin_id,
         roleId: role_id,
-        addedBy: req.user.admin_id,
+        addedBy: 1,
       };
       await adminService.createUserRole(newUserRole);
     }

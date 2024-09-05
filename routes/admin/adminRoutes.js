@@ -84,7 +84,7 @@ module.exports = () => {
     routes.post("/add-module",authenticate,validateModule(),validate201, adminController.addModule);
     routes.post("/update-module",authenticate,validateModule(),validate201, adminController.updateModule);
     routes.post("/del-module",authenticate, adminController.delModule);
-    routes.get("/get-all-module", adminController.getAllModules);
+    routes.get("/get-all-module",authenticate, adminController.getAllModules);
 
  
     // related to role module ->
@@ -95,7 +95,7 @@ module.exports = () => {
      // related to user role ->
      routes.post("/add-user-role",addUserRoleValidator(),validate201,authenticate,adminController.addUserRole);
      routes.post("/del-user-role",authenticate,postUserRole(),validate201,adminController.deleteUserRole);
-     routes.post("/update-user-role", updateUserRoleValidator(),validate201,authenticate,adminController.updateUserRole);
+     routes.post("/update-user-role",authenticate, updateUserRoleValidator(),validate201,authenticate,adminController.updateUserRole);
     //  updateUserRole
 
     routes.post("/add-role",authenticate, adminController.addRole);
