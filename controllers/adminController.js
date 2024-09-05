@@ -1151,7 +1151,7 @@ const userList = async (req, res) => {
       element.withdraw_amount = withdrawAmt;
       element.deposit_amount = depositAmt;
 // console.log("element.mobile--.>",element.mobile);
-      // element.mobile = await decryptData(element.mobile);
+      element.mobile = await decryptData(element.mobile);
       element.mobile = element.mobile;
       element.user_level = 10;
       return element;
