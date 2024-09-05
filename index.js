@@ -75,6 +75,6 @@ app.get('/success', (req, res) => {
 // api routes
 routeService(app);
 // start server
-const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
+const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 3000;
 server.listen(port, () => console.log('Server listening on port ' + port));
 initialiseRedis();
