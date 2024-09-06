@@ -40,21 +40,24 @@ const adminLogin = async (req, res) => {
     let reqObj = req.body;
     try {
         let emailMobile = reqObj.email;
+       
         let mac_address = req.body.mac_address;
         let os_version = req.body.os_version;
         let app_version = req.body.app_version;
         let userData = await adminService.geAdminDetailsById({ email: emailMobile, admin_status: '1' });
+
         //console.log('========', userData);
         //return false;
         //if no user found, return error
-        if (!userData) {
+        // if(!userData && (await decryptData(getUser.email) != reqObj.email))
+        if (!userData ) {
             responseData.msg = 'Email Id doesn\'t exists';
             return responseHelper.error(res, responseData, 201);
         }
         //Role CHeck
         let checkRole = await adminService.geAdminDetailsById({ admin_id: userData.admin_id });
         if (!checkRole) {
-            responseData.msg = 'Email Id doesn\'t exists';
+            responseData.msg = 'role not exits exists';
             return responseHelper.error(res, responseData, 201);
         }
 

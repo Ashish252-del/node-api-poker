@@ -379,8 +379,10 @@ const roleById = async (req, res) => {
     const userId = req.query.user_id;
     let userData_admin = await adminService.geAdminDetailsById({ user_id: userId });
     const allRolesQuery = `
-      SELECT role_id, roles, role_status FROM roles
-    `;
+    SELECT role_id, roles, role_status 
+    FROM roles
+    WHERE role_status = '1'
+  `;
     const allRoles = await sequelize.query(allRolesQuery, {
       type: QueryTypes.SELECT,
     });
