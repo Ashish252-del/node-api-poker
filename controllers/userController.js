@@ -112,27 +112,28 @@ const updateProfile = async (req, res) => {
             dobs = reqObj.dob;
         }
         let isEmailVerify = getUser.is_email_verified;
-        if (typeof reqObj.email == 'undefined') {
-            emails = getUser.email;
-        } else if (reqObj.email == '') {
-            emails = getUser.email;
-        } else {
-            // emails = await encryptData(reqObj.email);
-            emails = await reqObj.email
+        // if (typeof reqObj.email == 'undefined') {
+        //     emails = getUser.email;
+        // } else if (reqObj.email == '') {
+        //     emails = getUser.email;
+        // } else {
+        //     // emails = await encryptData(reqObj.email);
+        //     emails = await reqObj.email
 
-            // if (getUser.email && (await decryptData(getUser.email) != reqObj.email)) {
-                if (getUser.email && (getUser.email) != reqObj.email) {
-                isEmailVerify = 0;
-            }
-        }
+        //     // if (getUser.email && (await decryptData(getUser.email) != reqObj.email)) {
+        //         if (getUser.email && (getUser.email) != reqObj.email) {
+        //         isEmailVerify = 0;
+        //     }
+        // }
 
-        let query1 = {user_id: {[Op.ne]: id}, email: emails}
+
+        // let query1 = {user_id: {[Op.ne]: id}, email: emails}
         let query2 = {user_id: {[Op.ne]: id}, username: username}
-        let checkEmail = await userService.getUserDetailsById(query1);
-        if (emails && checkEmail) {
-            responseData.msg = 'Email is already registered';
-            return responseHelper.error(res, responseData, 201);
-        }
+        // let checkEmail = await userService.getUserDetailsById(query1);
+        // if (emails && checkEmail) {
+        //     responseData.msg = 'Email is already registered';
+        //     return responseHelper.error(res, responseData, 201);
+        // }
 
         let checkUsername = await userService.getUserDetailsById(query2);
         if (checkUsername) {
@@ -142,7 +143,7 @@ const updateProfile = async (req, res) => {
 
         let userData = {
             username: username,
-            email: emails,
+            // email: emails,
             gender: gendar,
             dob: dobs,
             is_email_verified: isEmailVerify
@@ -201,7 +202,7 @@ const updateProfile = async (req, res) => {
             let bankData = {
                 beneId: benefiaciaryId,
                 name: accountHoldername,
-                email: await decryptData(emails),
+                // email: await decryptData(emails),
                 phone: await decryptData(getUser.mobile),
                 bankAccount: await decryptData(accountNo),
                 ifsc: await decryptData(ifscCode),
@@ -253,7 +254,7 @@ const updateProfile = async (req, res) => {
                 let bankData = {
                     beneId: benefiaciaryId,
                     name: accountHoldername,
-                    email: await decryptData(emails),
+                    // email: await decryptData(emails),
                     phone: await decryptData(getUser.mobile),
                     bankAccount: await decryptData(accountNo),
                     ifsc: await decryptData(ifscCode),
