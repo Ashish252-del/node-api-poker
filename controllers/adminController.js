@@ -3269,11 +3269,6 @@ const updateUserRole = async (req, res) => {
         return res.status(404).json(responseData);
       }
 
-      if (!userDetail.email) {
-        responseData.msg = "Email not found";
-        return res.status(400).json(responseData);
-      }
-
       userDetail.admin_status = "1";
       await adminService.createAdminUser(userDetail);
     }
