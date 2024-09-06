@@ -955,6 +955,87 @@ const gameDetail = async (req, res) => {
   }
 };
 
+// const updateGame = async (req, res) => {
+//   let responseData = {};
+//   try {
+//       let {game_id, game_category_id, game_type_id, game_json_data, game_price_json_data, game_blind_structure_json_data} = req.body;
+//       let name = '';
+//       let varient = null;
+//       if(game_category_id==4){
+//           name = game_json_data.Name
+//           varient = game_json_data.varient_id
+//       }
+//       if(game_category_id==3) name = game_json_data.Name
+//       let data = {
+//           game_category_id: game_category_id,
+//           game_type_id: game_type_id,
+//           game_name: name,
+//           varient_id: varient,
+//           game_json_data: JSON.stringify(game_json_data),
+//           // game_price_json_data: JSON.stringify(game_price_json_data),
+//           // game_blind_structure_json_data: JSON.stringify(game_blind_structure_json_data),
+//           updated_by: req.user.admin_id
+//       }
+
+//       if(game_category_id == 3) {
+//       let game = await (await getRedisClient()).hGet("games", ""+game_id)
+//       if(game) {game = JSON.parse(game);
+//       if(game.rooms.length>0)
+//      {
+//       throw new Error("Can't update now as tables of this game is running ")
+//      }
+//   }
+// }
+//       let getData = await adminService.getGameByQuery({game_id: game_id});
+//       if (!getData) {
+//           responseData.msg = 'Game Data not found';
+//           console.error("---------------------Game Data not found -----------");
+//           return responseHelper.error(res, responseData, 201);
+//       }
+//     if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker
+//     if(game_category_id == 3) {
+//       if(!game_json_data.rummy_code || !game_json_data.maximum_player || !game_json_data.commission || !game_json_data.name){
+//           throw new Error("Missing data in game_json_data");
+//       }
+//       let updatedGamerules = {};
+//       updatedGamerules.gameId = game_id;
+//       updatedGamerules.rummy_code = parseInt(game_json_data.rummy_code);
+//       updatedGamerules.Max_Player = parseInt(game_json_data.maximum_player);
+//       updatedGamerules.Comission  = parseFloat(game_json_data.commission);
+//       updatedGamerules.Name       = game_json_data.name;
+//       if(game_json_data.rummy_code == 1) {
+//           if(!game_json_data.point_value || !game_json_data.entry_fee || !game_json_data.is_practice) throw new Error("Missing data in game_json_data");
+//           updatedGamerules.Points = parseFloat(game_json_data.point_value);
+//           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
+//           if(game_json_data.is_practice) updatedGamerules.is_practice = parseInt(game_json_data.is_practice)
+//       }
+//       if(game_json_data.rummy_code == 2) {
+//           if(!game_json_data.pool_type || !game_json_data.entry_fee) throw new Error("Missing data in game_json_data");
+//           updatedGamerules.break_Score = parseInt(game_json_data.pool_type);
+//           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
+
+//       }
+//       if(game_json_data.rummy_code == 3) {
+//           if(!game_json_data.point_value || !game_json_data.entry_fee || game_json_data.deal_type) throw new Error("Missing data in game_json_data");
+//           updatedGamerules.Points = parseFloat(game_json_data.point_value);
+//           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
+//           updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
+//       }
+//       let updateData = await adminService.updateGameById(data, {game_id: game_id});
+//       responseData.msg = 'Game Update Successfully';
+//       await (await getRedisClient()).hSet("gameRules", ""+game_id, JSON.stringify(updatedGamerules));
+//       return responseHelper.success(res, responseData);
+//     }
+//     let updateData = await adminService.updateGameById(data, {game_id: game_id});
+//       responseData.msg = 'Game Update Successfully';
+//       return responseHelper.success(res, responseData);
+//   } catch (error) {
+//       console.error("error in updateGame ", error)
+//       responseData.msg = error.message;
+//       return responseHelper.error(res, responseData, 500);
+//   }
+// }
+
 const updateGame = async (req, res) => {
   let responseData = {};
   try {
@@ -979,9 +1060,9 @@ const updateGame = async (req, res) => {
 
       if(game_category_id == 3) {
       let game = await (await getRedisClient()).hGet("games", ""+game_id)
-      if(game) {game = JSON.parse(game);
+      if(game) {game = JSON.parse(game); 
       if(game.rooms.length>0)
-     {
+     { 
       throw new Error("Can't update now as tables of this game is running ")
      }
   }
@@ -992,7 +1073,7 @@ const updateGame = async (req, res) => {
           console.error("---------------------Game Data not found -----------");
           return responseHelper.error(res, responseData, 201);
       }
-    if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker
+    if(game_category_id == 2) await (await getRedisClient()).del("ROOM"); // For Poker 
     if(game_category_id == 3) {
       if(!game_json_data.rummy_code || !game_json_data.maximum_player || !game_json_data.commission || !game_json_data.name){
           throw new Error("Missing data in game_json_data");
@@ -1005,19 +1086,19 @@ const updateGame = async (req, res) => {
       updatedGamerules.Name       = game_json_data.name;
       if(game_json_data.rummy_code == 1) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || !game_json_data.is_practice) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseFloat(game_json_data.point_value);
+          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           if(game_json_data.is_practice) updatedGamerules.is_practice = parseInt(game_json_data.is_practice)
       }
       if(game_json_data.rummy_code == 2) {
           if(!game_json_data.pool_type || !game_json_data.entry_fee) throw new Error("Missing data in game_json_data");
-          updatedGamerules.break_Score = parseInt(game_json_data.pool_type);
+          updatedGamerules.break_Score = parseInt(game_json_data.pool_type); 
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
 
       }
       if(game_json_data.rummy_code == 3) {
           if(!game_json_data.point_value || !game_json_data.entry_fee || game_json_data.deal_type) throw new Error("Missing data in game_json_data");
-          updatedGamerules.Points = parseFloat(game_json_data.point_value);
+          updatedGamerules.Points = parseFloat(game_json_data.point_value); 
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
       }
