@@ -100,9 +100,6 @@ const updateProfile = () => {
         body("user_name", "Please enter username")
             .exists()
             .notEmpty(),
-        body("email", "Please enter email")
-            .exists()
-            .notEmpty()
     ]
 };
 
