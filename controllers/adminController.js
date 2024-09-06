@@ -1238,9 +1238,20 @@ const userList = async (req, res) => {
           : 0;
       element.withdraw_amount = withdrawAmt;
       element.deposit_amount = depositAmt;
-// console.log("element.mobile--.>",element.mobile);
-      element.mobile = await decryptData(element.mobile);
-      element.mobile = element.mobile;
+
+// console.log("element--.>",element);
+if (element.is_ludo_bot === 0) {
+  try {
+    element.mobile = element.mobile ? await decryptData(element.mobile) : null;
+  } catch (err) {
+    console.error("Error decrypting mobile:", err.message);
+    element.mobile = null; // Set to null if decryption fails
+  }
+} else {
+  // If is_ludo_bot is true, leave mobile encrypted
+  element.mobile = element.mobile;
+}
+      // element.mobile = element.mobile;
       element.user_level = 10;
       return element;
     });
