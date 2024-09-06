@@ -959,7 +959,6 @@ const updateGame = async (req, res) => {
   let responseData = {};
   try {
       let {game_id, game_category_id, game_type_id, game_json_data, game_price_json_data, game_blind_structure_json_data} = req.body;
-      game_json_data.rummy_code = "1";
       let name = '';
       let varient = null;
       if(game_category_id==4){

@@ -212,9 +212,6 @@ async function initialize() {
     db.users.hasMany(db.buy_in_records, {
         foreignKey: "user_id"
     })
-      
-    
-     
     // sync all models with database
      await sequelize.sync({alter: true});
 }
