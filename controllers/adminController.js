@@ -351,8 +351,11 @@ const activeRoleList = async (req, res) => {
 const changeRoleStatus = async (req, res) => {
   let responseData = {};
   try {
-    const { id, role_status: status } = req.body;
+    const { id,status } = req.body;
+    console.log("Role Status:", status);
+
     let checkRole = await adminService.getRoleByQuery({ role_id: id });
+    // console.log("checkRole-->",req.user);
     if (!checkRole) {
       responseData.msg = "Role not found";
       return responseHelper.error(res, responseData, 201);
