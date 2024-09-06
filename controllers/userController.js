@@ -2544,47 +2544,51 @@ const unlockAlreadylockedbalance = async (userId, tableId) => {
     // let pokerTable = await pokerService.getOneGameTableModalDataByQuery({
     //     game_table_id: tableId
     // });
-    let balanceHistories = await userService.getLockedBalanceHistory({
-        user_id: userId,
-       // game_id: pokerTable.game_id,
-        table_id:tableId,
-        is_balance_unlocked: false,
-        status: "settled"
-    })
-    balanceHistories.forEach(async (history) => {
-        let lockedAmount = parseFloat(history.locked_amount);
-        let userWallet = await userService.getUserWalletDetailsByQuery({
-            user_id: history.user_id,
-        });
-        if (!userWallet) {
-            throw Error("Wallet does not exist");
-        }
-        let lockBalance = parseFloat(userWallet.locked_amount);
-        if (lockedAmount > lockBalance) {
-            throw Error("Locked amount is greater than balance 4");
-        }
+    try {
+        let balanceHistories = await userService.getLockedBalanceHistory({
+            user_id: userId,
+            // game_id: pokerTable.game_id,
+            table_id: tableId,
+            is_balance_unlocked: false,
+            status: "settled"
+        })
+        balanceHistories.forEach(async (history) => {
+            let lockedAmount = parseFloat(history.locked_amount);
+            let userWallet = await userService.getUserWalletDetailsByQuery({
+                user_id: history.user_id,
+            });
+            if (!userWallet) {
+                throw Error("Wallet does not exist");
+            }
+            let lockBalance = parseFloat(userWallet.locked_amount);
+            if (lockedAmount > lockBalance) {
+                throw Error("Locked amount is greater than balance");
+            }
 
-        let newLockBalance = lockBalance - lockedAmount;
-        let profitLoss = lockedAmount - parseFloat(history.buy_in_amount);
-        let oldWinAmount = userWallet.win_amount;
-        if (!oldWinAmount) {
-            oldWinAmount = 0;
-        }
-        await userService.updateUserWallet(
-            {
-                win_amount: parseFloat(oldWinAmount) + parseFloat("" + profitLoss),
-                real_amount:
-                    parseFloat(userWallet.real_amount) +
-                    parseFloat(history.buy_in_amount),
-                locked_amount: newLockBalance,
-            },
-            {user_wallet_id: userWallet.user_wallet_id}
-        );
-        await userService.updateLockedBalanceHistory(
-            {is_balance_unlocked: true},
-            {locked_balance_history_id: history.locked_balance_history_id}
-        );
-    });
+            let newLockBalance = lockBalance - lockedAmount;
+            let profitLoss = lockedAmount - parseFloat(history.buy_in_amount);
+            let oldWinAmount = userWallet.win_amount;
+            if (!oldWinAmount) {
+                oldWinAmount = 0;
+            }
+            await userService.updateUserWallet(
+                {
+                    win_amount: parseFloat(oldWinAmount) + parseFloat("" + profitLoss),
+                    real_amount:
+                        parseFloat(userWallet.real_amount) +
+                        parseFloat(history.buy_in_amount),
+                    locked_amount: newLockBalance,
+                },
+                {user_wallet_id: userWallet.user_wallet_id}
+            );
+            await userService.updateLockedBalanceHistory(
+                {is_balance_unlocked: true},
+                {locked_balance_history_id: history.locked_balance_history_id}
+            );
+        });
+    }catch (error){
+        throw Error("something went wrong..");
+    }
 }
 
 const unlockAlreadylockedbalanceForClub = async (userId, tableId, clubId) => {
