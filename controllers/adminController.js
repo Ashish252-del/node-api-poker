@@ -28,7 +28,8 @@ const adminLogin = async (req, res) => {
   let reqObj = req.body;
   try {
     console.log("hello from login");
-    let emailMobile = reqObj.email;
+    let emailMobile = await encryptData(reqObj.email);
+    console.log("emailMobile-->",emailMobile);
     let mac_address = req.body.mac_address;
     let os_version = req.body.os_version;
     let app_version = req.body.app_version;
@@ -39,20 +40,20 @@ const adminLogin = async (req, res) => {
       email: emailMobile,
       admin_status: "1",
     });
+      // If not found, search by encrypted mobile
+      if (!userData) {
+        userData = await adminService.geAdminDetailsById({
+          mobile: emailMobile,
+          admin_status: "1",
+        });
+      }
     // console.log("admin_id",admin_id);
     console.log("userData",userData);
     if (!userData) {
       responseData.msg = " User doesn't exists";
       return responseHelper.error(res, responseData, 201);
     }
-    // let dbemail=await decryptData(userData.email)
-    // console.log("dbemail-->",dbemail);
-    // console.log("reqObj.email-->",reqObj.email);
-    // if(await decryptData(userData.email) != reqObj.email){
-    //   responseData.msg = " email doesn't exists";
-    //   return responseHelper.error(res, responseData, 201);
-
-    // }
+  
 
     let reqPassword = reqObj.password;
     let userPassword = userData.password;
@@ -181,8 +182,10 @@ FROM
     responseData.data = {
       id: userData.user_id,
       full_name: userData.full_name,
-      email: userData.email,
-      mobile: userData.mobile,
+      // email: userData.email,
+      // mobile: userData.mobile,
+      email: userData.email ? await decryptData(userData.email) : null,
+      mobile: userData.mobile ? await decryptData(userData.mobile) : null,
       role_id: userData.role_id,
       role_assigned: formattedRoles ? formattedRoles : "",
       token: jwtToken,
