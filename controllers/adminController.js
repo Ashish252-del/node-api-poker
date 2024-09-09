@@ -1097,7 +1097,7 @@ const updateGame = async (req, res) => {
 
       }
       if(game_json_data.rummy_code == 3) {
-          if(!game_json_data.point_value || !game_json_data.entry_fee || game_json_data.deal_type) throw new Error("Missing data in game_json_data");
+          if(!game_json_data.point_value || !game_json_data.entry_fee || !game_json_data.deal_type) throw new Error("Missing data in game_json_data");
           updatedGamerules.Points = parseFloat(game_json_data.point_value); 
           updatedGamerules.Min_Chips = parseFloat(game_json_data.entry_fee);
           updatedGamerules.break_Round = parseInt(game_json_data.deal_type);
