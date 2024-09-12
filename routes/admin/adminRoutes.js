@@ -196,6 +196,7 @@ module.exports = () => {
 
     routes.post('/bonus-update',authenticate,adminController.bonusUpdate);
     routes.get('/get-bonus-setting-data',authenticate,adminController.getBonusData);
-
+    routes.get('/ludo-users', authenticate, adminController.getLudoUsers)
+    // routes.get("/pool-user",authenticate,adminController.getPoolUsers)
     return routes;
 };

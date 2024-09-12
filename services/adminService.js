@@ -627,6 +627,15 @@ const getAllBanners = (query) => {
     return db.banners.findAll();
 }
 
+const getLudoGameHistory=()=>{
+    return db.ludo_game_history.findAll({raw:true});
+}
+const getPoolGameHistory=()=>{
+    return db.pool_game_history.findAll({raw:true})
+}
+
+
+
 module.exports = {
     createPriceStructure,
     getPriceStructureByQuery,
@@ -785,4 +794,6 @@ module.exports = {
     getTournamentByQuery,
     getAllTournamentList,
     updateTournamentById,
+    getLudoGameHistory,
+    getPoolGameHistory
 }

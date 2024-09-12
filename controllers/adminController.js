@@ -4503,8 +4503,6 @@ const changeWithDrawlStatus = async (req, res) => {
       let withdrawStatus = await bankWithdraw(transferD);
       //return false;
       let openingBalnace = userWallet.real_amount;
-
-
       let walletData = {
           real_amount: winAmountUpdate,
       }
@@ -4670,6 +4668,99 @@ const getBonusData = async (req, res) => {
   }
 }
 
+const getLudoUsers = async (req, res) => {
+  let responseData = {};
+  try {
+    // Fetch ludo game history
+    let ludoGameHistory = await adminService.getLudoGameHistory();
+    
+    // Extract unique user IDs
+    let userIds = [...new Set(ludoGameHistory.map(game => game.userId))];
+    
+    // Initialize an empty array to store user data
+    let users = [];
+    
+    // Loop through each userId and fetch user data
+    for (let userId of userIds) {
+      let user = await adminService.getUserDetailsById({ user_id: userId });
+      if (user) {
+        // Decrypt email and mobile or set them to null if not present
+        let decryptedEmail = user.email ? await decryptData(user.email) : null;
+        let decryptedMobile = user.mobile ? await decryptData(user.mobile) : null;
+        
+        // Push relevant user details into users array
+        users.push({
+          user_id: user.user_id,
+          fullname:user.full_name,
+          username: user.username,
+          email: decryptedEmail,
+          mobile: decryptedMobile,
+          profile_image: user.profile_image,
+          number_of_win_games: user.number_of_win_games,
+          amount_win_in_game: user.amount_win_in_game,
+          createdAt:user.createdAt,
+          updatedAt:user.updatedAt
+        });
+      }
+    }
+    
+    // Send success response
+    responseData.data = users;
+    return responseHelper.success(res, responseData, 200);
+    
+  } catch (error) {
+    // Send error response in case of failure
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+// const getPoolUsers = async (req, res) => {
+//   let responseData = {};
+//   try {
+//     // Fetch pool game history
+//     let poolGameHistory = await adminService.getPoolGameHistory();
+
+//     // Extract unique user IDs
+//     let userIds = [...new Set(poolGameHistory.map(game => game.userId))];
+
+//     // Initialize an empty array to store user data
+//     let users = [];
+
+//     // Loop through each userId and fetch user data
+//     for (let userId of userIds) {
+//       let user = await adminService.getUserDetailsById({ user_id: userId });
+//       if (user) {
+//         // Decrypt email and mobile or set them to null if not present
+//         let decryptedEmail = user.email ? await decryptData(user.email) : null;
+//         let decryptedMobile = user.mobile ? await decryptData(user.mobile) : null;
+
+//         // Push relevant user details into users array
+//         users.push({
+//           user_id: user.user_id,
+//           username: user.username,
+//           email: decryptedEmail,
+//           mobile: decryptedMobile,
+//           profile_image: user.profile_image,
+//           number_of_win_games: user.number_of_win_games,
+//           amount_win_in_game: user.amount_win_in_game,
+//         });
+//       }
+//     }
+
+//     responseData.data = users;
+//     return responseHelper.success(res, responseData, 200);
+
+//   } catch (error) {
+//     // Send error response in case of failure
+//     responseData.msg = error.message;
+//     return responseHelper.error(res, responseData, 500);
+//   }
+// };
+
+
+
+
 module.exports = {
   adminLogin,
   addRole,
@@ -4794,6 +4885,8 @@ module.exports = {
   todayDeposit,
   cashTransaction,
   getBonusData,
-  bonusUpdate
+  bonusUpdate,
+  getLudoUsers,
+  // getPoolUsers
 
 }
