@@ -72,6 +72,7 @@ async function initialize() {
     db.club_member_roles = require('../models/clubMemberRoles')(sequelize, DataTypes);
     db.club_modules=require('../models/clubModules')(sequelize, DataTypes);
     db.club_member_role_modules=require("../models/clubMemberRoleModule")(sequelize, DataTypes);
+    db.user_game_status=require("../models/userGameStatus")(sequelize, DataTypes);
 
 
     db.union = require('../models/unionModel')(sequelize, DataTypes);

@@ -4758,6 +4758,56 @@ const getLudoUsers = async (req, res) => {
 //   }
 // };
 
+const gameWiseUserStatus = async (req, res) => {
+  let responseData = {};
+  try {
+      let userId = req.body.user_id;
+      let gameId = req.body.game_id;
+      let status = req.body.status;
+      let type = req.body.type;
+      let blockTime = req.body.block_time;
+      let blockTimeInt = blockTime.replace(/[^\d.]/g, ' ');
+      var now = new Date().getTime()
+      let time = Math.floor(now / 1000);
+      let min;
+      if (blockTimeInt == 24) {
+          min = 86400;
+      } else {
+          min = 1800;
+      }
+
+      let blockTimeStamp = parseInt(time) + parseInt(min);
+      let data = {
+          user_id: userId,
+          game_id: gameId,
+          type: type,
+          block_time: blockTime,
+          block_timestamp: blockTimeStamp,
+          user_game_status: status,
+          update_at: new Date()
+      }
+
+      let check = await adminService.getUserStatus({user_id: userId, game_id: gameId});
+      if (check && parseInt(check.block_timestamp) > parseInt(time)) {
+          responseData.msg = 'User Already Blocked!!!';
+          return responseHelper.error(res, responseData, 201);
+      } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
+          await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
+          responseData.msg = 'User Blocked successfully!!!';
+          return responseHelper.success(res, responseData);
+      } else {
+          await adminService.addUserStatus(data)
+          responseData.msg = 'User Blocked successfully!!!';
+          return responseHelper.success(res, responseData);
+      }
+
+
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+}
+
 
 
 
@@ -4888,5 +4938,6 @@ module.exports = {
   bonusUpdate,
   getLudoUsers,
   // getPoolUsers
+  gameWiseUserStatus
 
 }
