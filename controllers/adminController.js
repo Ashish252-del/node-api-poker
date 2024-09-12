@@ -3761,22 +3761,15 @@ const getGameWiseUsers = async (req, res) => {
       response = await Promise.all(response.map(async (element) => {
           
           let userD = await adminService.getUserDetailsById({ user_id: element.user_id });
-
-          // console.log('User Details:', userD);
-         
-          
-          // let getUserBlock = await adminService.getUserStatus({ user_id: element.user_id, game_id: game_type });
-          // console.log('User Block Status:', getUserBlock);
+          let getUserBlock = await adminService.getUserStatus({ user_id: element.user_id, game_id: game_type });
           
           let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
-          // console.log('Withdrawal Amount:', getWithDrawAmt);
-          
+
           let getDepositAmt = await adminService.getDeposit({ user_id: element.user_id });
-          // console.log('Deposit Amount:', getDepositAmt);
           
           let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
           let depositAmt = (getDepositAmt && getDepositAmt[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
-          // let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+          let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
           
           element.full_name = (userD) ? userD.full_name : '';
           element.display_name = (userD) ? userD.display_name : '';
@@ -3800,7 +3793,7 @@ const getGameWiseUsers = async (req, res) => {
           element.user_level = 10;
           element.withdraw_amount = withdrawAmt;
           element.deposit_amount = depositAmt;
-          // element.is_block = isBlock;
+          element.is_block = isBlock;
           element.createdAt = userD.createdAt;
           element.updatedAt = userD.updatedAt;
           
