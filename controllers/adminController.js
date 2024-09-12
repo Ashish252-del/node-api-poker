@@ -3715,65 +3715,69 @@ const getWinningAmount = async (req, res) => {
 const getGameWiseUsers = async (req, res) => {
   let responseData = {};
   try {
-      console.log('dd');
+      console.log('Function getGameWiseUsers called');
       const {game_type, page, search_key, from_date, end_date} = req.query;
+      
       const {limit, offset} = getPagination(page);
-      let query = '';
+      let query = '1=1'; // Start with a base query
+      
       if (game_type) {
-          query += `game_histories.game_category='${game_type}'`;
+          query += ` AND game_histories.game_category='${game_type}'`;
+          console.log('Game Type Filter Applied');
       }
+      
       if (from_date && end_date) {
           let fromDate = moment(from_date).format('YYYY-MM-DD');
           let endDate = moment(end_date).format('YYYY-MM-DD');
-          console.log('d');
+          console.log('Date Filter Applied:', { fromDate, endDate });
           query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
       }
+      
       if (search_key) {
+          console.log('Search Key Filter Applied:', search_key);
           query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%')`;
       }
-      query += ` group by game_histories.user_id order by createdAt DESC`;
-      let response = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
-      console.log("response-->",response);
-      let responseTotalCount = await sequelize.query(`Select game_histories.*  from game_histories join users on game_histories.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
-      // let query1 = {
-      //     attributes:['user_id','createdAt','updatedAt'],
-      //     where: {game_category: game_type},
-      //     group: "user_id",
-      //     order:[[Sequelize.col('createdAt'),'DESC']]
-      // }
-      //
-      // let query = {
-      //     attributes:['user_id','createdAt','updatedAt'],
-      //     where: {game_category: game_type},
-      //     group: "user_id",
-      //     order:[[Sequelize.col('createdAt'),'DESC']],
-      //     limit, offset
-      // }
-      //await adminService.getWiseUsers(query);
+      
+      query += ` GROUP BY game_histories.user_id ORDER BY game_histories.createdAt DESC`;
+      
+      // Fetch data
+      let response = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query} LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+      // console.log("response-->",response);
 
-
+      
+      let responseTotalCount = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query}`, {type: sequelize.QueryTypes.SELECT});
+      
+      
       let totalCount = responseTotalCount.length;
-      //console.log(response);
-      //response = response.rows;
-      if (response.length == 0) {
+      
+      if (response.length === 0) {
           responseData.msg = 'Data not found';
           return responseHelper.error(res, responseData, 201);
       }
-
-      var now = new Date().getTime()
+      
+      var now = new Date().getTime();
       let time = Math.floor(now / 1000);
-      response = response.map(async (element, i) => {
-          // console.log(element);
-          let userD = await adminService.getUserDetailsById({user_id: element.user_id});
-          let getUserBlock = await adminService.getUserStatus({user_id: element.user_id, game_id: game_type});
-          let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
-          let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
+      
+      response = await Promise.all(response.map(async (element) => {
+          
+          let userD = await adminService.getUserDetailsById({ user_id: element.user_id });
+
+          // console.log('User Details:', userD);
+         
+          
+          // let getUserBlock = await adminService.getUserStatus({ user_id: element.user_id, game_id: game_type });
+          // console.log('User Block Status:', getUserBlock);
+          
+          let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
+          // console.log('Withdrawal Amount:', getWithDrawAmt);
+          
+          let getDepositAmt = await adminService.getDeposit({ user_id: element.user_id });
+          // console.log('Deposit Amount:', getDepositAmt);
+          
           let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
           let depositAmt = (getDepositAmt && getDepositAmt[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
-          let isBlock = 0;
-          if (getUserBlock && time < getUserBlock.block_timestamp) {
-              isBlock = 1;
-          }
+          // let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+          
           element.full_name = (userD) ? userD.full_name : '';
           element.display_name = (userD) ? userD.display_name : '';
           element.username = (userD) ? userD.username : '';
@@ -3796,12 +3800,13 @@ const getGameWiseUsers = async (req, res) => {
           element.user_level = 10;
           element.withdraw_amount = withdrawAmt;
           element.deposit_amount = depositAmt;
-          element.is_block = isBlock;
+          // element.is_block = isBlock;
           element.createdAt = userD.createdAt;
           element.updatedAt = userD.updatedAt;
+          
           return element;
-      })
-      response = await Promise.all(response);
+      }));
+      
       return res.status(200).send({
           message: 'User List',
           statusCode: 200,
@@ -3809,11 +3814,14 @@ const getGameWiseUsers = async (req, res) => {
           count: totalCount,
           data: response
       });
+      
   } catch (error) {
-      responseData.msg = error.message
+      console.error('Error Occurred:', error.message);
+      responseData.msg = error.message;
       return responseHelper.error(res, responseData, 500);
   }
 }
+
 
 const getGameHistory = async (req, res) => {
   let responseData = {};
