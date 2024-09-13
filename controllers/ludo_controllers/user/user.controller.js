@@ -1451,7 +1451,7 @@ module.exports.getTransaction = async (req, res) => {
 
 module.exports.getChatTemplate = async (req, res) => {
     try {
-        let data = await chat_template.findAll({where: {status: 1}});
+        let data = await db.ludo_chat_template.findAll({where: {status: 1}});
         return successResponse(req, res, data);
     } catch (error) {
         return errorResponse(req, res, error.message);

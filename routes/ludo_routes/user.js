@@ -134,7 +134,7 @@ router.get("/get/selected/shop/item",userController.getSelectedShopItem)
 // router.post('/withdraw-request',userController.sendWithdrawRequest);
 // router.get('/get-withdraw-request',userController.getWithdrawRequest);
 // router.get('/get-transaction',userController.getTransaction);
-// router.get('/get-chat-template', userController.getChatTemplate)
+router.get('/get-chat-template', userController.getChatTemplate)
 // router.get('/get-tds-details', userController.getTdsDetails)
 // router.get('/get-gst-details', userController.getGstDetails)
 

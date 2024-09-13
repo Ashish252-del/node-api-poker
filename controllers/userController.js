@@ -3534,6 +3534,20 @@ const get_all_avatars = async (req, res) => {
     }
   };
 
+//   const savePoolGameHistory=async(req,res)=>{
+//       let responseData={};
+//       try {
+
+          
+
+
+          
+//       } catch (error) {
+//         responseData.msg = error.message;
+//         return responseHelper.error(res, responseData, 500);
+//       }
+//   }
+
 module.exports = {
     sendOtp,
     verifyOtp,
@@ -3588,5 +3602,6 @@ module.exports = {
     logout,
     addWinningAmountForRummy,
     userBonusPercentage,
-    get_all_avatars
+    get_all_avatars,
+    // savePoolGameHistory
 }

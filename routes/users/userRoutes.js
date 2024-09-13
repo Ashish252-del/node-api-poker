@@ -47,6 +47,8 @@ module.exports = () => {
     routes.post("/create/private-table" ,authenticate, userController.createGameForPrivate);
     routes.put("/delete/private-table", authenticate , userController.changeGameStatusPrivateRoom)
     routes.get("/avatar/all",authenticate,userController.get_all_avatars)
+    
+    // routes.post("/save-pool-game-history",authenticate,userController.savePoolGameHistory)
 
     routes.get("/logout" ,authenticate,userController.logout);
     return routes;
