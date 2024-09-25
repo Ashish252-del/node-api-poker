@@ -3388,9 +3388,15 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
         let winAmount = parseFloat(addWinBalanceRequest.winningAmount);
         let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision);
         let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount);
-        console.log("newlocked amt-->", parseFloat(addWinBalanceRequest.newLockedAmount));
-        console.log("admincommision-->", AdminCommision);
+
+        console.log("User ID:", userId);
+console.log("Real Amount:", realAmount);
+console.log("Winning Amount:", winAmount);
+console.log("Admin Commission:", AdminCommision);
+console.log("New Locked Amount:", newlocked_amt);
+
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+        console.log("userWallet-->",userWallet);
         // let gameData = await adminService.getGameByQuery({game_id:tableId})
         // console.log('gameData',gameData)
         // let gameDatas = JSON.parse(gameData.game_json_data)

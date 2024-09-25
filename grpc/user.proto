@@ -71,6 +71,11 @@ message addWinBalanceRequest {
   float realAmount = 2;
   float winningAmount = 3;
   string tableId = 4;
+  float winTransaction = 5;
+  float adminCommision = 6;
+  float betAmount = 7;
+  int64 success=8;
+  float newLockedAmount=9;
 }
 //Get min-max buyIn 
 message userMinMaxBuyInReq {
