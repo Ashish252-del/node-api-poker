@@ -185,8 +185,8 @@ server.addService(userProto.getUserDetailsService.service, {
           console.log(call.request)
           console.log('GetUserDetails called')
           let res = await userDetails(call.request);
-          console.log("res in user details-->",res);
-          callback(null, res);
+          console.log("res.details[0] in user details-->",res.details[0]);
+          callback(null, res.details[0]);  
        },
        userBonusPercentage: async (call, callback) => {
          console.log('userBonusPercentage called ----------------->', call.request)
