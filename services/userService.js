@@ -266,6 +266,9 @@ const getTransactionById = (query) => {
 const getDocumentsByRawQuery = async (sql) => {
    return await sequelize.query(sql, { raw: true, type: sequelize.QueryTypes.SELECT });
 }
+const getLastTransactionById = (query) => {
+   return db.transactions.findOne({where:query, order: [['transaction_id', 'DESC']]});
+}
 
 module.exports = {
    createUser,
@@ -336,5 +339,6 @@ module.exports = {
 
    getTransactionById,
    getOneLockedBalanceHistoryByOrder,
-   getDocumentsByRawQuery
+   getDocumentsByRawQuery,
+   getLastTransactionById
 };
