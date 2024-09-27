@@ -3389,6 +3389,11 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
         let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision).toFixed(2);
         let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount).toFixed(2);
 
+        realAmount = parseFloat(realAmount);
+winAmount = parseFloat(winAmount);
+AdminCommision = parseFloat(AdminCommision);
+newlocked_amt = parseFloat(newlocked_amt);
+
         console.log("User ID:", userId);
         console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
         console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
