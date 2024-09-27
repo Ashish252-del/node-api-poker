@@ -63,6 +63,8 @@ message details {
   int32 win_amount = 7;
   bool status = 8;
   string message = 9;
+   float otp_amount = 10;
+   float locked_amount=11;
 }
 
 //Add Winning Amount
