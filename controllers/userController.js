@@ -3442,11 +3442,16 @@ console.log("New Locked Amount:", newlocked_amt);
 
         }
 
-        await userService.updateUserWallet({
+        const [affectedRows] = await userService.updateUserWallet({
             real_amount: realAmount,
             win_amount: winAmount,
             locked_amount: newlocked_amt
-        }, {user_id: userId})
+        }, { user_id: userId });
+        
+        console.log("Rows affected in user_wallet:", affectedRows);
+        if (affectedRows === 0) {
+            throw new Error("No rows were updated in user_wallet.");
+        }
         let orderId = 'TXN_' + new Date().getTime();
         let transactionDatas = {
             order_id: orderId,

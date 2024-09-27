@@ -63,27 +63,21 @@ const getUserWalletDetailsByQuery = (query) => {
 
 const updateUserWallet = async (data, query) => {
    try {
-       // Log data and query for debugging
-       console.log("Updating user wallet with data:", data);
-       console.log("Query condition:", query);
-
        const result = await db.user_wallet.update(
            data,
            { where: query }
        );
 
-       console.log("Rows affected:", result[0]); // Check if rows were updated
-
-       if (result[0] === 0) {
-           throw new Error("No rows were updated. Ensure user_id exists.");
-       }
+       // Log the result to check how many rows were affected
+       console.log("Rows affected by update:", result[0]);  // result[0] is the number of affected rows
 
        return result;
    } catch (error) {
-       console.error("Error in updateUserWallet:", error.message);
-       throw error; // Rethrow the error to handle it in the calling function
+       console.error("Error updating user wallet:", error);
+       throw error;
    }
 };
+
 
 
 const createLockedBalanceHistory = (data) => {
