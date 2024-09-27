@@ -3402,12 +3402,14 @@ newlocked_amt = parseFloat(newlocked_amt);
         
 
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+        console.log("before update --->",userWallet);
        
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
 
         if (parseInt(addWinBalanceRequest.success) == 0) {
+            console.log("hello from success ==0");
             let transaction = await userService.getLastTransactionById({
                 user_id: userId,
                 category: 'Rummy',
@@ -3463,6 +3465,8 @@ newlocked_amt = parseFloat(newlocked_amt);
         if (affectedRows === 0) {
             throw new Error("No rows were updated in user_wallet.");
         }
+        let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+        console.log("after update for winning user --->",userWallet);
         let orderId = 'TXN_' + new Date().getTime();
         let transactionDatas = {
             order_id: orderId,
