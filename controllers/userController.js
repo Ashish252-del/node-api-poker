@@ -3448,6 +3448,11 @@ newlocked_amt = parseFloat(newlocked_amt);
 
         }
 
+        console.log("Updating wallet with values:", {
+            real_amount: realAmount,
+            locked_amount: newlocked_amt,
+            win_amount: winAmount,
+        });
         const [affectedRows] = await userService.updateUserWallet({
             real_amount: realAmount,
             locked_amount: newlocked_amt,
