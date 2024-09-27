@@ -3384,14 +3384,10 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
     try {
         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
         let userId = addWinBalanceRequest.user_id;
-        // let realAmount = parseFloat(addWinBalanceRequest.realAmount);
-        // let winAmount = parseFloat(addWinBalanceRequest.winningAmount);
-        // let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision);
-        // let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount);
         let realAmount = parseFloat(addWinBalanceRequest.realAmount).toFixed(2);
-let winAmount = parseFloat(addWinBalanceRequest.winningAmount).toFixed(2);
-let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision).toFixed(2);
-let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount).toFixed(2);
+        let winAmount = parseFloat(addWinBalanceRequest.winningAmount).toFixed(2);
+        let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision).toFixed(2);
+        let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount).toFixed(2);
 
         console.log("User ID:", userId);
 console.log("Real Amount:", realAmount);
@@ -3400,14 +3396,7 @@ console.log("Admin Commission:", AdminCommision);
 console.log("New Locked Amount:", newlocked_amt);
 
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
-        console.log("userWallet-->",userWallet);
-        // let gameData = await adminService.getGameByQuery({game_id:tableId})
-        // console.log('gameData',gameData)
-        // let gameDatas = JSON.parse(gameData.game_json_data)
-        // console.log(gameDatas.commission)
-        // let winAmounts = parseFloat(winAmount) - parseFloat(userWallet.win_amount);
-        // let adminCommission = (parseFloat(winAmounts) * parseFloat(gameDatas.commission)/100).toFixed(2);
-        // console.log(adminCommission)
+       
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
@@ -3452,13 +3441,6 @@ console.log("New Locked Amount:", newlocked_amt);
 
 
         }
-        // if (parseInt(addWinBalanceRequest.success) == 2) {
-        //     await userService.updateUserWallet({ real_amount: realAmount,locked_amount: newlocked_amt }, { user_id: userId });
-        //     return {
-        //       status: true,
-        //       message: "realse Locked amount successfully",
-        //     };
-        //   }
 
         await userService.updateUserWallet({
             real_amount: realAmount,
@@ -3481,7 +3463,8 @@ console.log("New Locked Amount:", newlocked_amt);
         let orderAdminId = 'TXN_' + new Date().getTime();
         let transactionAdminDatas = {
             order_id: orderAdminId,
-            amount: winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))),
+            // amount: winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))),
+            amount:AdminCommision,
             type: 'CR',
             other_type: 'Commission',
             category: 'Rummy',
@@ -3490,15 +3473,7 @@ console.log("New Locked Amount:", newlocked_amt);
             is_admin: 1,
             transaction_status: 'SUCCESS'
         }
-        console.log("transactionAdminDatas---->", transactionAdminDatas);
         await userService.createTransaction(transactionAdminDatas);
-        // let getAdmin = await adminService.geAdminDetailsById({admin_id: 1});
-        // console.log("commission",AdminCommision)
-        // let adminCom = {
-        //     commission: parseFloat(getAdmin.commission) + parseFloat(adminCommission)
-        // }
-        // console.log("admin-->",adminCom)
-        // await adminService.updateAdminByQuery(adminCom,{admin_id: 1});
         return {
             status: true,
             message: "Winning amount added ",
