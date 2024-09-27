@@ -238,7 +238,7 @@ const getGamesTypeByQuery = (query) => {
    return db.game_type.findAll({ where: query, raw: true });
 }
 const getUserDetails = async (user_id) => {
-   let data = await sequelize.query(`SELECT username ,profile_image ,real_amount , practice_amount,bonus_amount ,coins,win_amount,locked_amount  FROM users JOIN user_wallets ON users.user_id = user_wallets.user_id  where users.user_id = ${user_id}`
+   let data = await sequelize.query(`SELECT username ,profile_image ,real_amount , practice_amount,bonus_amount ,coins,locked_amount ,win_amount  FROM users JOIN user_wallets ON users.user_id = user_wallets.user_id  where users.user_id = ${user_id}`
       , {raw: true, type: sequelize.QueryTypes.SELECT})
    return data;
 }
