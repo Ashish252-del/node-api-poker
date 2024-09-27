@@ -3444,8 +3444,8 @@ console.log("New Locked Amount:", newlocked_amt);
 
         const [affectedRows] = await userService.updateUserWallet({
             real_amount: realAmount,
+            locked_amount: newlocked_amt,
             win_amount: winAmount,
-            locked_amount: newlocked_amt
         }, { user_id: userId });
         
         console.log("Rows affected in user_wallet:", affectedRows);
