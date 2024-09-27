@@ -3465,8 +3465,8 @@ newlocked_amt = parseFloat(newlocked_amt);
         if (affectedRows === 0) {
             throw new Error("No rows were updated in user_wallet.");
         }
-        let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
-        console.log("after update for winning user --->",userWallet);
+        let updateduserWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+        console.log("after update for winning user --->",updateduserWallet);
         let orderId = 'TXN_' + new Date().getTime();
         let transactionDatas = {
             order_id: orderId,
