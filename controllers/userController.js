@@ -3414,7 +3414,7 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 user_id: userId,
                 category: 'Rummy',
                 other_type: 'Bet Amount',
-                amount: realAmount
+                // amount: realAmount
             })
             console.log("transaction if success===0",transaction);
             if (transaction && transaction.amount > 0) {
@@ -3435,9 +3435,9 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 console.log(" parseFloat(transaction.win_amount)-->", parseFloat(transaction.win_amount));
                 console.log("parseFloat(transaction.real_amount)",parseFloat(transaction.real_amount));
                 await userService.updateUserWallet({
-                    bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
-                    win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
-                    real_amount: parseFloat(userWallet.real_amount) + parseFloat(transaction.real_amount),
+                    // bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
+                    // win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
+                    real_amount: parseFloat(userWallet.real_amount) + parseFloat(transaction.amount),
                     locked_amount: newlocked_amt
                 }, {user_id: userId});
             } else {
