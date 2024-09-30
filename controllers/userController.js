@@ -3384,15 +3384,15 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
     try {
         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
         let userId = addWinBalanceRequest.user_id;
-        let realAmount = parseFloat(addWinBalanceRequest.realAmount).toFixed(2);
-        let winAmount = parseFloat(addWinBalanceRequest.winningAmount).toFixed(2);
-        let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision).toFixed(2);
-        let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount).toFixed(2);
+        let realAmount = parseFloat(addWinBalanceRequest.realAmount+"").toFixed(2);
+        let winAmount = parseFloat(addWinBalanceRequest.winningAmount+"").toFixed(2);
+        let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision+"").toFixed(2);
+        let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount+"").toFixed(2);
 
-        realAmount = parseFloat(realAmount);
-winAmount = parseFloat(winAmount);
-AdminCommision = parseFloat(AdminCommision);
-newlocked_amt = parseFloat(newlocked_amt);
+//         realAmount = parseFloat(realAmount);
+// winAmount = parseFloat(winAmount);
+// AdminCommision = parseFloat(AdminCommision);
+// newlocked_amt = parseFloat(newlocked_amt);
 
         console.log("User ID:", userId);
         console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
