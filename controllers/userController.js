@@ -3265,11 +3265,11 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
         }
         console.log("userWallet-->", userWallet);
         // Parse the string values to float
-        let realAmount = parseFloat(userWallet.dataValues.real_amount) || 0;
-        let bonusAmount = parseFloat(userWallet.dataValues.bonus_amount) || 0;
-        let winAmount = parseFloat(userWallet.dataValues.win_amount) || 0;
-        let otpAmount = parseFloat(userWallet.dataValues.otp_amount) || 0;
-        let locked_amt = parseFloat(userWallet.dataValues.locked_amount) || 0;
+        let realAmount = parseFloat(userWallet.real_amount) || 0;
+        let bonusAmount = parseFloat(userWallet.bonus_amount) || 0;
+        let winAmount = parseFloat(userWallet.win_amount) || 0;
+        let otpAmount = parseFloat(userWallet.otp_amount) || 0;
+        let locked_amt = parseFloat(userWallet.locked_amount) || 0;
         let updated_locked_amt = locked_amt + deductBalance;
 // Check the parsed values
         console.log("Parsed values: ", realAmount, bonusAmount, winAmount, otpAmount);
