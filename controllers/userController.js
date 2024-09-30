@@ -3416,6 +3416,7 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 other_type: 'Bet Amount',
                 amount: realAmount
             })
+            console.log("transaction if success===0",transaction);
             if (transaction && transaction.amount > 0) {
                 let transactionDatas = {
                     order_id: 'TXN_' + new Date().getTime(),
@@ -3430,6 +3431,9 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                     bonus_amount: parseFloat(transaction.bonus_amount),
                 }
                 await userService.createTransaction(transactionDatas);
+                console.log("parseFloat(transaction.bonus_amount)-->",parseFloat(transaction.bonus_amount));
+                console.log(" parseFloat(transaction.win_amount)-->", parseFloat(transaction.win_amount));
+                console.log("parseFloat(transaction.real_amount)",parseFloat(transaction.real_amount));
                 await userService.updateUserWallet({
                     bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
                     win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
