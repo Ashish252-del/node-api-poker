@@ -58,19 +58,52 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        is_admin:{
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
+        real_amount:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
+        win_amount:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
+        bonus_amount:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
+        commission:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
+        gst_amount:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
+        discount:{
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0
+        },
         reference:{
             type: DataTypes.STRING,
             allowNull: true,
         },
-        operator_type:{
-            type: DataTypes.STRING,
+        upi_txn_id:{
+            type: DataTypes.TEXT,
             allowNull: true,
         },
-        is_admin: {
-            type: DataTypes.ENUM,
-            allowNull: false,
-            values: ['0','1'],         // 0 = user, 1 = admin
-            defaultValue: '0',
+        cust_ref_no:{
+            type: DataTypes.STRING,
+            allowNull: true,
         },
         createdAt: {
             type: DataTypes.DATE,

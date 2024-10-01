@@ -3380,6 +3380,132 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
         }
     }
 }
+// const addWinningAmountForRummy = async (addWinBalanceRequest) => {
+//     try {
+//         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
+//         let userId = addWinBalanceRequest.user_id;
+//         let realAmount = parseFloat(addWinBalanceRequest.realAmount+"").toFixed(2);
+//         let winAmount = parseFloat(addWinBalanceRequest.winningAmount+"").toFixed(2);
+//         let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision+"").toFixed(2);
+//         let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount+"").toFixed(2);
+
+//         console.log("User ID:", userId);
+//         console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
+//         console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
+//         console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
+//         console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
+        
+
+//         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+//         console.log("before update --->",userWallet);
+       
+//         if (!userWallet) {
+//             throw Error("Wallet does not exist");
+//         }
+
+//         if (parseInt(addWinBalanceRequest.success) == 0) {
+//             console.log("hello from success ==0");
+//             let transaction = await userService.getLastTransactionById({
+//                 user_id: userId,
+//                 category: 'Rummy',
+//                 other_type: 'Bet Amount',
+//                 amount: realAmount
+//             })
+//             console.log("transaction if success===0",transaction);
+//             if (transaction && transaction.amount > 0) {
+//                 let transactionDatas = {
+//                     order_id: 'TXN_' + new Date().getTime(),
+//                     amount: parseFloat(transaction.amount),
+//                     type: 'CR',
+//                     other_type: 'Refunded',
+//                     category: 'Rummy',
+//                     user_id: userId,
+//                     transaction_status: 'SUCCESS',
+//                     real_amount: parseFloat(transaction.real_amount),
+//                     win_amount: parseFloat(transaction.win_amount),
+//                     bonus_amount: parseFloat(transaction.bonus_amount),
+//                 }
+//                 await userService.createTransaction(transactionDatas);
+//                 console.log("parseFloat(transaction.bonus_amount)-->",parseFloat(transaction.bonus_amount));
+//                 console.log(" parseFloat(transaction.win_amount)-->", parseFloat(transaction.win_amount));
+//                 console.log("parseFloat(transaction.real_amount)",parseFloat(transaction.real_amount));
+//                 await userService.updateUserWallet({
+//                     bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
+//                     win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
+//                     real_amount: parseFloat(userWallet.real_amount) + parseFloat(transaction.amount),
+//                     locked_amount: newlocked_amt
+//                 }, {user_id: userId});
+//             } else {
+//                 await userService.updateUserWallet({
+//                     real_amount: realAmount,
+//                     locked_amount: newlocked_amt
+//                 }, {user_id: userId});
+//             }
+//             return {
+//                 status: true,
+//                 message: "remaining amount added ",
+//             }
+
+
+//         }
+
+//         console.log("Updating wallet with values:", {
+//             real_amount: realAmount,
+//             locked_amount: newlocked_amt,
+//             win_amount: winAmount,
+//         });
+//         const [affectedRows] = await userService.updateUserWallet({
+//             real_amount: realAmount,
+//             locked_amount: newlocked_amt,
+//             win_amount: winAmount,
+//         }, { user_id: userId });
+        
+//         console.log("Rows affected in user_wallet:", affectedRows);
+//         if (affectedRows === 0) {
+//             throw new Error("No rows were updated in user_wallet.");
+//         }
+//         let updateduserWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+//         console.log("after update for winning user --->",updateduserWallet);
+//         let orderId = 'TXN_' + new Date().getTime();
+//         let transactionDatas = {
+//             order_id: orderId,
+//             amount: (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))) < 0) ? 0 : (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt)))),
+//             type: 'CR',
+//             other_type: 'Winning',
+//             category: 'Rummy',
+//             user_id: userId,
+//             transaction_status: 'SUCCESS',
+//             commission: AdminCommision,
+//         }
+//         await userService.createTransaction(transactionDatas);
+
+//         let orderAdminId = 'TXN_' + new Date().getTime();
+//         let transactionAdminDatas = {
+//             order_id: orderAdminId,
+//             // amount: winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))),
+//             amount:AdminCommision,
+//             type: 'CR',
+//             other_type: 'Commission',
+//             category: 'Rummy',
+//             user_id: userId,
+//             commission: AdminCommision,
+//             is_admin: 1,
+//             transaction_status: 'SUCCESS'
+//         }
+//         await userService.createTransaction(transactionAdminDatas);
+//         return {
+//             status: true,
+//             message: "Winning amount added ",
+//         }
+//     } catch (error) {
+//         console.log("Error in unlock balance of user ", error);
+//         return {
+//             status: false,
+//             message: error.message
+//         }
+//     }
+// }
+
 const addWinningAmountForRummy = async (addWinBalanceRequest) => {
     try {
         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
@@ -3389,34 +3515,26 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
         let AdminCommision = parseFloat(addWinBalanceRequest.adminCommision+"").toFixed(2);
         let newlocked_amt = parseFloat(addWinBalanceRequest.newLockedAmount+"").toFixed(2);
 
-//         realAmount = parseFloat(realAmount);
-// winAmount = parseFloat(winAmount);
-// AdminCommision = parseFloat(AdminCommision);
-// newlocked_amt = parseFloat(newlocked_amt);
 
         console.log("User ID:", userId);
-        console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
-        console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
-        console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
-        console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
-        
+                console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
+                console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
+                console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
+                console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
+
+
 
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
-        console.log("before update --->",userWallet);
-       
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
-
         if (parseInt(addWinBalanceRequest.success) == 0) {
-            console.log("hello from success ==0");
             let transaction = await userService.getLastTransactionById({
                 user_id: userId,
                 category: 'Rummy',
                 other_type: 'Bet Amount',
-                // amount: realAmount
+                amount: realAmount
             })
-            console.log("transaction if success===0",transaction);
             if (transaction && transaction.amount > 0) {
                 let transactionDatas = {
                     order_id: 'TXN_' + new Date().getTime(),
@@ -3431,13 +3549,10 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                     bonus_amount: parseFloat(transaction.bonus_amount),
                 }
                 await userService.createTransaction(transactionDatas);
-                console.log("parseFloat(transaction.bonus_amount)-->",parseFloat(transaction.bonus_amount));
-                console.log(" parseFloat(transaction.win_amount)-->", parseFloat(transaction.win_amount));
-                console.log("parseFloat(transaction.real_amount)",parseFloat(transaction.real_amount));
                 await userService.updateUserWallet({
-                    // bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
-                    // win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
-                    real_amount: parseFloat(userWallet.real_amount) + parseFloat(transaction.amount),
+                    bonus_amount: parseFloat(userWallet.bonus_amount) + parseFloat(transaction.bonus_amount),
+                    win_amount: parseFloat(userWallet.win_amount) + parseFloat(transaction.win_amount),
+                    real_amount: parseFloat(userWallet.real_amount) + parseFloat(transaction.real_amount),
                     locked_amount: newlocked_amt
                 }, {user_id: userId});
             } else {
@@ -3454,27 +3569,16 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
 
         }
 
-        console.log("Updating wallet with values:", {
+        await userService.updateUserWallet({
             real_amount: realAmount,
-            locked_amount: newlocked_amt,
             win_amount: winAmount,
-        });
-        const [affectedRows] = await userService.updateUserWallet({
-            real_amount: realAmount,
-            locked_amount: newlocked_amt,
-            win_amount: winAmount,
-        }, { user_id: userId });
-        
-        console.log("Rows affected in user_wallet:", affectedRows);
-        if (affectedRows === 0) {
-            throw new Error("No rows were updated in user_wallet.");
-        }
-        let updateduserWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
-        console.log("after update for winning user --->",updateduserWallet);
+            locked_amount: newlocked_amt
+        }, {user_id: userId})
         let orderId = 'TXN_' + new Date().getTime();
         let transactionDatas = {
             order_id: orderId,
-            amount: (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))) < 0) ? 0 : (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt)))),
+            amount: parseFloat(winAmount) - parseFloat(userWallet.win_amount),
+            //amount: (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))) < 0) ? 0 : (winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt)))),
             type: 'CR',
             other_type: 'Winning',
             category: 'Rummy',
@@ -3487,8 +3591,8 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
         let orderAdminId = 'TXN_' + new Date().getTime();
         let transactionAdminDatas = {
             order_id: orderAdminId,
-            // amount: winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))),
-            amount:AdminCommision,
+            amount: parseFloat(winAmount) - parseFloat(userWallet.win_amount),
+            //amount: winAmount - (parseFloat(userWallet.win_amount) + (parseFloat(userWallet.locked_amount - newlocked_amt))),
             type: 'CR',
             other_type: 'Commission',
             category: 'Rummy',

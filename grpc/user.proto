@@ -60,7 +60,7 @@ message details {
   float practice_amount = 4;
   float bonus_amount = 5;
   int32 coins = 6;
-  int32 win_amount = 7;
+  float win_amount = 7;
   bool status = 8;
   string message = 9;
    float otp_amount = 10;
