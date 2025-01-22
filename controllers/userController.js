@@ -1383,18 +1383,18 @@ const lockBalanceOfUser = async (lockBalanceReq) => {
 const deductJoinFees = async (deductBalanceReq) => {
     try {
         let userId = deductBalanceReq.user_id;
-        let amount = parseFloat(deductBalanceReq.lockAmount);
-        let deductBalance = parseFloat(deductBalanceReq.deductBalance);
+        let amount = parseFloat(deductBalanceReq.lockAmount+"");
+        let deductBalance = parseFloat(deductBalanceReq.deductBalance+"");
         let tableId = deductBalanceReq.tableId;
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
         let userWalletAdmin = await userService.getUserWalletDetailsByQuery({user_id: 1});
         if (!userWallet || !userWalletAdmin) {
             throw Error("Wallet does not exist");
         }
-        let balance = parseFloat(userWallet.real_amount) + parseFloat(userWallet.bonus_amount)
-            + parseFloat(userWallet.win_amount);
-        let balanceAdmin = parseFloat(userWalletAdmin.real_amount) + parseFloat(userWalletAdmin.bonus_amount)
-            + parseFloat(userWalletAdmin.win_amount);
+        let balance = parseFloat(userWallet.real_amount+"") + parseFloat(userWallet.bonus_amount+"")
+            + parseFloat(userWallet.win_amount+"");
+        let balanceAdmin = parseFloat(userWalletAdmin.real_amount+"") + parseFloat(userWalletAdmin.bonus_amount+"")
+            + parseFloat(userWalletAdmin.win_amount+"");
         if (deductBalance > balance) {
             throw Error("Locked amount is greater than balance 2");
         }
@@ -1423,12 +1423,12 @@ const deductJoinFees = async (deductBalanceReq) => {
             bonusAmt = userWallet.bonus_amount * getBonus.data / 100
             betAmount = parseFloat("" + deductBalance) - parseFloat("" + bonusAmt);
         }
-        let deductBonusAmount = parseFloat(userWallet.bonus_amount) - parseFloat(bonusAmt);
-        let deductAmount = parseFloat(userWallet.real_amount) - parseFloat(betAmount);
-        let deductWinAmount = parseFloat(userWallet.win_amount);
+        let deductBonusAmount = parseFloat(userWallet.bonus_amount+"") - parseFloat(bonusAmt+"");
+        let deductAmount = parseFloat(userWallet.real_amount+"") - parseFloat(betAmount+"");
+        let deductWinAmount = parseFloat(userWallet.win_amount+"");
         if (deductAmount < 0) {
             deductAmount = deductAmount * -1
-            deductWinAmount = parseFloat(userWallet.win_amount) - parseFloat(deductAmount);
+            deductWinAmount = parseFloat(userWallet.win_amount+"") - parseFloat(deductAmount+"");
             deductAmount = 0;
         }
         if (amount) {
@@ -1461,7 +1461,7 @@ const deductJoinFees = async (deductBalanceReq) => {
             win_amount: deductWinAmount,
         }, {user_wallet_id: userWallet.user_wallet_id});
         await userService.updateUserWallet({
-                real_amount: (parseFloat(userWalletAdmin.real_amount)
+                real_amount: (parseFloat(userWalletAdmin.real_amount+"")
                     + deductBalance)
             },
             {user_wallet_id: userWalletAdmin.user_wallet_id});
@@ -1538,7 +1538,7 @@ const returnDeductedBalance = async (deductBalanceReq) => {
 const updateLockBalanceOfUserForTable = async (lockBalanceReq) => {
     try {
         let userId = lockBalanceReq.user_id;
-        let amount = parseFloat(lockBalanceReq.amount);
+        let amount = parseFloat(lockBalanceReq.amount+"");
         let tableId = lockBalanceReq.tableId;
         let lockedBalanceHistory = await userService.getOneLockedBalanceHistory({
             user_id: userId
@@ -1552,8 +1552,8 @@ const updateLockBalanceOfUserForTable = async (lockBalanceReq) => {
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
-        let lockBalance = parseFloat(userWallet.locked_amount);
-        let lockBalanceForThisTable = parseFloat(lockedBalanceHistory.locked_amount);
+        let lockBalance = parseFloat(userWallet.locked_amount+"");
+        let lockBalanceForThisTable = parseFloat(lockedBalanceHistory.locked_amount+"");
         if (!lockedBalanceHistory.round_count) {
             lockedBalanceHistory.round_count = 0;
         }
@@ -1701,7 +1701,7 @@ const topUpBalanceOfUser = async (topUpBalanceRequest) => {
 const unlockBalanceOfUser = async (unlockBalanceReq) => {
     try {
         let userId = unlockBalanceReq.user_id;
-        let amount = parseFloat(unlockBalanceReq.amount);
+        let amount = parseFloat(unlockBalanceReq.amount+"");
         let tableId = unlockBalanceReq.tableId;
         let gameType = unlockBalanceReq.gameType;
         if (!gameType) {
@@ -1716,21 +1716,21 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
         if (!lockedBalanceHistory) {
             throw new Error("No unsettled locked balance found for this table");
         }
-        let lockedAmount = parseFloat(lockedBalanceHistory.locked_amount);
+        let lockedAmount = parseFloat(lockedBalanceHistory.locked_amount+"");
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
-        let lockBalance = parseFloat(userWallet.locked_amount);
+        let lockBalance = parseFloat(userWallet.locked_amount+"");
         if (lockedAmount > lockBalance) {
             throw Error("Locked amount is greater than balance 3");
         }
         let balance;
         if (gameType.startsWith("PRACTICE")) {
-            balance = parseFloat(userWallet.practice_amount);
+            balance = parseFloat(userWallet.practice_amount+"");
         } else {
-            balance = parseFloat(userWallet.real_amount) + parseFloat(userWallet.bonus_amount)
-                + parseFloat(userWallet.win_amount);
+            balance = parseFloat(userWallet.real_amount+"") + parseFloat(userWallet.bonus_amount+"")
+                + parseFloat(userWallet.win_amount+"");
         }
         let newBalance = balance + amount;
         let newLockBalance = lockBalance - lockedAmount;
@@ -1744,7 +1744,7 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
             opening_balance: balance,
             closing_balance: newBalance,
         }
-        let profitLoss = amount - parseFloat(lockedBalanceHistory.buy_in_amount);
+        let profitLoss = amount - parseFloat(lockedBalanceHistory.buy_in_amount+"");
         console.log("==========profitLoss is ============", profitLoss);
         let is_balance_unlocked = false;
         if (profitLoss > 0 && !gameType.startsWith("PRACTICE")) {
@@ -1797,7 +1797,7 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
           console.log("===== is_balance_unlocked is =========", is_balance_unlocked);
             if (is_balance_unlocked) {
                 await userService.updateUserWallet({
-                        real_amount: (parseFloat(userWallet.real_amount) + parseFloat("" + amount)),
+                        real_amount: (parseFloat(userWallet.real_amount+"") + parseFloat("" + amount)),
                         locked_amount: newLockBalance
                     }
                     , {user_wallet_id: userWallet.user_wallet_id});
@@ -2906,7 +2906,7 @@ const updateLockBalanceOfUserForTableForClub = async (lockBalanceReq) => {
     try {
 
         let userId = lockBalanceReq.user_id;
-        let amount = parseFloat(lockBalanceReq.amount);
+        let amount = parseFloat(lockBalanceReq.amount+"");
         let tableId = lockBalanceReq.tableId;
         let clubId = lockBalanceReq.clubId;
        
@@ -2929,8 +2929,8 @@ const updateLockBalanceOfUserForTableForClub = async (lockBalanceReq) => {
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
-        let lockBalance = parseFloat(userWallet.locked_amount);
-        let lockBalanceForThisTable = parseFloat(lockedBalanceHistory.locked_club_amount);
+        let lockBalance = parseFloat(userWallet.locked_amount+"");
+        let lockBalanceForThisTable = parseFloat(lockedBalanceHistory.locked_club_amount+"");
         if (!lockedBalanceHistory.round_count) {
             lockedBalanceHistory.round_count = 0;
         }
@@ -2943,7 +2943,7 @@ const updateLockBalanceOfUserForTableForClub = async (lockBalanceReq) => {
             },
             {where:{registeration_Id: userWallet.registeration_Id}});
 
-            let winnings=amount-parseFloat(lockedBalanceHistory.buy_in_club_amount);
+            let winnings=amount-parseFloat(lockedBalanceHistory.buy_in_club_amount+"");
         await userService.updateLockedBalanceHistory({
             locked_club_amount: amount,
                 round_count: round_count,
