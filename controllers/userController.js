@@ -1742,6 +1742,7 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
         }
         let newBalance = balance + amount;
         let newLockBalance = lockBalance - lockedAmount;
+        if(newLockBalance <0) newLockBalance =0;
         let transaction = {
             user_id: userId,
             table_id: tableId,
