@@ -1292,8 +1292,16 @@ const lockBalanceOfUser = async (lockBalanceReq) => {
             status: "unsettled"
         });
         console.log(lockedBalanceHistory);
-        if (lockedBalanceHistory) {
-            throw new Error("User already has unsettled locked balance for this table");
+        if (lockedBalanceHistory) { // added condition for avoiding issue of balance lock unlock 
+            await unlockBalanceOfUser(
+                {
+                    user_id:userId,
+                    amount:lockedBalanceHistory.locked_amount,
+                    tableId :tableId,
+                    gameType :gameType,
+               }
+            )
+            //throw new Error("User already has unsettled locked balance for this table");
         }
         // Unlock already locked amount for similar tables which are setteled 
       //  await unlockAlreadylockedbalance(userId, tableId);
