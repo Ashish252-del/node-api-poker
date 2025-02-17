@@ -51,8 +51,8 @@ const OTP = () => {
     for (let i = 0; i < 6; i++) {
         otp += digits[Math.floor(Math.random() * 10)];
     }
-    //return otp;
-    return '123456';
+    return otp;
+    //return '123456';
 }
 
 
@@ -156,29 +156,37 @@ const formatUSDate = (d) => {
     return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear();
 }
 
-const sendSms = (mobile, otp) => {
-    let msg = 'Dear User, use OTP '+otp+' to hop on ride with InTargos, for your business Targos.\n' +
-        'Regards\n' +
-        'Team InTargos\n' +
-        'www.intargos.com';
-    let url = encodeURI(msg);
-    console.log(url);
-    let config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: 'http://sms.itseasy.co.in/httpapi/httpapi?token=0f07d7c4ae0a37b770cd10531116cfd3&sender=AADPLI&number='+mobile+'&route=2&type=1&sms='+url,
-        headers: { }
-    };
+const sendSms = async (mobile, otp) => {
+    try {
+        let msg = `Dear user, Your OTP for login is ${otp}. Do not share with anyone -Finunique Small Pvt. Ltd.`;
 
-    return  axios.request(config)
-        .then((response) => {
-            console.log(JSON.stringify(response.data));
-            return JSON.stringify(response.data);
-        })
-        .catch((error) => {
-            console.log(error);
+        let data = JSON.stringify({
+            "route": "q",
+            "sender_id": process.env.FAST2SMS_SENDER_ID,
+            "message": msg,
+            "language": "english",
+            "numbers": mobile
         });
-}
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://www.fast2sms.com/dev/bulkV2',
+            headers: {
+                'Authorization': process.env.FAST2SMS_API_KEY, // Use API key from .env
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        const response = await axios.request(config);
+        console.log("SMS Response:", response.data);
+        return JSON.stringify(response.data);
+    } catch (error) {
+        console.error("SMS Error:", error.response?.data || error.message);
+        return { success: false, error: error.message };
+    }
+};
 
 const encodeRequest = (payload) => {
     return Buffer.from(JSON.stringify(payload)).toString("base64");

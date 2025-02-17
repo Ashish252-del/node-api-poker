@@ -156,7 +156,7 @@ const userLogin = async (req, res) => {
             return responseHelper.successWithType(res, responseData);
          }
          let otp = OTP();
-         //await sendSms(reqObj.mobile, otp)
+         await sendSms(reqObj.mobile, otp)
          let userD = {
             otp: otp,
             check_resend_otp_count_login: 0
