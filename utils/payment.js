@@ -2,44 +2,57 @@ const confg = require("../config/config.json");
 const axios = require('axios');
 const crypto = require('crypto');
 const authentication = async () => {
-    let config = {
+    var FormData = require('form-data');
+    var data = new FormData();
+    data.append('clientKey', '');
+    data.append('clientSecret', '');
+
+    var config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/authorize',
+        url: 'https://api.worldpayme.com/api/v1.1/generateToken',
         headers: {
-            'X-Client-Id': confg.CASHFREE_PAYOUT_CLIENT_ID,
-            'X-Client-Secret': confg.CASHFREE_PAYOUT_CLIENT_SECRET
-        }
+            ...data.getHeaders()
+        },
+        data : data
     };
 
-    return axios.request(config)
-        .then((response) => {
+    axios(config)
+        .then(function (response) {
             console.log('auth',JSON.stringify(response.data));
             let data = JSON.parse(JSON.stringify(response.data));
             return data.data.token;
         })
-        .catch((error) => {
+        .catch(function (error) {
             console.log(error);
         });
 }
 const verifyToken = async () => {
     let token = await authentication();
     console.log('authToken',token);
-    let config = {
+    var FormData = require('form-data');
+    var data = new FormData();
+    data.append('amount', '');
+    data.append('reference', '');
+    data.append('name', '');
+    data.append('mobile', '');
+    data.append('email', '');
+
+    var config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/verifyToken',
+        url: 'https://api.worldpayme.com/api/v1.1/createUpiIntent',
         headers: {
-            'Authorization' : 'Bearer '+token
-        }
+            'token': token,
+        },
+        data : data
     };
 
-    return axios.request(config)
-        .then((response) => {
-            console.log('verify',JSON.stringify(response.data));
-            return token
+    axios(config)
+        .then(function (response) {
+            console.log(JSON.stringify(response.data));
         })
-        .catch((error) => {
+        .catch(function (error) {
             console.log(error);
         });
 

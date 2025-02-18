@@ -32,7 +32,7 @@ const userSignup = async (req, res) => {
       if (userDataMobile.length) {
          let otp = OTP();
          // let otp = '123456';
-         //await sendSms(mobile1, otp);
+         await sendSms(mobile1, otp);
          let update = await userService.updateUserByQuery({
             otp: otp,
             check_resend_otp_count_register: 0
@@ -65,7 +65,7 @@ const userSignup = async (req, res) => {
          old_value: '',
          new_value: JSON.stringify(reqObj)
       }
-      //await sendSms(mobile1, otp);
+      await sendSms(mobile1, otp);
       let updateLog = await userService.addUserLog(userLog);
 
       let walletData = {
@@ -143,7 +143,7 @@ const userLogin = async (req, res) => {
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_login == 3 && timeDifference > 30) {
             let otp = OTP();
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = 1;
             await userService.updateUserByQuery({
                otp: otp,
@@ -366,7 +366,7 @@ const forgotPassword = async (req, res) => {
       }
       //let otp = '123456';
       let otp = OTP();
-      //await sendSms(reqObj.mobile, otp)
+      await sendSms(reqObj.mobile, otp)
       console.log('otp', otp);
       let resendCount;
       if (userData.check_resend_otp_count == 0) {
@@ -434,7 +434,7 @@ const resendOtp = async (req, res) => {
             responseData.type = type;
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_register == 3 && timeDifference > 30) {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 2);
             let otpCount = 1;
             await userService.updateUserByQuery({
@@ -452,7 +452,7 @@ const resendOtp = async (req, res) => {
                resendCount = 2
             }
          } else {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 3);
             let otpCount = +(userData.check_resend_otp_count_register) + 1;
             await userService.updateUserByQuery({
@@ -490,7 +490,7 @@ const resendOtp = async (req, res) => {
             responseData.type = type;
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_login == 3 && timeDifference > 30) {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 2);
             let otpCount = 1;
             await userService.updateUserByQuery({
@@ -508,7 +508,7 @@ const resendOtp = async (req, res) => {
                resendCount = 2
             }
          } else {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 3);
             let otpCount = +(userData.check_resend_otp_count_login) + 1;
             await userService.updateUserByQuery({
@@ -546,7 +546,7 @@ const resendOtp = async (req, res) => {
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count == 3 && timeDifference1 >= 30) {
 
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = 1;
             await userService.updateUserByQuery({
                otp: otp,
@@ -564,7 +564,7 @@ const resendOtp = async (req, res) => {
             }
          } else {
 
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = +(userData.check_resend_otp_count) + 1;
             await userService.updateUserByQuery({
                otp: otp,
