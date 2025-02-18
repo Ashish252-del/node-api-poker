@@ -34,17 +34,9 @@ app.get('/', async (req, res) => {
    res.send("Hello world!");
 });
 
-app.post('/payment-status', async (req, res) => {
-   let paymentStatus = await userController.updatePaymentStatus(req.body.transactionId,req.body.checksum);
-   console.log(req.body);
-   if(paymentStatus.code=='ERROR'){
-      return res.status(201).send({
-         message: 'Transaction id is required',
-         statusCode: 201,
-         status: false
-      })
-   }
-   res.redirect('/success?transactionid=' + req.body.transactionId + '&status=' + paymentStatus.code);
+app.post('/payment-return-url', async (req, res) => {
+   let paymentStatus = await userController.updatePaymentStatus(req.body);
+   res.redirect('/success?transactionid=' + req.body.reference + '&status=' + req.body.status);
 });
 
 app.post('/callback-url', async (req, res) => {
