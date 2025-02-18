@@ -10,7 +10,8 @@ const {
     bankDetailsVerify,
     getBeneficiaryId,
     signRequest,
-    payIn
+    payIn,
+    payOut
 } = require("../utils/payment");
 const {
     getRandomAlphanumeric
@@ -538,11 +539,11 @@ const addAmount = async (req, res) => {
         }
 
         let reqData = {
-            "email": (userD.email) ? await decryptData(userD.email) : 'dinesh@7unique.in',
-            "name": userD.name,
-            "amount": amount,
-            "mobile": mobile,
-            "reference": transactionId
+            email: (userD.email) ? await decryptData(userD.email) : 'dinesh@7unique.in',
+            name: userD.name,
+            amount: amount,
+            mobile: mobile,
+            reference: transactionId
         };
         console.log(reqData);
         const response = await payIn(reqData);
@@ -906,18 +907,16 @@ const withdrawAmount = async (req, res) => {
     let responseData = {}
     try {
         let userId = req.user.user_id;
+        let address = req.body.address;
+        let account_number = req.body.account_number;
+        let ifsc_code = req.body.ifsc_code;
         let userD = await userService.getUserDetailsById({user_id: userId});
         let userWallet = await userService.getUserWalletDetailsById({user_id: userId});
         if (!userD) {
             responseData.msg = 'user not found';
             return responseHelper.error(res, responseData, 201);
         }
-        let getBankDetails = await userService.getUserBankDetailsById({user_id: userId});
-        if (!getBankDetails) {
-            responseData.msg = 'Bank Details not found.Please add your bank details';
-            return responseHelper.error(res, responseData, 201);
-        }
-        let accountId, redemAmount;
+        let  redemAmount;
         let orderId = 'order_' + new Date().getTime();
         let tdsorderId = 'order_' + new Date().getTime();
         redemAmount = req.body.amount;
@@ -931,23 +930,44 @@ const withdrawAmount = async (req, res) => {
 
         let redemData = {
             user_id: userId,
-            account_id: getBankDetails.user_account_id,
             redeem_amount: redemAmount,
             redemption_status: 'Pending',
-            transaction_id: orderId
+            transaction_id: orderId,
+            account_number: account_number,
+            ifsc_code: ifsc_code,
         }
-        let userLog = {
-            user_id: userId,
-            device_token: userD.device_token,
-            activity_type: 'redeem',
-            old_value: '',
-            new_value: JSON.stringify(redemData)
+        let mobile = await decryptData(userD.mobile);
+        let reqData = {
+            reference: orderId,
+            email: (userD.email) ? await decryptData(userD.email) : 'dinesh@7unique.in',
+            name: userD.name,
+            amount: redemAmount,
+            mobile: mobile,
+            address: address,
+            account_number:account_number,
+            ifsc_code:ifsc_code
+        }
+        let response = await payOut(reqData);
+        if(response.status=='Success'){
+            let dataTransaction = {
+                order_id: orderId,
+                user_id: userId,
+                type: 'DR',
+                other_type: 'Withdraw',
+                amount: redemAmount,
+                transaction_status: 'Pending',
+                reference: 'Withdraw'
+            }
+            await userService.createTransaction(dataTransaction);
+            await userService.redemptionSave(redemData);
+            responseData.msg = 'Your request has been successfully done';
+            return responseHelper.success(res, responseData);
+        }else{
+
         }
 
-        let save = await userService.redemptionSave(redemData);
-        let updateLog = await userService.addUserLog(userLog);
-        responseData.msg = 'Your request has been successfully done';
-        return responseHelper.success(res, responseData);
+
+
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 500);

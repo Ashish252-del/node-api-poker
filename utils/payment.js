@@ -10,11 +10,11 @@ const authentication = async () => {
     var config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: 'https://api.worldpayme.com/api/v1.1/generateToken',
+        url: process.env.WORLDPAYURL+'generateToken',
         headers: {
             ...data.getHeaders()
         },
-        data : data
+        data: data
     };
 
     const response = await axios.request(config);
@@ -41,7 +41,7 @@ const payIn = async (reqData) => {
         let config = {
             method: 'post',
             maxBodyLength: Infinity,
-            url: 'https://api.worldpayme.com/api/v1.1/createUpiIntent',
+            url: process.env.WORLDPAYURL+'createUpiIntent',
             headers: {
                 'Authorization': `Bearer ${token}`
             },
@@ -54,105 +54,43 @@ const payIn = async (reqData) => {
         return response.data; // Return the response data for further use
     } catch (error) {
         console.error("Error in payment request:", error.response?.data || error.message);
-        return {status:400,data:{  message:error.response?.data.message || error.message}};
+        return {status: 400, data: {message: error.response?.data.message || error.message}};
     }
 
 }
-const addBeneficiary = async (data) => {
-    let token  = await verifyToken();
-    console.log('verifyToken',token);
-    let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/addBeneficiary',
-        headers: {
-            'Authorization': 'Bearer '+token,
-            'Content-Type': 'text/plain'
-        },
-        data : data
-    };
+const payOut = async (reqData) => {
+    try {
+        let token = await authentication();
+        console.log(data);
+        //return false;
+        var data = new FormData();
+        data.append('amount', reqData.amount);
+        data.append('reference', reqData.reference);
+        data.append('trans_mode', 'imps');
+        data.append('account', reqData.account_number);
+        data.append('ifsc', reqData.ifsc_code);
+        data.append('name', reqData.name);
+        data.append('email', reqData.email);
+        data.append('mobile', reqData.mobile);
+        data.append('address', reqData.address);
 
-    return axios.request(config)
-        .then((response) => {
-            console.log('add',JSON.stringify(response.data));
-            return JSON.parse(JSON.stringify(response.data));
-        })
-        .catch((error) => {
-            return error
-        });
+        var config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: process.env.WORLDPAYURL+'payoutTransaction',
+            headers: {
+                ...data.getHeaders()
+            },
+            data: data
+        };
 
-}
-
-const getBeneficiaryId = async (bankAccount, ifscCode) => {
-    let token  = await verifyToken();
-    console.log('verifyToken',token);
-    let config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/getBeneId?bankAccount='+bankAccount+'&ifsc='+ifscCode,
-        headers: {
-            'Authorization': 'Bearer '+token,
-            'Content-Type': 'text/plain'
-        }
-    };
-
-    return axios.request(config)
-        .then((response) => {
-            console.log('add',JSON.stringify(response.data));
-            return JSON.parse(JSON.stringify(response.data));
-        })
-        .catch((error) => {
-            return error
-        });
-
-}
-
-const bankDetailsVerify = async (data) => {
-    let token  = await verifyToken();
-    console.log('verifyToken',token);
-    console.log(confg.CASHFREE_PAYOUT_URL+'payout/v1/asyncValidation/bankDetails?name='+data.name+'&phone='+data.phone+'&bankAccount='+data.account_no+'&ifsc='+data.ifsc_code);
-    let config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/asyncValidation/bankDetails?name='+data.name+'&phone='+data.phone+'&bankAccount='+data.account_no+'&ifsc='+data.ifsc_code,
-        headers: {
-            'Authorization': 'Bearer '+token
-        }
-    };
-
-    return axios.request(config)
-        .then((response) => {
-            console.log(JSON.stringify(response.data));
-            return JSON.parse(JSON.stringify(response.data));
-        })
-        .catch((error) => {
-            console.log(error);
-            return error;
-        });
-}
-
-const bankWithdraw = async (data) => {
-    let token  = await verifyToken();
-    console.log(data);
-    //return false;
-    let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/requestTransfer',
-        headers: {
-            'Authorization': 'Bearer '+token
-        },
-        data : JSON.stringify(data)
-    };
-
-    return axios.request(config)
-        .then((response) => {
-            console.log(JSON.stringify(response.data));
-            return JSON.parse(JSON.stringify(response.data));
-        })
-        .catch((error) => {
-            console.log(error);
-        });
+        const response = await axios.request(config);
+        console.log("payOut:", response.data);
+        return response.data; // Return the response data for further use
+    } catch (error) {
+        console.error("Error in payment request:", error.response?.data || error.message);
+        return {status: 400, data: {message: error.response?.data.message || error.message}};
+    }
 
 }
 
@@ -164,7 +102,7 @@ const createOrder = (requestData) => {
             "customer_phone": requestData.mobile
         },
         "order_meta": {
-            "return_url": confg.APPURL+'api/v1/auth/return?order_id={order_id}',
+            "return_url": confg.APPURL + 'api/v1/auth/return?order_id={order_id}',
             "notify_url": "https://webhook.site/0578a7fd-a0c0-4d47-956c-d02a061e36d3"
         },
         "order_id": requestData.order_id,
@@ -175,7 +113,7 @@ const createOrder = (requestData) => {
     let config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: confg.CASHFREE_URL+'/orders',
+        url: confg.CASHFREE_URL + '/orders',
         headers: {
             'Accept': 'application/json',
             'x-api-version': '2022-01-01',
@@ -183,7 +121,7 @@ const createOrder = (requestData) => {
             'x-client-id': confg.CASHFREE_CLIENT_ID,
             'x-client-secret': confg.CASHFREE_CLIENT_SECRET
         },
-        data : data
+        data: data
     };
 
     return axios.request(config)
@@ -201,7 +139,7 @@ const orderDetail = (orderId) => {
     let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: confg.CASHFREE_URL+'/orders/'+orderId+'/payments',
+        url: confg.CASHFREE_URL + '/orders/' + orderId + '/payments',
         headers: {
             'Accept': 'application/json',
             'x-api-version': '2022-01-01',
@@ -222,7 +160,7 @@ const orderDetail = (orderId) => {
 
 }
 
-const verifyPanCard = async(data) => {
+const verifyPanCard = async (data) => {
     let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -231,7 +169,7 @@ const verifyPanCard = async(data) => {
             'x-client-id': 'CF27CA1LS11CEA0J94UQNL1G',
             'x-client-secret': '2bb51ba4ff0e2f85ece487da187ecd6565351fa7'
         },
-        data : data
+        data: data
     };
 
     return axios.request(config)
@@ -245,14 +183,14 @@ const verifyPanCard = async(data) => {
 
 }
 
-const getTransferStatus = async(referId, transferId) => {
-    let token  = await verifyToken();
+const getTransferStatus = async (referId, transferId) => {
+    let token = await verifyToken();
     let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: confg.CASHFREE_PAYOUT_URL+'payout/v1/getTransferStatus?referenceId='+referId+'&transferId='+transferId,
+        url: confg.CASHFREE_PAYOUT_URL + 'payout/v1/getTransferStatus?referenceId=' + referId + '&transferId=' + transferId,
         headers: {
-            'Authorization': 'Bearer '+token
+            'Authorization': 'Bearer ' + token
         }
     };
 
@@ -281,14 +219,11 @@ const signRequest = (payload) => {
 module.exports = {
     createOrder,
     orderDetail,
-    addBeneficiary,
+    payOut,
     payIn,
     authentication,
-    bankWithdraw,
-    bankDetailsVerify,
     verifyPanCard,
     getTransferStatus,
-    getBeneficiaryId,
     encodeRequest,
     signRequest
 }
