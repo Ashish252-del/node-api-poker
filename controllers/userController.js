@@ -9,7 +9,8 @@ const {
     bankWithdraw,
     bankDetailsVerify,
     getBeneficiaryId,
-    signRequest
+    signRequest,
+    payIn
 } = require("../utils/payment");
 const {
     getRandomAlphanumeric
@@ -525,70 +526,30 @@ const addAmount = async (req, res) => {
 
         let mobile = await decryptData(userD.mobile);
         let random = await getRandomAlphanumeric(8);
-        let transactionId = "ADC01-2024-" + random;
-        let currency = "GHS";
-        let country = "GH";
-        let walletD = {
-            order_id: transactionId,
-            user_id: userId,
-            type: 'CR',
-            other_type: 'Deposit',
-            reference: 'Deposit',
-            amount: amount,
-            is_deposit: 1,
-            transaction_status: 'PENDING'
-        }
-        await userService.createTransaction(walletD);
-        const sign = process.env.EZIPAYAPIKEY+amount+mobile+transactionId;
-        let signature = await signRequest(sign)
-        let data = JSON.stringify({
-            "service": "MobileMoney",
-            "serviceType": "Debit",
-            "channel": "momo",
-            "invoiceNo": transactionId,
+        let transactionId = "TXN-" + random;
+        // let currency = "GHS";
+        // let country = "GH";
+        // let walletD = {
+        //     order_id: transactionId,
+        //     user_id: userId,
+        //     type: 'CR',
+        //     other_type: 'Deposit',
+        //     reference: 'Deposit',
+        //     amount: amount,
+        //     is_deposit: 1,
+        //     transaction_status: 'PENDING'
+        // }
+        // await userService.createTransaction(walletD);
+        let data = {
+            "email": "amitg1370@gmail.com",
+            "name": "Amit Garg",
             "amount": amount,
-            "customer": '233554740356',
-            "currency": currency,
-            "country": country,
-            "signature": signature
-        });
+            "mobile": '8802073385',
+            "reference": transactionId
+        };
         console.log(data);
         //return;
-        let config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: process.env.EZIPAYURL+'collect',
-            headers: {
-                'API-KEY': process.env.EZIPAYAPIKEY,
-                'Content-Type': 'application/json'
-            },
-            data : data
-        };
-
-        axios.request(config)
-            .then(async(response) => {
-
-                let returnData = JSON.parse(JSON.stringify(response.data));
-                console.log(returnData.operatorType);
-                let transactions = await userService.getTransactionById({order_id:transactionId})
-                if(transactions){
-                    await userService.updateTransaction({operator_type:returnData.operatorType, transaction_status: returnData.message},{order_id:transactionId})
-                }
-                if(returnData.message=='FAILED'){
-                    responseData.msg = 'Your request has been Failed...';
-                    responseData.data = {}
-                    return responseHelper.success(res, responseData);
-                }else{
-                    responseData.msg = 'Your request has been successfully submitted...Please wait for sometimes for deposit amount';
-                    responseData.data = {}
-                    return responseHelper.success(res, responseData);
-                }
-
-            })
-            .catch((error) => {
-                responseData.msg = error.message;
-                return responseHelper.error(res, responseData, 500);
-            });
+        await payIn(data);
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 201);

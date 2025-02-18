@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const authentication = async () => {
     var FormData = require('form-data');
     var data = new FormData();
-    data.append('clientKey', '');
-    data.append('clientSecret', '');
+    data.append('clientKey', 'isjdnbdhkdnnd');
+    data.append('clientSecret', 'iejdndbhdinbdb');
 
     var config = {
         method: 'post',
@@ -17,44 +17,45 @@ const authentication = async () => {
         data : data
     };
 
-    axios(config)
-        .then(function (response) {
-            console.log('auth',JSON.stringify(response.data));
-            let data = JSON.parse(JSON.stringify(response.data));
-            return data.data.token;
-        })
-        .catch(function (error) {
-            console.log(error);
-        });
+    const response = await axios.request(config);
+    let data1 = JSON.parse(JSON.stringify(response.data));
+    console.log("Auth:", response.data);
+    return data1.data.access_token;
 }
-const verifyToken = async () => {
-    let token = await authentication();
-    console.log('authToken',token);
-    var FormData = require('form-data');
-    var data = new FormData();
-    data.append('amount', '');
-    data.append('reference', '');
-    data.append('name', '');
-    data.append('mobile', '');
-    data.append('email', '');
+const payIn = async (reqData) => {
+    try {
+        let token = await authentication(); // Ensure authentication function works correctly
+        console.log('authToken:', token);
 
-    var config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://api.worldpayme.com/api/v1.1/createUpiIntent',
-        headers: {
-            'token': token,
-        },
-        data : data
-    };
+        if (!token) {
+            throw new Error("Authentication failed. No token received.");
+        }
 
-    axios(config)
-        .then(function (response) {
-            console.log(JSON.stringify(response.data));
-        })
-        .catch(function (error) {
-            console.log(error);
-        });
+        let data = new FormData();
+        data.append('amount', reqData.amount);
+        data.append('reference', reqData.reference);
+        data.append('name', reqData.name);
+        data.append('mobile', reqData.mobile);
+        data.append('email', reqData.email);
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://api.worldpayme.com/api/v1.1/createUpiIntent',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            data: data
+        };
+
+        const response = await axios.request(config);
+        console.log("payIn:", response.data);
+
+        return response.data; // Return the response data for further use
+    } catch (error) {
+        console.error("Error in payment request:", error.response?.data || error.message);
+        throw new Error("Payment request failed");
+    }
 
 }
 const addBeneficiary = async (data) => {
@@ -281,7 +282,7 @@ module.exports = {
     createOrder,
     orderDetail,
     addBeneficiary,
-    verifyToken,
+    payIn,
     authentication,
     bankWithdraw,
     bankDetailsVerify,
