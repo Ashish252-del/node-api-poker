@@ -527,29 +527,35 @@ const addAmount = async (req, res) => {
         let mobile = await decryptData(userD.mobile);
         let random = await getRandomAlphanumeric(8);
         let transactionId = "TXN-" + random;
-        // let currency = "GHS";
-        // let country = "GH";
-        // let walletD = {
-        //     order_id: transactionId,
-        //     user_id: userId,
-        //     type: 'CR',
-        //     other_type: 'Deposit',
-        //     reference: 'Deposit',
-        //     amount: amount,
-        //     is_deposit: 1,
-        //     transaction_status: 'PENDING'
-        // }
-        // await userService.createTransaction(walletD);
         let data = {
-            "email": "amitg1370@gmail.com",
-            "name": "Amit Garg",
+            order_id: transactionId,
+            user_id: userId,
+            type: 'CR',
+            other_type: 'Deposit',
+            amount: amount,
+            transaction_status: 'Pending',
+            reference: 'Deposit'
+        }
+
+        let reqData = {
+            "email": (userD.email) ? await decryptData(userD.email) : 'dinesh@7unique.in',
+            "name": userD.name,
             "amount": amount,
-            "mobile": '8802073385',
+            "mobile": mobile,
             "reference": transactionId
         };
-        console.log(data);
-        //return;
-        await payIn(data);
+        console.log(reqData);
+        const response = await payIn(reqData);
+
+        if (response.status == 'success') {
+            await userService.createTransaction(data);
+            responseData.msg = 'Payment link generated';
+            responseData.data = {link: response.data.payment_link};
+            return responseHelper.success(res, responseData);
+        } else {
+            responseData.msg = response.data.message;
+            return responseHelper.error(res, responseData, 201);
+        }
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 201);

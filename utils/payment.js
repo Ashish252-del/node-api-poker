@@ -54,7 +54,7 @@ const payIn = async (reqData) => {
         return response.data; // Return the response data for further use
     } catch (error) {
         console.error("Error in payment request:", error.response?.data || error.message);
-        throw new Error("Payment request failed");
+        return {status:400,data:{  message:error.response?.data.message || error.message}};
     }
 
 }
