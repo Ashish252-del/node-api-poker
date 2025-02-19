@@ -963,11 +963,9 @@ const withdrawAmount = async (req, res) => {
             responseData.msg = 'Your request has been successfully done';
             return responseHelper.success(res, responseData);
         }else{
-
+            responseData.msg = response.data.message;
+            return responseHelper.error(res, responseData, 201);
         }
-
-
-
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 500);
