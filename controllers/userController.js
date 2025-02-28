@@ -47,8 +47,8 @@ const getProfile = async (req, res) => {
         let bankD = {
             bank_name: (userBank) ? userBank.bank_name : '',
             account_holder_name: (userBank) ? userBank.account_holder_name : '',
-            ifsc_code: (userBank) ? await decryptData(userBank.ifsc_code) : '',
-            account_no: (userBank) ? await decryptData(userBank.account_no) : '',
+            ifsc_code: userBank?.ifsc_code ? await decryptData(userBank.ifsc_code) : "",
+            account_no: userBank?.account_no ? await decryptData(userBank.account_no) : "",
             bank_address: (userBank) ? userBank.bank_address : ''
         }
         let today = new Date().toISOString().split('T')[0];
@@ -58,8 +58,8 @@ const getProfile = async (req, res) => {
         }
         userWallet.dataValues.is_claim = isClaim;
         getUser.profile_image = (getUser.profile_image) ? getUser.profile_image : '';
-        getUser.mobile = await decryptData(getUser.mobile);
-        getUser.email = (getUser.email) ? await decryptData(getUser.email) : '';
+        getUser.mobile = getUser.mobile ? await decryptData(getUser.mobile) : "";
+        getUser.email = getUser.email ? await decryptData(getUser.email) : "";
         getUser.user_wallet = userWallet;
         getUser.pan_number = (userKyc) ? await userKyc.pan_number : '';
         getUser.is_pan_card_verify = (userKyc) ? await userKyc.is_pan_card_verify : '';
