@@ -214,5 +214,5 @@ async function initialize() {
         foreignKey: "user_id"
     })
     // sync all models with database
-     //await sequelize.sync({alter: true});
+    //  await sequelize.sync({alter: true});
 }
