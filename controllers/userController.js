@@ -2410,7 +2410,7 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
 
 
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
-        log("userWallet is --->", userWallet);
+        console.log("userWallet is --->", userWallet);
         let balance = parseFloat(userWallet.real_amount) + (userWallet.bonus_amount)?parseFloat(userWallet.bonus_amount):0
             + (userWallet.win_amount)?parseFloat(userWallet.win_amount):0;
 
