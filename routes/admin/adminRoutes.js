@@ -60,7 +60,7 @@ module.exports = () => {
     routes.get("/dashboard", authenticate ,adminController.dashboard);
     routes.get("/admin-activity-log/:id", authenticate, adminController.adminActivity);
     routes.post("/change-password" ,authenticate,changePassword(),validate201,adminController.changePassword);
-    routes.get("/user-list", authenticate, adminController.userList);
+    routes.get("/user-list",  adminController.userList);
     routes.post("/update-user-profile" ,authenticate,adminController.updateUserProfile);
     routes.get("/active-user-list", authenticate, adminController.activeUserList);
     routes.get("/active-user-list-new", authenticate, adminController.activeUserListNew);

@@ -11,6 +11,7 @@ const {
 
 module.exports = () => {
     routes.post("/login", postLogin(), validate ,authController.userLogin);
+    routes.post("/login/guest",authController.guestLogin);
     routes.post("/register", postSignup(), validate, authController.userSignup);
     routes.post("/verify-otp", forgot(), validate, authController.verifyOtp);
     routes.post("/forgot-password", forgot(), validate, authController.forgotPassword);

@@ -32,7 +32,7 @@ const userSignup = async (req, res) => {
       if (userDataMobile.length) {
          let otp = OTP();
          // let otp = '123456';
-         //await sendSms(mobile1, otp);
+         await sendSms(mobile1, otp);
          let update = await userService.updateUserByQuery({
             otp: otp,
             check_resend_otp_count_register: 0
@@ -65,7 +65,7 @@ const userSignup = async (req, res) => {
          old_value: '',
          new_value: JSON.stringify(reqObj)
       }
-      //await sendSms(mobile1, otp);
+      await sendSms(mobile1, otp);
       let updateLog = await userService.addUserLog(userLog);
 
       let walletData = {
@@ -143,7 +143,7 @@ const userLogin = async (req, res) => {
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_login == 3 && timeDifference > 30) {
             let otp = OTP();
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = 1;
             await userService.updateUserByQuery({
                otp: otp,
@@ -156,7 +156,7 @@ const userLogin = async (req, res) => {
             return responseHelper.successWithType(res, responseData);
          }
          let otp = OTP();
-         //await sendSms(reqObj.mobile, otp)
+         await sendSms(reqObj.mobile, otp)
          let userD = {
             otp: otp,
             check_resend_otp_count_login: 0
@@ -366,7 +366,7 @@ const forgotPassword = async (req, res) => {
       }
       //let otp = '123456';
       let otp = OTP();
-      //await sendSms(reqObj.mobile, otp)
+      await sendSms(reqObj.mobile, otp)
       console.log('otp', otp);
       let resendCount;
       if (userData.check_resend_otp_count == 0) {
@@ -434,7 +434,7 @@ const resendOtp = async (req, res) => {
             responseData.type = type;
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_register == 3 && timeDifference > 30) {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 2);
             let otpCount = 1;
             await userService.updateUserByQuery({
@@ -452,7 +452,7 @@ const resendOtp = async (req, res) => {
                resendCount = 2
             }
          } else {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 3);
             let otpCount = +(userData.check_resend_otp_count_register) + 1;
             await userService.updateUserByQuery({
@@ -490,7 +490,7 @@ const resendOtp = async (req, res) => {
             responseData.type = type;
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count_login == 3 && timeDifference > 30) {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 2);
             let otpCount = 1;
             await userService.updateUserByQuery({
@@ -508,7 +508,7 @@ const resendOtp = async (req, res) => {
                resendCount = 2
             }
          } else {
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             console.log('ff', 3);
             let otpCount = +(userData.check_resend_otp_count_login) + 1;
             await userService.updateUserByQuery({
@@ -546,7 +546,7 @@ const resendOtp = async (req, res) => {
             return responseHelper.errorType(res, responseData, 201);
          } else if (userData.check_resend_otp_count == 3 && timeDifference1 >= 30) {
 
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = 1;
             await userService.updateUserByQuery({
                otp: otp,
@@ -564,7 +564,7 @@ const resendOtp = async (req, res) => {
             }
          } else {
 
-            //await sendSms(reqObj.mobile, otp)
+            await sendSms(reqObj.mobile, otp)
             let otpCount = +(userData.check_resend_otp_count) + 1;
             await userService.updateUserByQuery({
                otp: otp,
@@ -673,7 +673,92 @@ const resetPassword = async (req, res) => {
       return responseHelper.error(res, responseData, 500);
    }
 }
+const guestLogin = async (req, res) => {
+   let reqObj = req.body;
+   let responseData = {};
+   try {
+      //check if user email is present in the database, then reject the signup request
+      let device_token = reqObj.device_id;
+      console.log("device_token is =============>", device_token);
+      if(!device_token) throw new Error ("device_id is required !!")
+      let user = await userService.getUserDetailsByDeviceToken({device_token: device_token});
+      // console.log("user--->",user);
+      if(user){
+         user = user.dataValues;
+      }
+      if(user) {
+         const getUserWallet = await userService.getUserWalletDetailsById({user_id: user.user_id})
+         if (!getUserWallet) {
+            let walletData = {
+               user_id: user.user_id,
+               real_amount: 100000000,
+               locked_amount: 0
+            }
+            let savewalet = await userService.createUserWallet(walletData);
+         }
+      }
+      if(!user) {
+        // let referCode = makeString(4).toUpperCase() + mobile1.substr(mobile1.length - 4)
+         reqObj.username = makeString(5).toUpperCase();
+       //  reqObj.referral_code = referCode;
+         reqObj.device_token = device_token;
+         reqObj.device_type = 'Android';
+         //create a new user in the database
+          user = await userService.createUser(reqObj);
+         let userLog = {
+            user_id: user.user_id,
+            activity_type: 'New Registration',
+            old_value: '',
+            new_value: JSON.stringify(reqObj)
+         }
+         let updateLog = await userService.addUserLog(userLog);
+         let walletData = {
+            user_id: user.user_id,
+            real_amount: 100000000
+         }
+         let savewalet = await userService.createUserWallet(walletData);
+      }
+      let tokenData = {
+         sub: user.user_id,
+         id: user.user_id,
+         device_token: user.device_token
+      };
 
+      let jwtToken = generateUserToken(tokenData);      
+      let query = {
+         user_id: user.user_id
+      }
+      let userD = {
+         last_login: new Date(),
+         token: jwtToken,
+         device_token: device_token,
+         device_type: 'Android',
+      }
+      let updateUser = await userService.updateUserByQuery(userD, query)
+      let device_type = 'Android';
+      let mac_address = reqObj.mac_address;
+      let os_version = reqObj.os_version;
+      let app_version = reqObj.app_version;
+      let loginLogs = {
+         user_id: user.user_id,
+         device_token: device_token,
+         device_type: device_type,
+         mac_address: mac_address,
+         os_version: os_version,
+         app_version: app_version,
+         ip: ''
+      }
+      await userService.createLoginLog(loginLogs);
+      user.token = jwtToken;
+      responseData.msg = 'You are login successfully';
+      responseData.data = user;
+      return responseHelper.success(res, responseData);
+   } catch (error) {
+      console.log("error in gueslogin", error)
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+   }
+}
 module.exports = {
    userSignup,
    userLogin,
@@ -681,5 +766,6 @@ module.exports = {
    resendOtp,
    verifyOtp,
    resetPassword,
-   verifyOtpForForgotPassword
+   verifyOtpForForgotPassword,
+   guestLogin
 };

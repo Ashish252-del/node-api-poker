@@ -281,8 +281,13 @@ const getDocumentsByRawQuery = async (sql) => {
 const getLastTransactionById = (query) => {
    return db.transactions.findOne({where:query, order: [['transaction_id', 'DESC']]});
 }
+const getUserDetailsByDeviceToken = (query) => {
+   console.log("query-->",query);
+   return db.users.findOne({ where: query });
+}
 
 module.exports = {
+   getUserDetailsByDeviceToken,
    createUser,
    getUserDetailsById,
    getUserDetailsByQuery,

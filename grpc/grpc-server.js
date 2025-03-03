@@ -393,13 +393,26 @@ server.addService(rummyProto.GameDataService.service, {
    },
 })
 
+// server.bindAsync(
+//     process.env.GRPC_SERVER_URL,
+//     grpc.ServerCredentials.createInsecure(),
+//     (error, port) => {
+//        console.log("Server running at " + process.env.GRPC_SERVER_URL);
+//        server.start();
+//     }
+// );
+
 server.bindAsync(
-    process.env.GRPC_SERVER_URL,
-    grpc.ServerCredentials.createInsecure(),
-    (error, port) => {
-       console.log("Server running at " + process.env.GRPC_SERVER_URL);
+   process.env.GRPC_SERVER_URL,
+   grpc.ServerCredentials.createInsecure(),
+   (error, port) => {
+       if (error) {
+           console.error("Server binding failed:", error.message);
+           return;
+       }
+       console.log("Server running at", process.env.GRPC_SERVER_URL);
        server.start();
-    }
+   }
 );
 
 module.exports = server;
