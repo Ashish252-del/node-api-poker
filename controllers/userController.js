@@ -3644,7 +3644,7 @@ const addPokerSusPiciousUser = async (request) => {
             if (checkUser.device_token) {
                 let pushData = {
                     title: 'Suspicious User Detected !!',
-                    message: 'user '+user.username+"did "+request.action +"action!!",
+                    message: 'user '+user.username+" did "+request.action +"action!!",
                     device_token: checkUser.device_token
                 };
                try {
