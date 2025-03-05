@@ -1733,11 +1733,13 @@ const getGameFields = async (req, res) => {
                       'field': 'Entry Fee',
                       'field_type': 'Number',
                       'key': 'minimum_buyin'
-                  }, {
-                      'field': 'Ante',
-                      'field_type': 'Number',
-                      'key': 'ante'
-                  }, {
+                  },
+                  //  {
+                  //     'field': 'Ante',
+                  //     'field_type': 'Number',
+                  //     'key': 'ante'
+                  // },
+                   {
                       'field': 'Small Blind',
                       'field_type': 'Number',
                       'key': 'small_blind'
@@ -1745,11 +1747,13 @@ const getGameFields = async (req, res) => {
                       'field': 'Big Blind',
                       'field_type': 'Number',
                       'key': 'big_blind'
-                  }, {
-                      'field': 'Time Interval',
-                      'field_type': 'Number',
-                      'key': 'time_interval'
-                  }, {
+                  },
+                  //  {
+                  //     'field': 'Time Interval',
+                  //     'field_type': 'Number',
+                  //     'key': 'time_interval'
+                  // },
+                   {
                       'field': 'Commission(%)',
                       'field_type': 'Number',
                       'key': 'commission'
@@ -1757,19 +1761,22 @@ const getGameFields = async (req, res) => {
                       'field': 'Commission Cap',
                       'field_type': 'Number',
                       'key': 'commission_cap'
-                  }, {
-                      'field': 'Turn Timmer',
-                      'field_type': 'Number',
-                      'key': 'turn_timmer'
-                  }, {
-                      'field': 'Multi Run',
-                      'field_type': 'Boolean',
-                      'key': 'multi_run'
-                  }, {
-                      'field': 'Game Timmer',
-                      'field_type': 'Number',
-                      'key': 'game_timmer'
-                  },
+                  }, 
+                  // {
+                  //     'field': 'Turn Timmer',
+                  //     'field_type': 'Number',
+                  //     'key': 'turn_timmer'
+                  // },
+                  //  {
+                  //     'field': 'Multi Run',
+                  //     'field_type': 'Boolean',
+                  //     'key': 'multi_run'
+                  // }, 
+                  // {
+                  //     'field': 'Game Timmer',
+                  //     'field_type': 'Number',
+                  //     'key': 'game_timmer'
+                  // },
                   {
                       'field': 'Prize Money',
                       'field_type': 'Number',
@@ -1938,24 +1945,27 @@ const getGameFields = async (req, res) => {
                       'field': 'Commission Cap',
                       'field_type': 'Number',
                       'key': 'commission_cap'
-                  }, {
-                      'field': 'Turn Timmer',
-                      'field_type': 'Number',
-                      'key': 'turn_timmer'
-                  }, {
-                      'field': 'Multi Run',
-                      'field_type': 'Boolean',
-                      'key': 'multi_run'
-                  }, {
-                      'field': 'Game Timmer',
-                      'field_type': 'Number',
-                      'key': 'game_timmer'
-                  },
-                  {
-                      'field': 'Default Stack',
-                      'field_type': 'Number',
-                      'key': 'default_stack'
-                  }
+                   },
+                  // {
+                  //     'field': 'Turn Timmer',
+                  //     'field_type': 'Number',
+                  //     'key': 'turn_timmer'
+                  // },
+                  //  {
+                  //     'field': 'Multi Run',
+                  //     'field_type': 'Boolean',
+                  //     'key': 'multi_run'
+                  // }, 
+                  // {
+                  //     'field': 'Game Timmer',
+                  //     'field_type': 'Number',
+                  //     'key': 'game_timmer'
+                  // },
+                  // {
+                  //     'field': 'Default Stack',
+                  //     'field_type': 'Number',
+                  //     'key': 'default_stack'
+                  // }
               ];
           }
 

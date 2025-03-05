@@ -46,11 +46,11 @@ function model(sequelize) {
        allowNull: true,
        values: ["settled", "unsettled"],
      },
-     is_balance_unlocked: {
-       type: DataTypes.BOOLEAN,
-       allowNull: false,
-       defaultValue: false,
-     },
+     is_buyIn_unlocked: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
      game_id: {
        type: DataTypes.INTEGER,
        allowNull: true,

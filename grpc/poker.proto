@@ -98,6 +98,13 @@ message PokerResultRequest {
   repeated HandHistory handHistories = 6;
 }
 
+message SusPiciousActionRequest {
+  int64 userId = 1;
+  int64 tableId = 2;
+  int64 gameId = 3;
+  string action = 4;
+}
+
 message HandHistory{
   string bettingRound = 1;
   repeated UserBetRecord userBetRecords = 2;
@@ -233,6 +240,7 @@ service TableDataService {
   rpc GetOrCreateTableForJoinViewer(JoinTableDataRequest) returns (JoinTableDataResponse);
 
   rpc savePokerResultForClub(PokerResultRequest) returns (JoinTableDataResponse);
+  rpc saveSuspiciousAction(SusPiciousActionRequest) returns (GenericResponse);
 }
 
 service TableClubRoomDataService{

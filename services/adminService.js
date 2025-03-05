@@ -5,6 +5,9 @@ const {query} = require("express");
 const geAdminDetailsById = (query) => {
     return db.admins.findOne({where: query, raw: true});
 }
+const getAllAdmins = (query) => {
+    return db.admins.findAll({where: query, raw: true});
+}
 
 const getAdminUserActivityLogs = (query) => {
     return db.admin_activity_logs.findAll({where: query});
@@ -795,5 +798,6 @@ module.exports = {
     getAllTournamentList,
     updateTournamentById,
     getLudoGameHistory,
-    getPoolGameHistory
+    getPoolGameHistory,
+    getAllAdmins
 }

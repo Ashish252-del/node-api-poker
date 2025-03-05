@@ -286,6 +286,11 @@ const getUserDetailsByDeviceToken = (query) => {
    return db.users.findOne({ where: query });
 }
 
+const createPokerSuspiciousUser = (userObj, transaction) => {
+   return db.pockerSuspiciousActions.create(userObj, { transaction });
+};
+
+
 module.exports = {
    getUserDetailsByDeviceToken,
    createUser,
@@ -357,5 +362,6 @@ module.exports = {
    getTransactionById,
    getOneLockedBalanceHistoryByOrder,
    getDocumentsByRawQuery,
-   getLastTransactionById
+   getLastTransactionById,
+   createPokerSuspiciousUser
 };

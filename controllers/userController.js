@@ -1305,7 +1305,7 @@ const lockBalanceOfUser = async (lockBalanceReq) => {
             status: "unsettled",
             round_count: 0,
             game_id: pokerTable.game_id,
-            is_balance_unlocked: false
+            is_buyIn_unlocked: false
         }
         await userService.createLockedBalanceHistory(lockedBalanceHistory);
         await userService.createTransaction(transaction);
@@ -1337,7 +1337,7 @@ const deductJoinFees = async (deductBalanceReq) => {
         let balanceAdmin = parseFloat(userWalletAdmin.real_amount+"") + parseFloat(userWalletAdmin.bonus_amount+"")
             + parseFloat(userWalletAdmin.win_amount+"");
         if (deductBalance > balance) {
-            throw Error("Locked amount is greater than balance 2");
+            throw Error("Locked amount is greater than balance ",deductBalance);
         }
         let transaction = {
             user_id: userId,
@@ -1392,7 +1392,7 @@ const deductJoinFees = async (deductBalanceReq) => {
                 status: "unsettled",
                 round_count: 0,
                 game_id: pokerTable.game_id,
-                is_balance_unlocked: false
+                is_buyIn_unlocked: true
             }
             await userService.createLockedBalanceHistory(lockedBalanceHistory);
         }
@@ -1727,16 +1727,17 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
             //         , {user_wallet_id: userWallet.user_wallet_id});
             // } 
             // adding condition to unlock amount of previous games which are already locked 
-            if(!(await islockAlreadylockedbalanceExist(userId, tableId))) {
-                console.log("=======inside islockAlreadylockedbalanceExist =========");
-                if(profitLoss<=0)  is_balance_unlocked = true;
-            }
-         else if((await CanunlockAlreadylockedbalance(userId,tableId,amount))) {
-            console.log("=======inside CanunlockAlreadylockedbalance =========");
-            await unlockAlreadylockedbalance(userId, tableId);
-            is_balance_unlocked = true;
-          }
-          console.log("===== is_balance_unlocked is =========", is_balance_unlocked);
+            // if(!(await islockAlreadylockedbalanceExist(userId, tableId))) {
+            //     console.log("=======inside islockAlreadylockedbalanceExist =========");
+            //     if(profitLoss<=0)  is_balance_unlocked = true;
+            // }
+        //  else if((await CanunlockAlreadylockedbalance(userId,tableId,amount))) {
+        //     console.log("=======inside CanunlockAlreadylockedbalance =========");
+        //     await unlockAlreadylockedbalance(userId, tableId);
+        //     is_balance_unlocked = true;
+        //   }
+        is_balance_unlocked = true;
+         // console.log("===== is_balance_unlocked is =========", is_balance_unlocked);
             if (is_balance_unlocked) {
                 await userService.updateUserWallet({
                         real_amount: (parseFloat(userWallet.real_amount+"") + parseFloat("" + amount)),
@@ -1747,10 +1748,10 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
         }
         // commented because 
         if ( gameType.startsWith("PRACTICE")) is_balance_unlocked = true; // marking unloacked only if player looses
-     let resp =   await userService.updateLockedBalanceHistory({
+        let resp =   await userService.updateLockedBalanceHistory({
                 status: "settled",
                 locked_amount: amount,
-                is_balance_unlocked: is_balance_unlocked
+                is_buyIn_unlocked: is_balance_unlocked
             } // added locked_amount: amount by my own
             , {locked_balance_history_id: lockedBalanceHistory.locked_balance_history_id});
 console.log("resp of setteld balance is =======================", resp);
@@ -1836,7 +1837,7 @@ const addPrizeMoney = async (addPrizeMoneyReq) => {
                 , {user_wallet_id: userWallet.user_wallet_id});
             await userService.createTransaction(transaction);
         }
-        await userService.updateLockedBalanceHistory({status: "settled", is_balance_unlocked: true}
+        await userService.updateLockedBalanceHistory({status: "settled", is_buyIn_unlocked: true}
             , {locked_balance_history_id: lockedBalanceHistory.locked_balance_history_id});
         return {
             status: true,
@@ -2389,24 +2390,24 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
             throw new Error("Table not found");
         }
         let gameModalData = await pokerService.getGameModalDataByQuery({game_id: pokerTable.game_id});
-        let locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-            where: {user_id: userId, table_id: tableId, status: "settled", is_balance_unlocked: false},
-            order: [["updatedAt", "DESC"]],
-            limit: 1,
-            raw: true
-        });
+        // let locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
+        //     where: {user_id: userId, table_id: tableId, status: "settled", is_balance_unlocked: false},
+        //     order: [["updatedAt", "DESC"]],
+        //     limit: 1,
+        //     raw: true
+        // });
 
-        if (!locked_balance_history) {
-            locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-                where: {user_id: userId, game_id: pokerTable.game_id, status: "settled", is_balance_unlocked: false},
-                order: [["updatedAt", "DESC"]],
-                limit: 1,
-                raw: true
-            });
-        }
+        // if (!locked_balance_history) {
+        //     locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
+        //         where: {user_id: userId, game_id: pokerTable.game_id, status: "settled", is_balance_unlocked: false},
+        //         order: [["updatedAt", "DESC"]],
+        //         limit: 1,
+        //         raw: true
+        //     });
+        // }
         let roomAttributes = gameModalData.game_json_data;
         let roomAttributesObj = JSON.parse(roomAttributes);
-        console.log("locked_balance_history is --->", locked_balance_history);
+       // console.log("locked_balance_history is --->", locked_balance_history);
 
 
         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
@@ -2418,7 +2419,7 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
         let balance = realAmount + bonusAmount + winAmount;
 
             console.log("userWallet is --->", userWallet, balance);
-        if (!locked_balance_history) {
+       // if (!locked_balance_history) {
 
             data["minimum_buyin"] = parseInt(roomAttributesObj.minimum_buyin);
             data["maximum_buyin"] = parseInt(roomAttributesObj.maximum_buyin);
@@ -2426,29 +2427,29 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
             data["tableId"] = tableId;
             data["user_balance"] = balance;
             return data;
-        }
-        // Assuming dbDate is the timestamp retrieved from your database
-        const dbDate = new Date(locked_balance_history.updatedAt + "");
-        const currentDate = new Date();
-// Calculate the difference in milliseconds
-        const diffInMs = currentDate - dbDate;
-// Calculate the difference in hours
-        const diffInHours = diffInMs / (1000 * 60 * 60);
-        if (diffInHours > roomAttributes.game_timmer || parseInt(roomAttributesObj.minimum_buyin) > locked_balance_history.locked_amount) { // initially it was locked_balance_history.buy_in_amount >= there 
-            data["minimum_buyin"] = parseInt(roomAttributesObj.minimum_buyin);
-            data["maximum_buyin"] = parseInt(roomAttributesObj.maximum_buyin);
-            data["message"] = "Success"
-            data["tableId"] = tableId;
-            data["user_balance"] = balance;
-            return data;
-        }
+      //  }
+//         // Assuming dbDate is the timestamp retrieved from your database
+//         const dbDate = new Date(locked_balance_history.updatedAt + "");
+//         const currentDate = new Date();
+// // Calculate the difference in milliseconds
+//         const diffInMs = currentDate - dbDate;
+// // Calculate the difference in hours
+//         const diffInHours = diffInMs / (1000 * 60 * 60);
+//         if (diffInHours > roomAttributes.game_timmer || parseInt(roomAttributesObj.minimum_buyin) > locked_balance_history.locked_amount) { // initially it was locked_balance_history.buy_in_amount >= there 
+//             data["minimum_buyin"] = parseInt(roomAttributesObj.minimum_buyin);
+//             data["maximum_buyin"] = parseInt(roomAttributesObj.maximum_buyin);
+//             data["message"] = "Success"
+//             data["tableId"] = tableId;
+//             data["user_balance"] = balance;
+//             return data;
+//         }
 
-        data["minimum_buyin"] = parseInt(locked_balance_history.locked_amount);
-        data["maximum_buyin"] = Math.max(parseInt(locked_balance_history.locked_amount), parseInt(roomAttributesObj.maximum_buyin))
-        data["message"] = "Success"
-        data["tableId"] = tableId;
-        data["user_balance"] = balance;
-        return data;
+//         data["minimum_buyin"] = parseInt(locked_balance_history.locked_amount);
+//         data["maximum_buyin"] = Math.max(parseInt(locked_balance_history.locked_amount), parseInt(roomAttributesObj.maximum_buyin))
+//         data["message"] = "Success"
+//         data["tableId"] = tableId;
+//         data["user_balance"] = balance;
+//         return data;
     } catch (error) {
         console.error("error in getMinMaxBuyInForTable", error);
         let data = {};
@@ -2463,7 +2464,7 @@ const islockAlreadylockedbalanceExist = async (userId, tableId) => {
     //     game_table_id: tableId
     // });
     let locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-        where: {user_id: userId, table_id: tableId, status: "settled", is_balance_unlocked: false},
+        where: {user_id: userId, table_id: tableId, status: "settled", is_buyIn_unlocked: false},
         order: [["updatedAt", "ASC"]],
         limit: 1,
         raw: true
@@ -2477,7 +2478,7 @@ const CanunlockAlreadylockedbalance = async (userId, tableId, amount) => {
     //     game_table_id: tableId
     // });
     let locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-        where: {user_id: userId, table_id: tableId, status: "settled", is_balance_unlocked: false},
+        where: {user_id: userId, table_id: tableId, status: "settled", is_buyIn_unlocked: false},
         order: [["updatedAt", "ASC"]],
         limit: 1,
         raw: true
@@ -2496,7 +2497,7 @@ const unlockAlreadylockedbalance = async (userId, tableId) => {
             user_id: userId,
             // game_id: pokerTable.game_id,
             table_id: tableId,
-            is_balance_unlocked: false,
+            is_buyIn_unlocked: false,
             status: "settled"
         })
         balanceHistories.forEach(async (history) => {
@@ -2529,7 +2530,7 @@ const unlockAlreadylockedbalance = async (userId, tableId) => {
                 {user_wallet_id: userWallet.user_wallet_id}
             );
             await userService.updateLockedBalanceHistory(
-                {is_balance_unlocked: true},
+                {is_buyIn_unlocked: true},
                 {locked_balance_history_id: history.locked_balance_history_id}
             );
         });
@@ -2545,7 +2546,7 @@ const unlockAlreadylockedbalanceForClub = async (userId, tableId, clubId) => {
     let balanceHistories = await userService.getLockedBalanceHistory({
         user_id: userId,
         game_id: pokerTable.game_id,
-        is_balance_unlocked: false,
+        is_buyIn_unlocked: false,
         status: "settled",
         club_id: clubId
     })
@@ -2576,7 +2577,7 @@ const unlockAlreadylockedbalanceForClub = async (userId, tableId, clubId) => {
         }, {where:{registeration_Id: clubChips.registeration_Id}});
 
         await userService.updateLockedBalanceHistory(
-            {is_balance_unlocked: true},
+            {is_buyIn_unlocked: true},
             {locked_balance_history_id: history.locked_balance_history_id}
         );
     });
@@ -2645,7 +2646,7 @@ const lockBalanceOfUserForClub = async (lockBalanceReq) => {
             status: "unsettled",
             round_count: 0,
             game_id: pokerTable.game_id,
-            is_balance_unlocked: false,
+            is_buyIn_unlocked: false,
             club_id: clubId
         }
         await userService.createLockedBalanceHistory(lockedBalanceHistory);
@@ -2744,7 +2745,7 @@ const deductJoinFeesForClub = async (deductBalanceReq) => {
                 status: "unsettled",
                 round_count: 0,
                 game_id: pokerTable.game_id,
-                is_balance_unlocked: false,
+                is_buyIn_unlocked: false,
                 club_id: clubId
             }
             await userService.createLockedBalanceHistory(lockedBalanceHistory);
@@ -2792,7 +2793,7 @@ const getMinMaxBuyInForTableForClub = async (userMinMaxBuyInReq) => {
         }
         let gameModalData = await pokerService.getGameModalDataByQuery({game_id: pokerTable.game_id});
         let locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-            where: {user_id: userId, table_id: tableId, status: "settled", is_balance_unlocked: false},
+            where: {user_id: userId, table_id: tableId, status: "settled", is_buyIn_unlocked: false},
             order: [["updatedAt", "DESC"]],
             limit: 1,
             raw: true
@@ -2800,7 +2801,7 @@ const getMinMaxBuyInForTableForClub = async (userMinMaxBuyInReq) => {
         let clubChips = await clubService.getJoinClubByClubId({where: {user_id: userId, clubId: clubId}, raw: true});
         if (!locked_balance_history) {
             locked_balance_history = await userService.getOneLockedBalanceHistoryByOrder({
-                where: {user_id: userId, game_id: pokerTable.game_id, status: "settled", is_balance_unlocked: false},
+                where: {user_id: userId, game_id: pokerTable.game_id, status: "settled", is_buyIn_unlocked: false},
                 order: [["updatedAt", "DESC"]],
                 limit: 1,
                 raw: true
@@ -2978,7 +2979,7 @@ const unlockBalanceOfUserForClub = async (unlockBalanceReq) => {
         await userService.updateLockedBalanceHistory({
                 status: "settled",
                 locked_club_amount: amount,
-                is_balance_unlocked: is_balance_unlocked
+                is_buyIn_unlocked: is_balance_unlocked
             } // added locked_amount: amount by my own
             , {locked_balance_history_id: lockedBalanceHistory.locked_balance_history_id});
             console.log(`Updated locked balance history for history_id ${lockedBalanceHistory.locked_balance_history_id}`);
@@ -3165,7 +3166,7 @@ const addPrizeMoneyForClub = async (addPrizeMoneyReq) => {
                 }
                 , {where:{registeration_Id: userWallet.registeration_Id}});
         }
-        await userService.updateLockedBalanceHistory({status: "settled", is_balance_unlocked: true}
+        await userService.updateLockedBalanceHistory({status: "settled", is_buyIn_unlocked: true}
             , {locked_balance_history_id: lockedBalanceHistory.locked_balance_history_id});
         return {
             status: true,
@@ -3608,6 +3609,51 @@ const get_all_avatars = async (req, res) => {
 //       }
 //   }
 
+
+const addPokerSusPiciousUser = async (request) => {
+    const transaction = await sequelize.transaction(); // Start transaction
+    try {
+        let user = await userService.getUserDetailsById({user_id:request.userId});
+        let details = await userService.createPokerSuspiciousUser(
+            {
+                userId: request.userId,
+                tableId: request.tableId,
+                gameId: request.gameId,
+                action: request.action,
+            },
+            { transaction } // Pass transaction object
+        );
+
+        let admins = await adminService.getAllAdmins({admin_status:'1'});
+        for (let i = 0; i < admins.length; i++) {
+            let userID = admins[i].user_id;
+  
+            // let checkUser = await user.findOne({ where: {id:userIDS } });
+            let checkUser=await adminService.getUserDetailsById({user_id:userID})
+  
+            if (!checkUser) {
+               continue;
+            }
+  
+          
+            if (checkUser.device_token) {
+                let pushData = {
+                    title: 'Suspicious User Detected !!',
+                    message: 'user '+user.username+"did "+request.action +"action!!",
+                    device_token: checkUser.device_token
+                };
+                let result = await sendPushNotification(pushData);
+            }
+        }
+        await transaction.commit(); // Commit transaction if successful
+    return { status: true , message: "Suspicious user added successfully" };
+    } catch (error) {
+        await transaction.rollback(); // Rollback transaction in case of an error
+        return { status: false, message: error.message }; // Return error for debugging
+    }
+};
+
+
 module.exports = {
     sendOtp,
     verifyOtp,
@@ -3663,5 +3709,6 @@ module.exports = {
     addWinningAmountForRummy,
     userBonusPercentage,
     get_all_avatars,
+    addPokerSusPiciousUser
     // savePoolGameHistory
 }

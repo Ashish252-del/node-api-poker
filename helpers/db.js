@@ -105,6 +105,7 @@ async function initialize() {
    db.pool_notifications = require('../models/notificationModel')(sequelize, DataTypes);
    db.pool_block_user = require('../models/blockUser')(sequelize, DataTypes);
    db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
+   db.pockerSuspiciousActions = require('../models/pokerSuspiciousActions')(sequelize, DataTypes);
     // --<
     db.buy_in_records = require('../models/buyInRequest')(sequelize, DataTypes)
     db.user_log.belongsTo(db.users, {
