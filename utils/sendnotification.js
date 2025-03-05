@@ -40,7 +40,7 @@ const sendPushNotification = async (message) => {
       return response;
     } catch (error) {
       console.error('Error sending message:', error);
-      throw error;
+      //throw error;
     }
   };
   
