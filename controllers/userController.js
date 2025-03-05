@@ -3647,8 +3647,12 @@ const addPokerSusPiciousUser = async (request) => {
                     message: 'user '+user.username+"did "+request.action +"action!!",
                     device_token: checkUser.device_token
                 };
-                let result = await sendPushNotification(pushData);
+               try {
+                let result = await sendPushNotification(pushData); } 
+                catch (error) {
+                   console.log("error in push notification",error);
             }
+        }
         }
         await transaction.commit(); // Commit transaction if successful
     return { status: true , message: "Suspicious user added successfully" };
