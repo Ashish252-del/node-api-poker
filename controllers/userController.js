@@ -3,6 +3,8 @@ const userService = require("../services/userService");
 const clubService = require("../services/clubService");
 const adminService = require("../services/adminService");
 const pokerService = require('../services/pokerService');
+const {sendPushNotification} = require('../utils/sendnotification')
+
 const {comparePassword, encryptPassword, encryptData, decryptData, makeString, OTP} = require("../utils");
 const {
     addBeneficiary,
@@ -3614,6 +3616,7 @@ const addPokerSusPiciousUser = async (request) => {
     const transaction = await sequelize.transaction(); // Start transaction
     try {
         let user = await userService.getUserDetailsById({user_id:request.userId});
+        console.log("user-->",user);
         let details = await userService.createPokerSuspiciousUser(
             {
                 userId: request.userId,
@@ -3621,10 +3624,12 @@ const addPokerSusPiciousUser = async (request) => {
                 gameId: request.gameId,
                 action: request.action,
             },
-            { transaction } // Pass transaction object
+             transaction  // Pass transaction object
         );
 
         let admins = await adminService.getAllAdmins({admin_status:'1'});
+        console.log("user-->",admins);
+
         for (let i = 0; i < admins.length; i++) {
             let userID = admins[i].user_id;
   
