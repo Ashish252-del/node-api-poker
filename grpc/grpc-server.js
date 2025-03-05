@@ -25,7 +25,8 @@ const {
    addPrizeMoneyForClub,
    deductJoinFeesForRummy,
    addWinningAmountForRummy,
-   userBonusPercentage
+   addPokerSusPiciousUser,
+
 } = require("../controllers/userController");
 const {
    getPokerTableRoomData,
@@ -299,6 +300,11 @@ server.addService(pokerProto.TableDataService.service, {
    savePokerResultForClub: async (call, callback) => {
       console.log(call.request)
       let res = await savePokerResultForClub(call.request);
+      callback(null, res);
+   },
+   saveSuspiciousAction: async (call, callback) => {
+      console.log(call.request)
+      let res = await addPokerSusPiciousUser(call.request);
       callback(null, res);
    },
 });
