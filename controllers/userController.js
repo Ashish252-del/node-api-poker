@@ -3648,6 +3648,7 @@ const addPokerSusPiciousUser = async (request) => {
         await transaction.commit(); // Commit transaction if successful
     return { status: true , message: "Suspicious user added successfully" };
     } catch (error) {
+        console.error("Error in addPokerSusPiciousUser", error);
         await transaction.rollback(); // Rollback transaction in case of an error
         return { status: false, message: error.message }; // Return error for debugging
     }
