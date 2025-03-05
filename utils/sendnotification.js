@@ -17,25 +17,17 @@ const sendPushNotification = async (message) => {
     }
   
     const payload = {
-      token: firebaseToken, // Set token field correctly
-      notification: {
-        title: message.title,
-        body: String(message.message),
-      },
-      android: {
-        priority: 'high',
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-          },
-        },
-      },
+        token: firebaseToken,
+        notification: {
+            title: message.title,
+            body: message.message,
+
+        }
     };
+
   
     try {
-      const response = await firebase.messaging().send(payload);
+      const response = firebase.messaging().send( payload);
       console.log('Successfully sent message:', response);
       return response;
     } catch (error) {
