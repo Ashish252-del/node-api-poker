@@ -3616,7 +3616,7 @@ const addPokerSusPiciousUser = async (request) => {
     const transaction = await sequelize.transaction(); // Start transaction
     try {
         let user = await userService.getUserDetailsById({user_id:request.userId});
-        console.log("user-->",user);
+      //  console.log("user-->",user);
         let details = await userService.createPokerSuspiciousUser(
             {
                 userId: request.userId,
@@ -3628,7 +3628,7 @@ const addPokerSusPiciousUser = async (request) => {
         );
 
         let admins = await adminService.getAllAdmins({admin_status:'1'});
-        console.log("user-->",admins);
+       // console.log("user-->",admins);
 
         for (let i = 0; i < admins.length; i++) {
             let userID = admins[i].user_id;
