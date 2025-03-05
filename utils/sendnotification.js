@@ -27,7 +27,7 @@ const sendPushNotification = async (message) => {
 
   
     try {
-      const response = firebase.messaging().send( payload);
+      const response = await firebase.messaging().send( payload);
       console.log('Successfully sent message:', response);
       return response;
     } catch (error) {
