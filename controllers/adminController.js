@@ -962,7 +962,7 @@ const getGameTables = async (req, res) => {
 const getUserGames = async (req, res) => {
   let responseData = {};
   try {
-      let user_id =req.user.user_id;
+      const user_id =req.query.user_id;
 
     let query = `SELECT DISTINCT table_id FROM locked_balance_histories WHERE user_id = :user_id`;
     const tableIds = await sequelize.query(query, {
