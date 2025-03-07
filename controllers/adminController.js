@@ -959,6 +959,61 @@ const getGameTables = async (req, res) => {
   }
 };
 
+const getUserGames = async (req, res) => {
+  let responseData = {};
+  try {
+      let user_id =req.user.user_id;
+
+    let query = `SELECT DISTINCT table_id FROM locked_balance_histories WHERE user_id = :user_id`;
+    const tableIds = await sequelize.query(query, {
+      replacements: { user_id },
+      type: sequelize.QueryTypes.SELECT,
+  });
+  const tableIdList = tableIds.map(item => item.table_id);
+  console.log("tableIdList---->", tableIdList);
+
+      if (tableIdList.length === 0) {
+        responseData.msg="No games found for this user";
+        return responseHelper.error(res, responseData,404);
+      }
+
+      // Step 2: Fetch game IDs using table IDs
+      let query2 = `SELECT  game_id FROM game_tables WHERE game_table_id IN (:tableIds)`;
+      const gameIds = await sequelize.query(query2, {
+          replacements: { tableIds: tableIdList },
+          type: sequelize.QueryTypes.SELECT,
+      });
+      
+      const gameIdList = gameIds.map(entry => entry.game_id);
+      console.log("gameIdList---->", gameIdList);
+
+      if (gameIdList.length === 0) {
+          // throw new Error("No games found for this user");
+          responseData.msg="No games found for this user";
+          return responseHelper.error(res, responseData,404);
+          
+      }
+      let query3 = `SELECT * FROM games WHERE game_id IN (:gameIds)`;
+      // Step 3: Fetch game details from Game table using game IDs
+      const games = await sequelize.query(query3, {
+        replacements: { gameIds: gameIdList },
+        type: sequelize.QueryTypes.SELECT,
+    });
+    
+    // console.log("games---->", games);
+
+      responseData.msg = "User game list";
+      responseData.data = games;
+
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      console.log("Error in getUserGames:", error);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+
+
 const gameDetail = async (req, res) => {
   let responseData = {};
   try {
@@ -4862,6 +4917,7 @@ module.exports = {
   createGame,
   gameList,
   getGameTables,
+  getUserGames,
   gameDetail,
   updateGame,
   userKycDetail,

@@ -125,6 +125,7 @@ module.exports = () => {
     routes.post("/update-game", authenticate, postGame(), validate201 ,adminController.updateGame);
     routes.post("/change-game-status", authenticate,adminController.changeGameStatus);
     routes.get("/game-tables",authenticate,adminController.getGameTables)
+    routes.get("/get-user-game",authenticate,adminController.getUserGames)
 
     routes.post("/add-price-structure", authenticate, adminController.addPriceStructure);
     routes.get("/price-structure-list", authenticate, adminController.priceStructureList);
