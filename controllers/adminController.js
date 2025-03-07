@@ -863,11 +863,16 @@ const createGame = async (req, res) => {
 const gameList = async (req, res) => {
   let responseData = {};
   try {
-    console.log("abhay");
     let getData;
+    let game_category_id=req.query.game_category;
     if(req.query.is_tournament){
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
-  }else{
+  }
+  else if(game_category_id=='2'){
+    getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, game_category_id:game_category_id,is_tournament:'0'});
+
+  }
+  else{
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
   }
     if (!getData) {
@@ -924,6 +929,33 @@ const gameList = async (req, res) => {
   } catch (error) {
     responseData.msg = error.message;
     return responseHelper.error(res, responseData, 500);
+  }
+};
+const getGameTables = async (req, res) => {
+  let responseData = {};
+  try {
+      const game_id = req.query.game_id;
+
+      if (!game_id) {
+          responseData.msg = "Game ID is required";
+          return responseHelper.error(res, responseData, 400);
+      }
+
+      // Fetch tables related to the given game_id
+      let tables = await adminService.getFilterTableData({ game_id:game_id },1);
+
+      if (!tables || tables.length === 0) {
+          responseData.msg = "No tables found for this Game ID";
+          return responseHelper.error(res, responseData, 404);
+      }
+
+      responseData.msg = "Tables fetched successfully";
+      responseData.data = tables;
+
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
   }
 };
 
@@ -4020,6 +4052,7 @@ const getTotalTable = async (req, res) => {
   //try {
 
   let gameType = req.query.game_type;
+  let gameId=req.query.game_id
   let date = new Date().toISOString().split('T')[0]
   let query;
   let data;
@@ -4828,6 +4861,7 @@ module.exports = {
   userDetail,
   createGame,
   gameList,
+  getGameTables,
   gameDetail,
   updateGame,
   userKycDetail,

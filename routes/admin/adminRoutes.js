@@ -124,6 +124,7 @@ module.exports = () => {
     routes.get("/game-detail/:id", authenticate, adminController.gameDetail);
     routes.post("/update-game", authenticate, postGame(), validate201 ,adminController.updateGame);
     routes.post("/change-game-status", authenticate,adminController.changeGameStatus);
+    routes.get("/game-tables",authenticate,adminController.getGameTables)
 
     routes.post("/add-price-structure", authenticate, adminController.addPriceStructure);
     routes.get("/price-structure-list", authenticate, adminController.priceStructureList);
