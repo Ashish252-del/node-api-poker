@@ -26,7 +26,7 @@ const {
    deductJoinFeesForRummy,
    addWinningAmountForRummy,
    addPokerSusPiciousUser,
-
+   userBonusPercentage
 } = require("../controllers/userController");
 const {
    getPokerTableRoomData,
