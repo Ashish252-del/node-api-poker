@@ -863,11 +863,16 @@ const createGame = async (req, res) => {
 const gameList = async (req, res) => {
   let responseData = {};
   try {
-    console.log("abhay");
     let getData;
+    let game_category_id=req.query.game_category;
     if(req.query.is_tournament){
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
-  }else{
+  }
+  else if(game_category_id=='2'){
+    getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, game_category_id:game_category_id,is_tournament:'0'});
+
+  }
+  else{
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
   }
     if (!getData) {
@@ -926,6 +931,88 @@ const gameList = async (req, res) => {
     return responseHelper.error(res, responseData, 500);
   }
 };
+const getGameTables = async (req, res) => {
+  let responseData = {};
+  try {
+      const game_id = req.query.game_id;
+
+      if (!game_id) {
+          responseData.msg = "Game ID is required";
+          return responseHelper.error(res, responseData, 400);
+      }
+
+      // Fetch tables related to the given game_id
+      let tables = await adminService.getFilterTableData({ game_id:game_id },1);
+
+      if (!tables || tables.length === 0) {
+          responseData.msg = "No tables found for this Game ID";
+          return responseHelper.error(res, responseData, 404);
+      }
+
+      responseData.msg = "Tables fetched successfully";
+      responseData.data = tables;
+
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+
+const getUserGames = async (req, res) => {
+  let responseData = {};
+  try {
+      const user_id =req.query.user_id;
+
+    let query = `SELECT DISTINCT table_id FROM locked_balance_histories WHERE user_id = :user_id`;
+    const tableIds = await sequelize.query(query, {
+      replacements: { user_id },
+      type: sequelize.QueryTypes.SELECT,
+  });
+  const tableIdList = tableIds.map(item => item.table_id);
+  console.log("tableIdList---->", tableIdList);
+
+      if (tableIdList.length === 0) {
+        responseData.msg="No games found for this user";
+        return responseHelper.error(res, responseData,404);
+      }
+
+      // Step 2: Fetch game IDs using table IDs
+      let query2 = `SELECT  game_id FROM game_tables WHERE game_table_id IN (:tableIds)`;
+      const gameIds = await sequelize.query(query2, {
+          replacements: { tableIds: tableIdList },
+          type: sequelize.QueryTypes.SELECT,
+      });
+      
+      const gameIdList = gameIds.map(entry => entry.game_id);
+      console.log("gameIdList---->", gameIdList);
+
+      if (gameIdList.length === 0) {
+          // throw new Error("No games found for this user");
+          responseData.msg="No games found for this user";
+          return responseHelper.error(res, responseData,404);
+          
+      }
+      let query3 = `SELECT * FROM games WHERE game_id IN (:gameIds)`;
+      // Step 3: Fetch game details from Game table using game IDs
+      const games = await sequelize.query(query3, {
+        replacements: { gameIds: gameIdList },
+        type: sequelize.QueryTypes.SELECT,
+    });
+    
+    // console.log("games---->", games);
+
+      responseData.msg = "User game list";
+      responseData.data = games;
+
+      return responseHelper.success(res, responseData);
+  } catch (error) {
+      console.log("Error in getUserGames:", error);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
+  }
+};
+
 
 const gameDetail = async (req, res) => {
   let responseData = {};
@@ -3722,17 +3809,119 @@ const getWinningAmount = async (req, res) => {
       return responseHelper.error(res, responseData, 500);
   }
 };
+// const getGameWiseUsers = async (req, res) => {
+//   let responseData = {};
+//   try {
+//       console.log('Function getGameWiseUsers called');
+//       const {game_type, page, search_key, from_date, end_date} = req.query;
+      
+//       const {limit, offset} = getPagination(page);
+//       let query = '1=1'; // Start with a base query
+      
+//       if (game_type) {
+//           query += ` AND game_histories.game_category='${game_type}'`;
+//           console.log('Game Type Filter Applied');
+//       }
+      
+//       if (from_date && end_date) {
+//           let fromDate = moment(from_date).format('YYYY-MM-DD');
+//           let endDate = moment(end_date).format('YYYY-MM-DD');
+//           console.log('Date Filter Applied:', { fromDate, endDate });
+//           query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+//       }
+      
+//       if (search_key) {
+//           console.log('Search Key Filter Applied:', search_key);
+//           query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%')`;
+//       }
+      
+//       query += ` GROUP BY game_histories.user_id ORDER BY game_histories.createdAt DESC`;
+      
+//       // Fetch data
+//       let response = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query} LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+//       // console.log("response-->",response);
+
+      
+//       let responseTotalCount = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query}`, {type: sequelize.QueryTypes.SELECT});
+      
+      
+//       let totalCount = responseTotalCount.length;
+      
+//       if (response.length === 0) {
+//           responseData.msg = 'Data not found';
+//           return responseHelper.error(res, responseData, 201);
+//       }
+      
+//       var now = new Date().getTime();
+//       let time = Math.floor(now / 1000);
+      
+//       response = await Promise.all(response.map(async (element) => {
+          
+//           let userD = await adminService.getUserDetailsById({ user_id: element.user_id });
+//           let getUserBlock = await adminService.getUserStatus({ user_id: element.user_id, game_id: game_type });
+          
+//           let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
+
+//           let getDepositAmt = await adminService.getDeposit({ user_id: element.user_id });
+          
+//           let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
+//           let depositAmt = (getDepositAmt && getDepositAmt[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
+//           let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+          
+//           element.full_name = (userD) ? userD.full_name : '';
+//           element.display_name = (userD) ? userD.display_name : '';
+//           element.username = (userD) ? userD.username : '';
+//           element.email = (userD) ? userD.email : '';
+//           element.mobile = (userD && userD.mobile) ? await decryptData(userD.mobile) : '';
+//           element.is_email_verified = (userD) ? userD.is_email_verified : '';
+//           element.is_mobile_verified = (userD) ? userD.is_mobile_verified : '';
+//           element.is_kyc_done = (userD) ? userD.is_kyc_done : '';
+//           element.gender = (userD) ? userD.gender : '';
+//           element.dob = (userD) ? userD.dob : '';
+//           element.profile_image = (userD) ? userD.profile_image : '';
+//           element.device_type = (userD) ? userD.device_type : '';
+//           element.device_token = (userD) ? userD.device_token : '';
+//           element.referral_code = (userD) ? userD.referral_code : '';
+//           element.friend_refer_code = (userD) ? userD.friend_refer_code : '';
+//           element.last_login = (userD) ? userD.last_login : '';
+//           element.commission = (userD) ? userD.commission : '';
+//           element.ip = (userD) ? userD.ip : '';
+//           element.user_status = (userD) ? userD.user_status : '';
+//           element.user_level = 10;
+//           element.withdraw_amount = withdrawAmt;
+//           element.deposit_amount = depositAmt;
+//           element.is_block = isBlock;
+//           element.createdAt = userD.createdAt;
+//           element.updatedAt = userD.updatedAt;
+          
+//           return element;
+//       }));
+      
+//       return res.status(200).send({
+//           message: 'User List',
+//           statusCode: 200,
+//           status: true,
+//           count: totalCount,
+//           data: response
+//       });
+      
+//   } catch (error) {
+//       console.error('Error Occurred:', error.message);
+//       responseData.msg = error.message;
+//       return responseHelper.error(res, responseData, 500);
+//   }
+// }
 const getGameWiseUsers = async (req, res) => {
   let responseData = {};
   try {
       console.log('Function getGameWiseUsers called');
-      const {game_type, page, search_key, from_date, end_date} = req.query;
+      const { game_type, page, search_key, from_date, end_date } = req.query;
       
-      const {limit, offset} = getPagination(page);
+      const { limit, offset } = getPagination(page);
       let query = '1=1'; // Start with a base query
       
       if (game_type) {
-          query += ` AND game_histories.game_category='${game_type}'`;
+          query += ` AND game_histories.game_category = '${game_type}'`;
           console.log('Game Type Filter Applied');
       }
       
@@ -3745,71 +3934,84 @@ const getGameWiseUsers = async (req, res) => {
       
       if (search_key) {
           console.log('Search Key Filter Applied:', search_key);
-          query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%')`;
+          query += ` AND (users.username LIKE '%${search_key}%' OR 
+                          users.referral_code LIKE '%${search_key}%' OR 
+                          users.full_name LIKE '%${search_key}%')`;
       }
       
-      query += ` GROUP BY game_histories.user_id ORDER BY game_histories.createdAt DESC`;
+      query += ` GROUP BY game_histories.user_id ORDER BY MAX(game_histories.createdAt) DESC`;
       
-      // Fetch data
-      let response = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query} LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
-      // console.log("response-->",response);
+      // ✅ Using SELECT with Aggregate Functions to avoid ONLY_FULL_GROUP_BY issues
+      let response = await sequelize.query(
+        `SELECT 
+            game_histories.user_id,
+            MAX(game_histories.game_history_id) AS game_history_id,
+            MAX(game_histories.createdAt) AS createdAt 
+        FROM game_histories 
+        JOIN users ON game_histories.user_id = users.user_id 
+        WHERE ${query} 
+        LIMIT ${offset}, ${limit}`, 
+        { type: sequelize.QueryTypes.SELECT }
+      );
 
-      
-      let responseTotalCount = await sequelize.query(`SELECT game_histories.* FROM game_histories JOIN users ON game_histories.user_id = users.user_id WHERE ${query}`, {type: sequelize.QueryTypes.SELECT});
-      
-      
-      let totalCount = responseTotalCount.length;
-      
+      let responseTotalCount = await sequelize.query(
+        `SELECT COUNT(DISTINCT game_histories.user_id) AS totalCount 
+         FROM game_histories 
+         JOIN users ON game_histories.user_id = users.user_id 
+         WHERE ${query}`,
+        { type: sequelize.QueryTypes.SELECT }
+      );
+
+      let totalCount = responseTotalCount[0]?.totalCount || 0;
+
       if (response.length === 0) {
           responseData.msg = 'Data not found';
           return responseHelper.error(res, responseData, 201);
       }
       
-      var now = new Date().getTime();
-      let time = Math.floor(now / 1000);
+      let time = Math.floor(Date.now() / 1000);
       
       response = await Promise.all(response.map(async (element) => {
-          
           let userD = await adminService.getUserDetailsById({ user_id: element.user_id });
           let getUserBlock = await adminService.getUserStatus({ user_id: element.user_id, game_id: game_type });
-          
-          let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
 
+          let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
           let getDepositAmt = await adminService.getDeposit({ user_id: element.user_id });
-          
-          let withdrawAmt = (getWithDrawAmt && getWithDrawAmt[0].redeem_amount != null) ? getWithDrawAmt[0].redeem_amount : 0;
-          let depositAmt = (getDepositAmt && getDepositAmt[0].redeem_amount != null) ? getDepositAmt[0].amount : 0;
+
+          let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
+          let depositAmt = getDepositAmt?.[0]?.amount ?? 0;
           let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
           
-          element.full_name = (userD) ? userD.full_name : '';
-          element.display_name = (userD) ? userD.display_name : '';
-          element.username = (userD) ? userD.username : '';
-          element.email = (userD) ? userD.email : '';
-          element.mobile = (userD) ? await decryptData(userD.mobile) : '';
-          element.is_email_verified = (userD) ? userD.is_email_verified : '';
-          element.is_mobile_verified = (userD) ? userD.is_mobile_verified : '';
-          element.is_kyc_done = (userD) ? userD.is_kyc_done : '';
-          element.gender = (userD) ? userD.gender : '';
-          element.dob = (userD) ? userD.dob : '';
-          element.profile_image = (userD) ? userD.profile_image : '';
-          element.device_type = (userD) ? userD.device_type : '';
-          element.device_token = (userD) ? userD.device_token : '';
-          element.referral_code = (userD) ? userD.referral_code : '';
-          element.friend_refer_code = (userD) ? userD.friend_refer_code : '';
-          element.last_login = (userD) ? userD.last_login : '';
-          element.commission = (userD) ? userD.commission : '';
-          element.ip = (userD) ? userD.ip : '';
-          element.user_status = (userD) ? userD.user_status : '';
-          element.user_level = 10;
-          element.withdraw_amount = withdrawAmt;
-          element.deposit_amount = depositAmt;
-          element.is_block = isBlock;
-          element.createdAt = userD.createdAt;
-          element.updatedAt = userD.updatedAt;
-          
-          return element;
+          return {
+              ...element,
+              full_name: userD?.full_name || '',
+              display_name: userD?.display_name || '',
+              username: userD?.username || '',
+              email: userD?.email || '',
+              mobile: userD?.mobile ? await decryptData(userD.mobile) : '',
+              is_email_verified: userD?.is_email_verified || '',
+              is_mobile_verified: userD?.is_mobile_verified || '',
+              is_kyc_done: userD?.is_kyc_done || '',
+              gender: userD?.gender || '',
+              dob: userD?.dob || '',
+              profile_image: userD?.profile_image || '',
+              device_type: userD?.device_type || '',
+              device_token: userD?.device_token || '',
+              referral_code: userD?.referral_code || '',
+              friend_refer_code: userD?.friend_refer_code || '',
+              last_login: userD?.last_login || '',
+              commission: userD?.commission || '',
+              ip: userD?.ip || '',
+              user_status: userD?.user_status || '',
+              user_level: 10,
+              withdraw_amount: withdrawAmt,
+              deposit_amount: depositAmt,
+              is_block: isBlock,
+              createdAt: userD?.createdAt,
+              updatedAt: userD?.updatedAt
+          };
       }));
-      
+
       return res.status(200).send({
           message: 'User List',
           statusCode: 200,
@@ -3817,13 +4019,14 @@ const getGameWiseUsers = async (req, res) => {
           count: totalCount,
           data: response
       });
-      
+
   } catch (error) {
       console.error('Error Occurred:', error.message);
       responseData.msg = error.message;
       return responseHelper.error(res, responseData, 500);
   }
-}
+};
+
 
 
 const getGameHistory = async (req, res) => {
@@ -4020,6 +4223,7 @@ const getTotalTable = async (req, res) => {
   //try {
 
   let gameType = req.query.game_type;
+  let gameId=req.query.game_id
   let date = new Date().toISOString().split('T')[0]
   let query;
   let data;
@@ -4828,6 +5032,8 @@ module.exports = {
   userDetail,
   createGame,
   gameList,
+  getGameTables,
+  getUserGames,
   gameDetail,
   updateGame,
   userKycDetail,

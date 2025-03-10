@@ -1814,6 +1814,7 @@ const getHandHistoryByTableId = async (req, res) => {
     }
  }
 
+
  const getClubGameResultByTableId = async (req, res) => {
     let responseData = {};
     try {
