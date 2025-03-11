@@ -283,7 +283,7 @@ const getLastTransactionById = (query) => {
 }
 const getUserDetailsByDeviceToken = (query) => {
    console.log("query-->",query);
-   return db.users.findOne({ where: query });
+   return db.users.findOne({ where: query, raw: true });
 }
 
 const createPokerSuspiciousUser = (userObj, transaction) => {

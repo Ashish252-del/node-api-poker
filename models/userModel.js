@@ -91,6 +91,10 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        device_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         number_of_win_games: {
             type: DataTypes.INTEGER,
             allowNull: true,

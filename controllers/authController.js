@@ -678,16 +678,26 @@ const guestLogin = async (req, res) => {
    let responseData = {};
    try {
       //check if user email is present in the database, then reject the signup request
-      let device_token = reqObj.device_id;
+      let device_token = reqObj.device_token;
+      let device_id = reqObj.device_id;
       console.log("device_token is =============>", device_token);
-      if(!device_token) throw new Error ("device_id is required !!")
-      let user = await userService.getUserDetailsByDeviceToken({device_token: device_token});
+      if(!device_id) throw new Error ("device_id is required !!")
+      let user = await userService.getUserDetailsByDeviceToken({device_id: device_id});
       // console.log("user--->",user);
-      if(user){
-         user = user.dataValues;
-      }
+      // if(user){
+      //    user = user.dataValues;
+      // }
       if(user) {
          const getUserWallet = await userService.getUserWalletDetailsById({user_id: user.user_id})
+         if(user.device_token != device_token){ 
+            let query = {
+               user_id: user.user_id
+            }
+            let userD = {
+               device_token: device_token,
+            }
+            let updateUser = await userService.updateUserByQuery(userD, query)
+         }
          if (!getUserWallet) {
             let walletData = {
                user_id: user.user_id,
@@ -701,6 +711,7 @@ const guestLogin = async (req, res) => {
         // let referCode = makeString(4).toUpperCase() + mobile1.substr(mobile1.length - 4)
          reqObj.username = makeString(5).toUpperCase();
        //  reqObj.referral_code = referCode;
+         reqObj.device_id = device_id;
          reqObj.device_token = device_token;
          reqObj.device_type = 'Android';
          //create a new user in the database
