@@ -3662,9 +3662,26 @@ const addPokerSusPiciousUser = async (request) => {
         return { status: false, message: error.message }; // Return error for debugging
     }
 };
+const getBanner = async (req, res) => {
+    let responseData = {}
+    try {
+        let getBanners = await userService.getBanner({status: '1'});
+        if (getBanners.length == 0) {
+            responseData.msg = 'Banner not Found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        responseData.msg = 'Banner list';
+        responseData.data = getBanners;
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
 
 
 module.exports = {
+    getBanner,
     sendOtp,
     verifyOtp,
     getProfile,

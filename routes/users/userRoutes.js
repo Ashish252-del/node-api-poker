@@ -49,7 +49,7 @@ module.exports = () => {
     routes.get("/avatar/all",authenticate,userController.get_all_avatars)
     
     // routes.post("/save-pool-game-history",authenticate,userController.savePoolGameHistory)
-
+    routes.get("/get-banner", authenticate, userController.getBanner);
     routes.get("/logout" ,authenticate,userController.logout);
     return routes;
 };
