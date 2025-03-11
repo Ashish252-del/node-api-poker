@@ -289,9 +289,13 @@ const getUserDetailsByDeviceToken = (query) => {
 const createPokerSuspiciousUser = (userObj, transaction) => {
    return db.pockerSuspiciousActions.create(userObj, { transaction });
 };
+const getBanner = (query) => {
+   return db.banners.findAll({where:query});
+}
 
 
 module.exports = {
+   getBanner,
    getUserDetailsByDeviceToken,
    createUser,
    getUserDetailsById,
