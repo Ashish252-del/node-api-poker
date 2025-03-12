@@ -636,10 +636,14 @@ const getLudoGameHistory=()=>{
 const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
 }
+const getAllpockerSuspiciousActions=(query)=>{
+    return db.pockerSuspiciousActions.findAll({where:query})
+}
 
 
 
 module.exports = {
+    getAllpockerSuspiciousActions,
     createPriceStructure,
     getPriceStructureByQuery,
     getAllPriceStructureList,
