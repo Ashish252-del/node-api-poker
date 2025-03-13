@@ -28,6 +28,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const axios = require('axios');
 const {getRedisClient} = require("../helpers/redis");
+const { QueryTypes } = require("sequelize");
 
 const getProfile = async (req, res) => {
     let responseData = {};
