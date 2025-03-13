@@ -5015,6 +5015,26 @@ const gameWiseUserStatus = async (req, res) => {
   }
 }
 
+const getAllpockerSuspiciousActions = async (req, res) => {
+  let responseData = {};
+  try {
+    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({}); // ✅ Added `await`
+
+    if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { // ✅ Ensure it's checking data properly
+      responseData.msg = "There are no suspicious actions found";
+      return responseHelper.success(res, responseData);
+    }
+
+    responseData.msg = "All data fetched successfully";
+    responseData.data = allSuspiciousActionsData;
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message || "Something went wrong";
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
+
 
 
 
@@ -5147,6 +5167,7 @@ module.exports = {
   bonusUpdate,
   getLudoUsers,
   // getPoolUsers
-  gameWiseUserStatus
+  gameWiseUserStatus,
+  getAllpockerSuspiciousActions,
 
 }
