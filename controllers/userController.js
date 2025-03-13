@@ -3626,7 +3626,7 @@ const addPokerSusPiciousUser = async (request) => {
             },
              transaction  // Pass transaction object
         );
-
+        
         let admins = await adminService.getAllAdmins({admin_status:'1'});
        // console.log("user-->",admins);
 
@@ -3639,7 +3639,7 @@ const addPokerSusPiciousUser = async (request) => {
             if (!checkUser) {
                continue;
             }
-  
+            if(!(await(getRole(userID))>0)){ continue;}
           
             if (checkUser.device_token) {
                 let pushData = {
@@ -3662,6 +3662,48 @@ const addPokerSusPiciousUser = async (request) => {
         return { status: false, message: error.message }; // Return error for debugging
     }
 };
+
+const getRole = async (userId)=> {
+    let userData_admin = await adminService.geAdminDetailsById({ user_id: userId });
+    const allRolesQuery = `
+    SELECT role_id, roles, role_status 
+    FROM roles
+    WHERE role_status = '1'
+  `;
+    const allRoles = await sequelize.query(allRolesQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    let adminRoles = [];
+
+    if (userData_admin) {
+      const user_id = userData_admin.admin_id;
+      // Step 2: Fetch roles associated with the admin
+      const adminRolesQuery = `
+        SELECT roles.role_id
+        FROM admins
+        INNER JOIN user_roles ON user_roles.userId = admins.admin_id
+        INNER JOIN roles ON roles.role_id = user_roles.roleId
+        WHERE admins.admin_id = :user_id
+      `;
+
+      adminRoles = await sequelize.query(adminRolesQuery, {
+        replacements: { user_id },
+        type: QueryTypes.SELECT,
+      });
+      console.log("adminRoles-->", adminRoles);
+    }
+
+    // Step 3: Set isActive flag for each role
+    const rolesWithIsActive = allRoles.map((role) => ({
+      ...role,
+      isActive: adminRoles.some(
+        (adminRole) => adminRole.role_id === role.role_id
+      ),
+    }));
+return rolesWithIsActive.filter((role) =>  role.isActive).length;
+}
+
 const getBanner = async (req, res) => {
     let responseData = {}
     try {
