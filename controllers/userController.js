@@ -3664,6 +3664,7 @@ const addPokerSusPiciousUser = async (request) => {
 };
 
 const getRole = async (userId)=> {
+   try {
     let userData_admin = await adminService.geAdminDetailsById({ user_id: userId });
     const allRolesQuery = `
     SELECT role_id, roles, role_status 
@@ -3702,6 +3703,10 @@ const getRole = async (userId)=> {
       ),
     }));
 return rolesWithIsActive.filter((role) =>  role.isActive).length;
+   } catch (error) {
+    console.log("error in getRole", error);
+    return 0;
+   }
 }
 
 const getBanner = async (req, res) => {
