@@ -1,4 +1,5 @@
 const db = require("../helpers/db");
+const { sequelize } = require("../models");
 const {Op, Sequelize} = require("sequelize");
 const {query} = require("express");
 //User Related Query
@@ -637,8 +638,8 @@ const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
 }
 const getAllpockerSuspiciousActions=(query)=>{ 
-    return   Sequelize.query(`SELECT username ,id ,gameId , tableId,action ,createdAt,updatedAt   FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId  order by id desc`
-          , {raw: true, type: Sequelize.QueryTypes.SELECT})
+    return   sequelize.query(`SELECT username ,id ,gameId , tableId,action ,createdAt,updatedAt   FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId  order by id desc`
+          , {raw: true, type: sequelize.QueryTypes.SELECT})
 }
 
 
