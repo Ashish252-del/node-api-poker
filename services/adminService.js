@@ -636,8 +636,9 @@ const getLudoGameHistory=()=>{
 const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
 }
-const getAllpockerSuspiciousActions=(query)=>{
-    return db.pockerSuspiciousActions.findAll({where:query})
+const getAllpockerSuspiciousActions=(query)=>{ 
+    return   Sequelize.query(`SELECT username ,id ,gameId , tableId,action ,createdAt,updatedAt   FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId  order by id desc`
+          , {raw: true, type: Sequelize.QueryTypes.SELECT})
 }
 
 
