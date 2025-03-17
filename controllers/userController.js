@@ -3649,6 +3649,8 @@ const addPokerSusPiciousUser = async (request) => {
                     device_token: checkUser.device_token
                 };
                try {
+                console.log("pushData-->",pushData, "userData-->",checkUser);
+                
                 let result = await sendPushNotification(pushData); } 
                 catch (error) {
                    console.log("error in push notification",error);
