@@ -2441,14 +2441,14 @@ const saveCommisionRecords = async (request) => {
 
 
 
-      let data = {
-         game_table_id: request.tableId,
-         commision_amount: handCommission? parseFloat(handCommission):0,
-         commisioned_player: commisionedPlayerId,
-      };
+      // let data = {
+      //    game_table_id: request.tableId,
+      //    commision_amount: handCommission? parseFloat(handCommission):0,
+      //    commisioned_player: commisionedPlayerId,
+      // };
 
       // Save to database
-      await pokerService.saveTableCommission(data);
+      // await pokerService.saveTableCommission(data);
 
       // Extract winAmount for the commissioned player
       let winAmount = commisionedPlayerData[firstPlayerKey]?.winAmount || 0;

@@ -115,6 +115,11 @@ function model(sequelize) {
             allowNull: false,
             defaultValue: DataTypes.NOW
         },
+        is_admin_detail:{
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        }
     };
 
     return sequelize.define('transactions', attributes, { timestamps: true });

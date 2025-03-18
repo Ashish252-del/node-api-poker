@@ -5021,7 +5021,7 @@ const gameWiseUserStatus = async (req, res) => {
 const getAllpockerSuspiciousActions = async (req, res) => {
   let responseData = {};
   try {
-    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({}); // ✅ Added `await`
+    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
 
     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { // ✅ Ensure it's checking data properly
       responseData.msg = "There are no suspicious actions found";
