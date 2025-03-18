@@ -11,11 +11,12 @@ function model(sequelize) {
         },
         gameId: {
             type: DataTypes.INTEGER,
-            primaryKey: true,
         },
         tableId: {
             type: DataTypes.INTEGER,
-            primaryKey: true,
+        },
+        roundId: {
+            type: DataTypes.INTEGER,
         },
         userId: {
             type: DataTypes.INTEGER,
