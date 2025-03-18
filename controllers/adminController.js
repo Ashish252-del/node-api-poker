@@ -5021,24 +5021,58 @@ const gameWiseUserStatus = async (req, res) => {
   }
 }
 
-const getAllpockerSuspiciousActions = async (req, res) => {
+// const getAllpockerSuspiciousActions = async (req, res) => {
+//   let responseData = {};
+//   try {
+//     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
+
+//     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { // ✅ Ensure it's checking data properly
+//       responseData.msg = "There are no suspicious actions found";
+//       return responseHelper.success(res, responseData);
+//     }
+//     console.log("allSuspiciousActionsData---->",allSuspiciousActionsData);
+
+//     responseData.msg = "All data fetched successfully";
+//     responseData.data = allSuspiciousActionsData;
+//     return responseHelper.success(res, responseData);
+//   } catch (error) {
+//     responseData.msg = error.message || "Something went wrong";
+//     return responseHelper.error(res, responseData, 500);
+//   }
+// };
+const getAllpockerSuspiciousActions = async (req, res) => { 
   let responseData = {};
   try {
     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
 
-    if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { // ✅ Ensure it's checking data properly
+    if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { 
       responseData.msg = "There are no suspicious actions found";
       return responseHelper.success(res, responseData);
     }
 
+    // Process and add table_name from game_json_data
+    allSuspiciousActionsData = allSuspiciousActionsData.map(action => {
+      try {
+        const gameData = JSON.parse(action.game_json_data || "{}"); // Parse game_json_data safely
+        action.table_name = gameData.room_name || "Unknown"; // Extract room_name
+      } catch (err) {
+        console.error("Error parsing game_json_data:", err);
+        action.table_name = "Unknown"; // Handle JSON parsing errors
+      }
+      return action;
+    });
+
     responseData.msg = "All data fetched successfully";
     responseData.data = allSuspiciousActionsData;
     return responseHelper.success(res, responseData);
+
   } catch (error) {
+    console.error("Error fetching suspicious actions:", error);
     responseData.msg = error.message || "Something went wrong";
     return responseHelper.error(res, responseData, 500);
   }
 };
+
 
 
 
