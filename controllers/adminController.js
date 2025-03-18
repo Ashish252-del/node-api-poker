@@ -3789,9 +3789,12 @@ const getWinningAmount = async (req, res) => {
   try {
       let game_type = req.query.game_type;
       let getUserData;
-      if (game_type) {
+      if (game_type==='Poker') {
+          getUserData = await adminService.getCashTransaction({other_type: 'Table Commision', category: game_type});
+      } else if(game_type) {
           getUserData = await adminService.getCashTransaction({other_type: 'Winning', category: game_type});
-      } else {
+      }
+      else {
           getUserData = await adminService.getCashTransaction({other_type: 'Winning'});
       }
       if (getUserData.length == 0) {
