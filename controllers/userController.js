@@ -3618,12 +3618,18 @@ const addPokerSusPiciousUser = async (request) => {
     try {
         let user = await userService.getUserDetailsById({user_id:request.userId});
       //  console.log("user-->",user);
+       let tableRoundData = await pokerService.getTableRoundByQuery({
+               game_table_id: pokerResultRequest.tableId,
+               table_round_status: "Active"
+            });
+
         let details = await userService.createPokerSuspiciousUser(
             {
                 userId: request.userId,
                 tableId: request.tableId,
                 gameId: request.gameId,
                 action: request.action,
+                roundId:tableRoundData.table_round_id
             },
              transaction  // Pass transaction object
         );
