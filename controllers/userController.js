@@ -28,6 +28,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const axios = require('axios');
 const {getRedisClient} = require("../helpers/redis");
+const { QueryTypes } = require("sequelize");
 
 const getProfile = async (req, res) => {
     let responseData = {};
@@ -3617,16 +3618,22 @@ const addPokerSusPiciousUser = async (request) => {
     try {
         let user = await userService.getUserDetailsById({user_id:request.userId});
       //  console.log("user-->",user);
+       let tableRoundData = await pokerService.getTableRoundByQuery({
+               game_table_id: pokerResultRequest.tableId,
+               table_round_status: "Active"
+            });
+
         let details = await userService.createPokerSuspiciousUser(
             {
                 userId: request.userId,
                 tableId: request.tableId,
                 gameId: request.gameId,
                 action: request.action,
+                roundId:tableRoundData.table_round_id
             },
              transaction  // Pass transaction object
         );
-
+        
         let admins = await adminService.getAllAdmins({admin_status:'1'});
        // console.log("user-->",admins);
 
@@ -3639,7 +3646,7 @@ const addPokerSusPiciousUser = async (request) => {
             if (!checkUser) {
                continue;
             }
-  
+            if(!(await(getRole(userID))>0)){ continue;}
           
             if (checkUser.device_token) {
                 let pushData = {
@@ -3648,6 +3655,8 @@ const addPokerSusPiciousUser = async (request) => {
                     device_token: checkUser.device_token
                 };
                try {
+                console.log("pushData-->",pushData, "userData-->",checkUser);
+                
                 let result = await sendPushNotification(pushData); } 
                 catch (error) {
                    console.log("error in push notification",error);
@@ -3662,6 +3671,53 @@ const addPokerSusPiciousUser = async (request) => {
         return { status: false, message: error.message }; // Return error for debugging
     }
 };
+
+const getRole = async (userId)=> {
+   try {
+    let userData_admin = await adminService.geAdminDetailsById({ user_id: userId });
+    const allRolesQuery = `
+    SELECT role_id, roles, role_status 
+    FROM roles
+    WHERE role_status = '1'
+  `;
+    const allRoles = await sequelize.query(allRolesQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    let adminRoles = [];
+
+    if (userData_admin) {
+      const user_id = userData_admin.admin_id;
+      // Step 2: Fetch roles associated with the admin
+      const adminRolesQuery = `
+        SELECT roles.role_id
+        FROM admins
+        INNER JOIN user_roles ON user_roles.userId = admins.admin_id
+        INNER JOIN roles ON roles.role_id = user_roles.roleId
+        WHERE admins.admin_id = :user_id
+      `;
+
+      adminRoles = await sequelize.query(adminRolesQuery, {
+        replacements: { user_id },
+        type: QueryTypes.SELECT,
+      });
+      console.log("adminRoles-->", adminRoles);
+    }
+
+    // Step 3: Set isActive flag for each role
+    const rolesWithIsActive = allRoles.map((role) => ({
+      ...role,
+      isActive: adminRoles.some(
+        (adminRole) => adminRole.role_id === role.role_id
+      ),
+    }));
+return rolesWithIsActive.filter((role) =>  role.isActive).length;
+   } catch (error) {
+    console.log("error in getRole", error);
+    return 0;
+   }
+}
+
 const getBanner = async (req, res) => {
     let responseData = {}
     try {

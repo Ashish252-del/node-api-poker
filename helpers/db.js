@@ -214,6 +214,12 @@ async function initialize() {
     db.users.hasMany(db.buy_in_records, {
         foreignKey: "user_id"
     })
+    db.users.hasMany(db.pockerSuspiciousActions, {
+        foreignKey: "userId"
+    })
+    db.pockerSuspiciousActions.belongsTo(db.users, {
+        foreignKey: "userId"
+    })
     // sync all models with database
        await sequelize.sync({alter: true});
 }
