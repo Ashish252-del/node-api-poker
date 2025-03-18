@@ -865,14 +865,17 @@ const gameList = async (req, res) => {
   try {
     let getData;
     let game_category_id=req.query.game_category;
+    console.log("game_category_id-->",game_category_id);
     if(req.query.is_tournament){
+      console.log("check 1");
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
   }
   else if(game_category_id=='2'){
     getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, game_category_id:game_category_id,is_tournament:'0'});
-
+    console.log("check 2");
   }
   else{
+    console.log("check 3");
       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
   }
     if (!getData) {
