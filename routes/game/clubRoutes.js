@@ -48,6 +48,7 @@ module.exports = () => {
 
     routes.get("/delete-club", authenticate,clubController.deleteClub);
     routes.get("/hand-history/:table_id", authenticate, clubController.getHandHistoryByTableId);
+    routes.get("/hand-history-by-table-round-id/:table_round_id",authenticate,clubController.getHandHistoryByTableRoundId)
 
     routes.get("/club-data/:club_id",authenticate,clubController.clubData)
     // removal of player from the club -> 
