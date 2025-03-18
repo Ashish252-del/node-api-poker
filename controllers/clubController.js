@@ -1813,7 +1813,106 @@ const getHandHistoryByTableId = async (req, res) => {
        return responseHelper.error(res, responseData, 500);
     }
  }
-
+const getHandHistoryByTableRoundId=async(req,res)=>{
+    let responseData={};
+    try {
+        let user_id = req.query.user_id;
+        let table_round_id = req.params.table_round_id;
+        let page = req.query.page || 1;
+        let tableRoundData = await pokerService.getTableRoundByQueryWithOrderAndLimit({
+            table_round_id:table_round_id ,
+           table_round_status: "Completed"
+        }, [["table_round_id", "DESC"]], 1, (page - 1));
+        if (!tableRoundData || tableRoundData.length === 0) {
+           throw new Error("Table round not found");
+        }
+        let totalTableRounds = await pokerService.countTableRoundByQuery({
+            table_round_id: table_round_id,
+           table_round_status: "Completed"
+        });
+        let tableRound = tableRoundData[0];
+        tableRound.table_attributes = JSON.parse(tableRound.table_attributes);
+        tableRound.hand_histories = JSON.parse(tableRound.hand_histories);
+        let bettingPlayersIds = new Set(); // in set we are putting betting players Id's
+        tableRound.hand_histories.forEach(handHistory => {
+           if (handHistory && handHistory.userBetRecords) {
+              handHistory.userBetRecords.forEach(userBetRecord => {
+                 if (userBetRecord && userBetRecord.userId) {
+                    bettingPlayersIds.add("" + userBetRecord.userId);
+                 }
+              });
+           }
+        });
+  
+        const getUserTotalBets = (userId)=>{
+           let bet = 0;
+           tableRound.hand_histories.forEach(handHistory => {
+              if (handHistory && handHistory.userBetRecords) {
+                 handHistory.userBetRecords.forEach(userBetRecord => {
+                    if (userBetRecord && userBetRecord.userId && userBetRecord.userId == userId) {
+                       bet+=parseInt(userBetRecord.betAmount)
+                    }
+                 });
+              }
+           });
+           return bet;
+        }
+        tableRound.table_attributes.players = tableRound.table_attributes.players.map(player => {
+           if (!player) {
+              return null;
+           }
+           if (!bettingPlayersIds.has("" + player.userId)) {
+              return null;
+           }
+           return player;
+        }).filter(player => player);
+        tableRound.result_json = JSON.parse(tableRound.result_json);
+        let winnerSet = new Set();
+        tableRound.result_json.winners.forEach(winner => {
+           winnerSet.add("" + winner);
+        })
+        tableRound.result_json.players = tableRound.result_json.players.map(player => {
+           if (player && (!player.cards || player.cards.length === 0)
+               && !bettingPlayersIds.has("" + player.userId)) {
+              return null;
+           }
+           if (player && player.isMuckEnabled && player.isMuckEnabled === true
+               && parseInt(player.userId) !== user_id && !winnerSet.has("" + player.userId)) {
+              if (player.cards) {
+                 player.cards = player.cards.map(card => {
+                    card.cardRank = "X";
+                    card.cardSuit = "X";
+                    return card;
+                 });
+              }
+           }
+           let playerFromTableRound = tableRound.table_attributes.players
+               .find(tablePlayer => tablePlayer.userId === player.userId);
+           if (playerFromTableRound) {
+              player.chips = (winnerSet.has(""+player.userId))?getUserTotalBets(player.userId): 0 - getUserTotalBets(player.userId); // initially it was player.chips - playerFromTableRound.stack;
+              return player;
+           }
+           return null;
+        }).filter(player => player);
+        let potTotal = parseInt("" + 0);
+        tableRound.result_json.pots.forEach(pot => {
+           potTotal += parseInt(pot.amount);
+        });
+        tableRound.potTotal = potTotal;
+        responseData.msg = 'hand history';
+        responseData.data = {
+           page: totalTableRounds - (page - 1),
+           count: totalTableRounds,
+           currentPage: page,
+           ...tableRound
+        };
+        return responseHelper.success(res, responseData);
+     }catch (error) {
+        console.log("Error in get hand history by table id ", error);
+        responseData.msg = error.message
+        return responseHelper.error(res, responseData, 500); 
+    }
+}
 
  const getClubGameResultByTableId = async (req, res) => {
     let responseData = {};
@@ -2092,6 +2191,7 @@ module.exports = {
     getAllClubLevel,
     deleteClub,
     getHandHistoryByTableId,
+    getHandHistoryByTableRoundId,
     getClubGameResultByTableId,
     clubData,
     removalOfPlayer,
