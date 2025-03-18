@@ -3619,7 +3619,7 @@ const addPokerSusPiciousUser = async (request) => {
         let user = await userService.getUserDetailsById({user_id:request.userId});
       //  console.log("user-->",user);
        let tableRoundData = await pokerService.getTableRoundByQuery({
-               game_table_id: pokerResultRequest.tableId,
+               game_table_id: request.tableId,
                table_round_status: "Active"
             });
 
