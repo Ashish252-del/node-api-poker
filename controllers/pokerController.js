@@ -3,7 +3,7 @@ const userService = require('../services/userService');
 const responseHelper = require("../helpers/customResponse");
 const { unlockBalanceOfUser, unlockBalanceOfUserForClub, addPrizeMoney } = require("./userController");
 const Sequelize = require("sequelize");
-const { getGameTypeModalDataByQuery } = require("../services/pokerService");
+const { getGameTypeModalDataByQuery ,saveTableCommission} = require("../services/pokerService");
 const Op = Sequelize.Op;
 const ChatModel = require("../models/chatMessage");
 const db = require("../helpers/db");
@@ -2381,34 +2381,101 @@ const getOrCreateTableForJoinViewer = async (joinTableDataRequest) => {
    }
 }
 
+// const saveCommisionRecords = async (request) => {
+//    if (!request.tableId) throw new Error("Table id is required");
+
+//    let tableRoundData = await pokerService.getTableRoundByQuery({
+//       game_table_id: request.tableId,
+//       table_round_status: "Active"
+//    });
+
+//    if (!tableRoundData) throw new Error("Table round not found");
+//    const adminDetails = await geAdminDetailsById({ admin_id: 1 });
+
+//    if ((await storeCommisionRecords(request, tableRoundData, null, null, adminDetails))) {
+//       return {
+//          message: "Commision added to Admin Account!"
+//       }
+//    } else {
+//       for (let count = 5; count > 0; count--) {
+//          const resp = await storeCommisionRecords(request, tableRoundData, null, null, adminDetails)
+//          if (resp.status) return { message: "Commision added to admin Account!" }
+//          else if (count === 1) {
+//             await (await getRedisClient()).hSet("FAILED-COMMISSION-TRNS", JSON.stringify(request));
+//             return {
+//                message: error.message
+//             }
+//          }
+//       }
+//    }
+// }
+
 const saveCommisionRecords = async (request) => {
-   if (!request.tableId) throw new Error("Table id is required");
+   try {
+      console.log("from saveCommisionRecords -->", request);
 
-   let tableRoundData = await pokerService.getTableRoundByQuery({
-      game_table_id: request.tableId,
-      table_round_status: "Active"
-   });
+      if (!request.tableId) throw new Error("Table ID is required");
+      if (!request.tableTotalCalculatedCommision) throw new Error("Commission amount is required");
 
-   if (!tableRoundData) throw new Error("Table round not found");
-   const adminDetails = await geAdminDetailsById({ admin_id: 1 });
+      // Fetch active table round
+      let tableRoundData = await pokerService.getTableRoundByQuery({
+         game_table_id: request.tableId,
+         table_round_status: "Active"
+      });
 
-   if ((await storeCommisionRecords(request, tableRoundData, null, null, adminDetails))) {
-      return {
-         message: "Commision added to Admin Account!"
+      if (!tableRoundData) throw new Error("Table round not found");
+
+      // Parse commisionedPlayer JSON safely
+      let commisionedPlayerData;
+      try {
+         commisionedPlayerData = JSON.parse(request.commisionedPlayer);
+      } catch (err) {
+         throw new Error("Invalid JSON format in commisionedPlayer");
       }
-   } else {
-      for (let count = 5; count > 0; count--) {
-         const resp = await storeCommisionRecords(request, tableRoundData, null, null, adminDetails)
-         if (resp.status) return { message: "Commision added to admin Account!" }
-         else if (count === 1) {
-            await (await getRedisClient()).hSet("FAILED-COMMISSION-TRNS", JSON.stringify(request));
-            return {
-               message: error.message
-            }
-         }
-      }
+
+      // Extract the first commissioned player ID
+      let firstPlayerKey = Object.keys(commisionedPlayerData)[0]; // Example: "32_"
+      let commisionedPlayerId = firstPlayerKey.replace("_", ""); // Removes underscore -> "32"
+      let handCommission = commisionedPlayerData[firstPlayerKey]?.fee || 0;
+      console.log("handCommission--->",handCommission);
+
+
+
+      let data = {
+         game_table_id: request.tableId,
+         commision_amount: handCommission? parseFloat(handCommission):0,
+         commisioned_player: commisionedPlayerId,
+      };
+
+      // Save to database
+      await pokerService.saveTableCommission(data);
+
+      // Extract winAmount for the commissioned player
+      let winAmount = commisionedPlayerData[firstPlayerKey]?.winAmount || 0;
+      // let handCommission = commisionedPlayerData[firstPlayerKey]?.fee || 0;
+
+      let transactionData = {
+         user_id: commisionedPlayerId,
+         table_id: request.tableId,
+         type: "CR",
+         other_type: "Table Commision",
+         category: "Poker",
+         reference: tableRoundData.table_round_id,
+         commission: handCommission? parseFloat(handCommission):0,
+         amount: winAmount ? parseFloat(winAmount) : 0, // Uses correct winAmount for the player
+         is_admin_detail:1
+      };
+
+      await userService.createTransaction(transactionData);
+
+      console.log("Commission record saved successfully");
+      return true;
+
+   } catch (error) {
+      console.error("Error in saveCommisionRecords:", error.message);
+      return false;
    }
-}
+};
 
 const saveCommisionRecordsForClub = async (request) => {
    if (!request.tableId) throw new Error("Table id is required");

@@ -38,16 +38,8 @@ message TableRoomDataResponse{
     bool auto_start = 31;
    int64 auto_start_player = 32;
    bool is_table_started_by_owner = 33;
-   bool ban_chatting = 34;
-  bool runmulti_time = 35;
-  bool auto_extension = 36;
-  float auto_extension_time = 37;
-  bool auto_open = 38;
-  float table_time = 39;
-   bool authorized_to_buyIn = 40;
-  int64 added_by = 41;
-  float fee = 42;
-  float cap = 43;
+   float fee = 34;
+   float cap = 35;
 }
 
 message JoinTableDataRequest {
@@ -83,11 +75,6 @@ message LeaveTableRequest {
   int64 tableId = 2;
   int32 amount = 3;
 }
-message isNewPlayerRequest {
-  int64 tableId = 1;
-  int64 userId = 2;
-}
-
 
 message PokerResultRequest {
   int64 tableId = 1;
@@ -104,6 +91,7 @@ message SusPiciousActionRequest {
   int64 gameId = 3;
   string action = 4;
 }
+
 
 message HandHistory{
   string bettingRound = 1;
@@ -154,7 +142,6 @@ message GenericResponse {
   bool status = 1;
   string message = 2;
   string data = 3;
-   bool isNewPlayer = 4; 
 }
 
 message ChatMessage {
@@ -188,26 +175,11 @@ message clubList {
   repeated clubDataResponse clubs = 1;
 }
 
-message UpdateTableRoomDataRequest{
-  int64 roomId = 1;
-  int64 userId = 2;
-  string roomAttributes = 3;
-  int64 club_id =4;
-}
-
-message UpdateTableRoomDataResponse{
-  string message = 1;
-}
-
 message Empty {}
 
 message JoinMultiTableDataRequest {
   int64 userId = 1;
   int32 gameId = 3;
-}
-
-message CloneTableRequest {
-    int64 tableId = 1;
 }
 
  message JoinMultiTableDataResponse {
@@ -219,27 +191,32 @@ message CloneTableRequest {
    string table_attributes = 6;
 }
 
+message TableCommisionSaveRequest {
+  int64 tableId = 1;
+  float tableTotalCalculatedCommision = 2;
+  string commisionedPlayer = 3;
+}
+
+message MessageResponse {
+  string message = 1;
+}
+
 service TableRoomDataService{
   rpc GetTableRoomData(TableRoomDataRequest) returns (TableRoomDataResponse);
-  rpc UpdateTableRoomData(UpdateTableRoomDataRequest) returns (UpdateTableRoomDataResponse);
 }
 
 service TableDataService {
   rpc GetOrCreateTable(JoinTableDataRequest) returns (JoinTableDataResponse);
-  rpc UpdateStatusAndCloneTable(CloneTableRequest) returns (UpdateTableRoomDataResponse);
   rpc CreateTableAndJoinTournament(JoinTournamentTableDataRequest) returns (JoinTableDataResponse);
   rpc MergeTable(MergeTableAndCreateNewTableRequest) returns (JoinTableDataResponse);
   rpc RemovePlayerFromTable(JoinTableDataRequest) returns (GenericResponse);
+  rpc saveCommisionRecords(TableCommisionSaveRequest) returns (MessageResponse);
   rpc SavePokerResult(PokerResultRequest) returns (JoinTableDataResponse);
   rpc LeaveTable(LeaveTableRequest) returns (GenericResponse);
-  rpc IsNewPlayer(isNewPlayerRequest) returns (GenericResponse);
-
   rpc DumpChatMessages(ChatMessageRequest) returns (GenericResponse);
   rpc DeactivateTournament(DeactivateTournamentRequest) returns (GenericResponse);
   rpc GetOrCreateMultiTable(JoinMultiTableDataRequest) returns (JoinMultiTableDataResponse);
   rpc GetOrCreateTableForJoinViewer(JoinTableDataRequest) returns (JoinTableDataResponse);
-
-  rpc savePokerResultForClub(PokerResultRequest) returns (JoinTableDataResponse);
   rpc saveSuspiciousAction(SusPiciousActionRequest) returns (GenericResponse);
 }
 

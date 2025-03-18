@@ -34,7 +34,7 @@ const {
    savePokerResult,
    leaveTable, removePlayerFromTable, getPokerDump, updatePokerDump, dumpSingleTable, dumpChatMessages,
    createTableAndJoinTournament, mergeTable , getOrCreateMultiTable,isNewPlayer, deactivateTournament,getOrCreateTableForJoinViewer,savePokerResultForClub,
-   UpdateTableRoomDataForClub, updateStatusAndCloneTable
+   UpdateTableRoomDataForClub, updateStatusAndCloneTable , saveCommisionRecords
 } = require("../controllers/pokerController");
 
 const {
@@ -257,6 +257,11 @@ server.addService(pokerProto.TableDataService.service, {
    SavePokerResult: async (call, callback) => {
       console.log(call.request)
       let res = await savePokerResult(call.request);
+      callback(null, res);
+   },
+   saveCommisionRecords: async (call, callback) => {
+      console.log(call.request)
+      let res = await saveCommisionRecords(call.request);
       callback(null, res);
    },
    LeaveTable: async (call, callback) => {

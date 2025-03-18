@@ -179,6 +179,10 @@ const bulkUpdateBuyInRequests = (updateData, query) =>{
    return db.buy_in_records.update(updateData, {where: query, raw: true})
 }
 
+const saveTableCommission=(data)=>{
+   return db.poker_table_commission.create(data)
+}
+
 module.exports = {
    getGameModalDataByQuery,
    getGameTableModalDataByQuery,
@@ -221,6 +225,7 @@ module.exports = {
    createNewBuyInRequest,
    getAllBuyInRequest,
    updateBuyInRequest,
-   bulkUpdateBuyInRequests
+   bulkUpdateBuyInRequests,
+   saveTableCommission
 
 }
