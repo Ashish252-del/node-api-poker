@@ -648,11 +648,8 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
     if (search_key) {
       searchCondition += `AND (
         username LIKE :search_key 
-        OR CAST(id AS CHAR) LIKE :search_key 
         OR CAST(gameId AS CHAR) LIKE :search_key 
-        OR CAST(tableId AS CHAR) LIKE :search_key 
         OR action LIKE :search_key
-        OR CAST(roundId AS CHAR) LIKE :search_key
       ) `;
       replacements.search_key = `%${search_key}%`;
     }
@@ -688,16 +685,13 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
     let replacements = {};
   
     if (search_key) {
-      searchCondition += `AND (
-        username LIKE :search_key 
-        OR CAST(id AS CHAR) LIKE :search_key 
-        OR CAST(gameId AS CHAR) LIKE :search_key 
-        OR CAST(tableId AS CHAR) LIKE :search_key 
-        OR action LIKE :search_key
-        OR CAST(roundId AS CHAR) LIKE :search_key
-      ) `;
-      replacements.search_key = `%${search_key}%`;
-    }
+        searchCondition += `AND (
+          username LIKE :search_key 
+          OR CAST(gameId AS CHAR) LIKE :search_key 
+          OR action LIKE :search_key
+        ) `;
+        replacements.search_key = `%${search_key}%`;
+      }
   
     if (from_date) {
       searchCondition += `AND pokerSuspiciousActions.createdAt >= :from_date `;
