@@ -1312,7 +1312,7 @@ const userDetail = async (req, res) => {
     console.log("usr_lvl", getUserLevel);
 
     // Decrypt sensitive data
-    getList.mobile = await decryptData(getList.mobile);
+    getList.mobile =getList.mobile? await decryptData(getList.mobile):"";
     getList.email = getList.email ? await decryptData(getList.email) : "";
 
     // Assign additional details to user
@@ -5043,7 +5043,14 @@ const gameWiseUserStatus = async (req, res) => {
 const getAllpockerSuspiciousActions = async (req, res) => { 
   let responseData = {};
   try {
-    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
+    let page=req.query.page ||1;
+    const { limit, offset } = getPagination(page);
+    console.log("limit-->",limit);
+    console.log("offset-->",offset);
+    let totalCountResult = await adminService.getSuspiciousActionsCount();
+    let totalCount = totalCountResult[0]?.count || 0;
+    let totalPages = Math.ceil(totalCount / limit);
+    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({ limit, offset });
 
     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { 
       responseData.msg = "There are no suspicious actions found";
@@ -5063,7 +5070,7 @@ const getAllpockerSuspiciousActions = async (req, res) => {
     });
 
     responseData.msg = "All data fetched successfully";
-    responseData.data = allSuspiciousActionsData;
+    responseData.data = {totalCount,totalPages,allSuspiciousActionsData};
     return responseHelper.success(res, responseData);
 
   } catch (error) {
