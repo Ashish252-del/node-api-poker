@@ -641,18 +641,84 @@ const getPoolGameHistory=()=>{
 //     return   sequelize.query(`SELECT username ,id ,gameId , tableId,action , roundId , pokerSuspiciousActions.createdAt,pokerSuspiciousActions.updatedAt,game_json_data FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId JOIN games ON games.game_id = pokerSuspiciousActions.gameId  order by id desc LIMIT :limit OFFSET :offset `
 //           , {replacements: { limit, offset },raw: true, type: sequelize.QueryTypes.SELECT})
 // }
-const getAllpockerSuspiciousActions=(query)=>{ 
-return   sequelize.query(`SELECT username ,id ,gameId , tableId,action , roundId , pokerSuspiciousActions.createdAt,pokerSuspiciousActions.updatedAt,game_json_data FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId JOIN games ON games.game_id = pokerSuspiciousActions.gameId  order by id desc `
-, {raw: true, type: sequelize.QueryTypes.SELECT})
-}
-
-
-const getSuspiciousActionsCount = () => {
+const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, end_date }) => { 
+    let searchCondition = ""; 
+    let replacements = { limit, offset };
+  
+    if (search_key) {
+      searchCondition += `AND (
+        username LIKE :search_key 
+        OR CAST(id AS CHAR) LIKE :search_key 
+        OR CAST(gameId AS CHAR) LIKE :search_key 
+        OR CAST(tableId AS CHAR) LIKE :search_key 
+        OR action LIKE :search_key
+        OR CAST(roundId AS CHAR) LIKE :search_key
+      ) `;
+      replacements.search_key = `%${search_key}%`;
+    }
+  
+    if (from_date) {
+      searchCondition += `AND pokerSuspiciousActions.createdAt >= :from_date `;
+      replacements.from_date = from_date;
+    }
+  
+    if (end_date) {
+      searchCondition += `AND pokerSuspiciousActions.createdAt <= :end_date `;
+      replacements.end_date = end_date;
+    }
+  
     return sequelize.query(
-        `SELECT COUNT(*) AS count FROM pokerSuspiciousActions`,
-        { raw: true, type: sequelize.QueryTypes.SELECT }
+      `SELECT username, id, gameId, tableId, action, roundId, 
+              pokerSuspiciousActions.createdAt, pokerSuspiciousActions.updatedAt, game_json_data 
+       FROM pokerSuspiciousActions 
+       JOIN users ON users.user_id = pokerSuspiciousActions.userId 
+       JOIN games ON games.game_id = pokerSuspiciousActions.gameId  
+       WHERE 1=1 ${searchCondition} 
+       ORDER BY id DESC 
+       LIMIT :limit OFFSET :offset`,
+      { replacements, raw: true, type: sequelize.QueryTypes.SELECT }
     );
-};
+  };
+  
+  
+
+
+  const getSuspiciousActionsCount = (search_key, from_date, end_date) => {
+    let searchCondition = ""; 
+    let replacements = {};
+  
+    if (search_key) {
+      searchCondition += `AND (
+        username LIKE :search_key 
+        OR CAST(id AS CHAR) LIKE :search_key 
+        OR CAST(gameId AS CHAR) LIKE :search_key 
+        OR CAST(tableId AS CHAR) LIKE :search_key 
+        OR action LIKE :search_key
+        OR CAST(roundId AS CHAR) LIKE :search_key
+      ) `;
+      replacements.search_key = `%${search_key}%`;
+    }
+  
+    if (from_date) {
+      searchCondition += `AND pokerSuspiciousActions.createdAt >= :from_date `;
+      replacements.from_date = from_date;
+    }
+  
+    if (end_date) {
+      searchCondition += `AND pokerSuspiciousActions.createdAt <= :end_date `;
+      replacements.end_date = end_date;
+    }
+  
+    return sequelize.query(
+      `SELECT COUNT(*) AS count 
+       FROM pokerSuspiciousActions 
+       JOIN users ON users.user_id = pokerSuspiciousActions.userId 
+       JOIN games ON games.game_id = pokerSuspiciousActions.gameId  
+       WHERE 1=1 ${searchCondition}`,
+      { replacements, raw: true, type: sequelize.QueryTypes.SELECT }
+    );
+  };
+  
 
 
 

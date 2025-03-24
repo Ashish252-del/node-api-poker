@@ -5021,51 +5021,11 @@ const gameWiseUserStatus = async (req, res) => {
   }
 }
 
-const getAllpockerSuspiciousActions = async (req, res) => { 
-  let responseData = {};
-  try {
-    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
-
-
-    if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { 
-      responseData.msg = "There are no suspicious actions found";
-      return responseHelper.success(res, responseData);
-    }
-
-    // Process and add table_name from game_json_data
-    allSuspiciousActionsData = allSuspiciousActionsData.map(action => {
-      try {
-        const gameData = JSON.parse(action.game_json_data || "{}"); // Parse game_json_data safely
-        action.table_name = gameData.room_name || "Unknown"; // Extract room_name
-      } catch (err) {
-        console.error("Error parsing game_json_data:", err);
-        action.table_name = "Unknown"; // Handle JSON parsing errors
-      }
-      return action;
-    });
-
-    responseData.msg = "All data fetched successfully";
-    responseData.data = allSuspiciousActionsData;
-    return responseHelper.success(res, responseData);
-
-  } catch (error) {
-    console.error("Error fetching suspicious actions:", error);
-    responseData.msg = error.message || "Something went wrong";
-    return responseHelper.error(res, responseData, 500);
-  }
-}
-
 // const getAllpockerSuspiciousActions = async (req, res) => { 
 //   let responseData = {};
 //   try {
-//     let page=req.query.page ||1;
-//     const { limit, offset } = getPagination(page);
-//     console.log("limit-->",limit);
-//     console.log("offset-->",offset);
-//     let totalCountResult = await adminService.getSuspiciousActionsCount();
-//     let totalCount = totalCountResult[0]?.count || 0;
-//     let totalPages = Math.ceil(totalCount / limit);
-//     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({ limit, offset });
+//     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
+
 
 //     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { 
 //       responseData.msg = "There are no suspicious actions found";
@@ -5085,7 +5045,7 @@ const getAllpockerSuspiciousActions = async (req, res) => {
 //     });
 
 //     responseData.msg = "All data fetched successfully";
-//     responseData.data = {totalCount,totalPages,allSuspiciousActionsData};
+//     responseData.data = allSuspiciousActionsData;
 //     return responseHelper.success(res, responseData);
 
 //   } catch (error) {
@@ -5093,7 +5053,53 @@ const getAllpockerSuspiciousActions = async (req, res) => {
 //     responseData.msg = error.message || "Something went wrong";
 //     return responseHelper.error(res, responseData, 500);
 //   }
-// };
+// }
+
+const getAllpockerSuspiciousActions = async (req, res) => { 
+  let responseData = {};
+  try {
+    let page = req.query.page || 1;
+    let search_key = req.query.search_key || "";
+    let from_date = req.query.from_date || null;
+    let end_date = req.query.end_date || null;
+    
+    const { limit, offset } = getPagination(page);
+    // Get total count with filters
+    let totalCountResult = await adminService.getSuspiciousActionsCount(search_key, from_date, end_date);
+    let totalCount = totalCountResult[0]?.count || 0;
+    let totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch filtered data
+    let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({ limit, offset, search_key, from_date, end_date });
+
+    if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) { 
+      responseData.msg = "There are no suspicious actions found";
+      return responseHelper.success(res, responseData);
+    }
+
+    // Process and add table_name from game_json_data
+    allSuspiciousActionsData = allSuspiciousActionsData.map(action => {
+      try {
+        const gameData = JSON.parse(action.game_json_data || "{}");
+        action.table_name = gameData.room_name || "Unknown";
+      } catch (err) {
+        console.error("Error parsing game_json_data:", err);
+        action.table_name = "Unknown";
+      }
+      return action;
+    });
+
+    responseData.msg = "All data fetched successfully";
+    responseData.data = { totalCount, totalPages,limit, allSuspiciousActionsData };
+    return responseHelper.success(res, responseData);
+
+  } catch (error) {
+    console.error("Error fetching suspicious actions:", error);
+    responseData.msg = error.message || "Something went wrong";
+    return responseHelper.error(res, responseData, 500);
+  }
+};
+
 
 
 
