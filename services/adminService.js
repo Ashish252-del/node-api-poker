@@ -637,10 +637,16 @@ const getLudoGameHistory=()=>{
 const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
 }
-const getAllpockerSuspiciousActions=({limit, offset} )=>{ 
-    return   sequelize.query(`SELECT username ,id ,gameId , tableId,action , roundId , pokerSuspiciousActions.createdAt,pokerSuspiciousActions.updatedAt,game_json_data FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId JOIN games ON games.game_id = pokerSuspiciousActions.gameId  order by id desc LIMIT :limit OFFSET :offset `
-          , {replacements: { limit, offset },raw: true, type: sequelize.QueryTypes.SELECT})
+// const getAllpockerSuspiciousActions=({limit, offset} )=>{ 
+//     return   sequelize.query(`SELECT username ,id ,gameId , tableId,action , roundId , pokerSuspiciousActions.createdAt,pokerSuspiciousActions.updatedAt,game_json_data FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId JOIN games ON games.game_id = pokerSuspiciousActions.gameId  order by id desc LIMIT :limit OFFSET :offset `
+//           , {replacements: { limit, offset },raw: true, type: sequelize.QueryTypes.SELECT})
+// }
+const getAllpockerSuspiciousActions=(query)=>{ 
+return   sequelize.query(`SELECT username ,id ,gameId , tableId,action , roundId , pokerSuspiciousActions.createdAt,pokerSuspiciousActions.updatedAt,game_json_data FROM pokerSuspiciousActions JOIN users ON users.user_id = pokerSuspiciousActions.userId JOIN games ON games.game_id = pokerSuspiciousActions.gameId  order by id desc `
+, {raw: true, type: sequelize.QueryTypes.SELECT})
 }
+
+
 const getSuspiciousActionsCount = () => {
     return sequelize.query(
         `SELECT COUNT(*) AS count FROM pokerSuspiciousActions`,
