@@ -51,9 +51,18 @@ const getGameByQuery = (query) => {
     return db.games.findOne({where: query});
 }
 
-const getAllGameList = (query) => {
-    return db.games.findAll({where: query, order: [['game_id', 'DESC']]});
-}
+const getAllGameList = (query, limit, offset) => {
+    return db.games.findAll({
+      where: query,
+      order: [["game_id", "DESC"]],
+      limit: limit,
+      offset: offset,
+    });
+  };
+  const getGameCount = (query) => {
+    return db.games.count({ where: query });
+  };
+  
 
 const updateGameById = (data, query) => {
     return db.games.update(
@@ -676,10 +685,6 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
       { replacements, raw: true, type: sequelize.QueryTypes.SELECT }
     );
   };
-  
-  
-
-
   const getSuspiciousActionsCount = (search_key, from_date, end_date) => {
     let searchCondition = ""; 
     let replacements = {};
@@ -714,8 +719,6 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
   };
   
 
-
-
 module.exports = {
     getSuspiciousActionsCount,
     getAllpockerSuspiciousActions,
@@ -734,7 +737,6 @@ module.exports = {
     getUserList,
     createGame,
     getGameByQuery,
-    getAllGameList,
     updateGameById,
     getWithdrawl,
     getDeposit,
@@ -833,6 +835,7 @@ module.exports = {
     createGame,
     getGameByQuery,
     getAllGameList,
+    getGameCount,
     updateGameById,
     getWithdrawl,
     getDeposit,

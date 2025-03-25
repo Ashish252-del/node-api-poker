@@ -859,81 +859,212 @@ const createGame = async (req, res) => {
     return responseHelper.error(res, responseData, 500);
   }
 };
-
 const gameList = async (req, res) => {
   let responseData = {};
   try {
-    let getData;
-    let game_category_id=req.query.game_category;
-    console.log("game_category_id-->",game_category_id);
-    if(req.query.is_tournament){
+    let game_category_id = req.query.game_category;
+    let search_key = req.query.search_key || "";
+    let page = parseInt(req.query.page, 10) || 1;
+    let size = parseInt(req.query.rows_per_page, 10) || 10;
+    let from_date = req.query.from_date || null;
+    let end_date = req.query.end_date || null;
+
+    const { limit, offset } = getPagination(page, size);
+
+    console.log("game_category_id-->", game_category_id);
+
+    let whereCondition = { game_status: { [Op.ne]: "3" } };
+
+    if (req.query.is_tournament) {
       console.log("check 1");
-      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
-  }
-  else if(game_category_id=='2'){
-    getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, game_category_id:game_category_id,is_tournament:'0'});
-    console.log("check 2");
-  }
-  else{
-    console.log("check 3");
-      getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
-  }
-    if (!getData) {
+      whereCondition.is_tournament = "1";
+    } else if (game_category_id == "2") {
+      console.log("check 2");
+      whereCondition.game_category_id = game_category_id;
+      whereCondition.is_tournament = "0";
+    } else {
+      console.log("check 3");
+      whereCondition.private_table_code = "0";
+      whereCondition.is_tournament = { [Op.ne]: "1" };
+    }
+
+    if (search_key) {
+      whereCondition[Op.or] = [
+        { game_name: { [Op.like]: `%${search_key}%` } },
+        {
+          game_json_data: { [Op.like]: `%"room_name":"%${search_key}%"%` } // Search inside JSON-like text
+        }
+      ];
+    }
+    
+    
+    
+
+    // Date filters
+    if (from_date || end_date) {
+      whereCondition.createdAt = {};
+      if (from_date) {
+        whereCondition.createdAt[Op.gte] = new Date(from_date + " 00:00:00"); 
+      }
+      if (end_date) {
+        whereCondition.createdAt[Op.lte] = new Date(end_date + " 23:59:59"); 
+      }
+    }
+
+    let totalCount = await adminService.getGameCount(whereCondition);
+    let totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch paginated data
+    let getData = await adminService.getAllGameList(whereCondition, limit, offset);
+
+    if (!getData || getData.length === 0) {
       responseData.msg = "Game List not found";
       return responseHelper.error(res, responseData, 201);
     }
-    getData = getData.map(async (element, i) => {
-      let getCategoryData = await adminService.getGameCategoryByQuery({
-        game_category_id: element.game_category_id,
-      });
-      element.dataValues.game_category_name = getCategoryData
-        ? getCategoryData.name
-        : "";
-      let getTypeData = await adminService.getGameTypeByQuery({
-        game_type_id: element.game_type_id,
-      });
-      element.dataValues.game_type_name = getTypeData ? getTypeData.name : "";
-      let getUserD = await adminService.geAdminDetailsById({
-        admin_id: element.added_by,
-      });
-      element.dataValues.added_by =
-        getUserD && getUserD.full_name != null ? getUserD.full_name : "";
-      let getUserDD = await adminService.geAdminDetailsById({
-        admin_id: element.updated_by,
-      });
-      element.dataValues.updated_by =
-        getUserDD && getUserDD.full_name != null ? getUserDD.full_name : "";
-      let gameName;
-      let str = JSON.parse(element.game_json_data, true);
-      if (element.game_category_id == 2) {
-        gameName = str.room_name;
-      } else if (element.game_category_id == 3) {
-        gameName = str.name ? str.name : str.Name;
-      } else if (element.game_category_id == 4) {
-        gameName = element.game_name;
-      }
-      console.log(gameName);
-      element.dataValues.game_json_data = str;
-      element.dataValues.game_name = gameName;
-      element.dataValues.game_price_json_data = JSON.parse(
-        element.game_price_json_data,
-        true
-      );
-      element.dataValues.game_blind_structure_json_data = JSON.parse(
-        element.game_blind_structure_json_data,
-        true
-      );
-      return element;
-    });
-    getData = await Promise.all(getData);
-    responseData.msg = "Game List";
-    responseData.data = getData;
+
+    // Process each game asynchronously
+    getData = await Promise.all(
+      getData.map(async (element) => {
+        let getCategoryData = await adminService.getGameCategoryByQuery({
+          game_category_id: element.game_category_id,
+        });
+        element.dataValues.game_category_name = getCategoryData ? getCategoryData.name : "";
+
+        let getTypeData = await adminService.getGameTypeByQuery({
+          game_type_id: element.game_type_id,
+        });
+        element.dataValues.game_type_name = getTypeData ? getTypeData.name : "";
+
+        let getUserD = await adminService.geAdminDetailsById({
+          admin_id: element.added_by,
+        });
+        element.dataValues.added_by = getUserD && getUserD.full_name ? getUserD.full_name : "";
+
+        let getUserDD = await adminService.geAdminDetailsById({
+          admin_id: element.updated_by,
+        });
+        element.dataValues.updated_by = getUserDD && getUserDD.full_name ? getUserDD.full_name : "";
+
+        let gameName;
+        let str = JSON.parse(element.game_json_data || "{}");
+
+        if (element.game_category_id == 2) {
+          gameName = str.room_name;
+        } else if (element.game_category_id == 3) {
+          gameName = str.name || str.Name;
+        } else if (element.game_category_id == 4) {
+          gameName = element.game_name;
+        }
+
+        console.log(gameName);
+        element.dataValues.game_json_data = str;
+        element.dataValues.game_name = gameName;
+        element.dataValues.game_price_json_data = JSON.parse(element.game_price_json_data || "{}");
+        element.dataValues.game_blind_structure_json_data = JSON.parse(
+          element.game_blind_structure_json_data || "{}"
+        );
+
+        return element;
+      })
+    );
+
+    responseData.msg = "Game List fetched successfully";
+    responseData.data = {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit,
+      games: getData,
+    };
     return responseHelper.success(res, responseData);
   } catch (error) {
-    responseData.msg = error.message;
+    console.error("Error fetching game list:", error);
+    responseData.msg = error.message || "Something went wrong";
     return responseHelper.error(res, responseData, 500);
   }
 };
+
+// const gameList = async (req, res) => {
+//   let responseData = {};
+//   try {
+//     let getData;
+//     let game_category_id=req.query.game_category;
+//     let search_key=req.query.search_key;
+//     let page=req.query.page ||1;
+//     let from_date = req.query.from_date || null;
+//     let end_date = req.query.end_date || null;
+    
+//     const { limit, offset } = getPagination(page);
+
+//     console.log("game_category_id-->",game_category_id);
+//     if(req.query.is_tournament){
+//       console.log("check 1");
+//       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, is_tournament:'1'});
+//   }
+//   else if(game_category_id=='2'){
+//     getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, game_category_id:game_category_id,is_tournament:'0'});
+//     console.log("check 2");
+//   }
+//   else{
+//     console.log("check 3");
+//       getData = await adminService.getAllGameList({game_status: {[Op.ne]: '3'}, private_table_code:'0', is_tournament:{[Op.ne]: '1'}});
+//   }
+//     if (!getData) {
+//       responseData.msg = "Game List not found";
+//       return responseHelper.error(res, responseData, 201);
+//     }
+//     getData = getData.map(async (element, i) => {
+//       let getCategoryData = await adminService.getGameCategoryByQuery({
+//         game_category_id: element.game_category_id,
+//       });
+//       element.dataValues.game_category_name = getCategoryData
+//         ? getCategoryData.name
+//         : "";
+//       let getTypeData = await adminService.getGameTypeByQuery({
+//         game_type_id: element.game_type_id,
+//       });
+//       element.dataValues.game_type_name = getTypeData ? getTypeData.name : "";
+//       let getUserD = await adminService.geAdminDetailsById({
+//         admin_id: element.added_by,
+//       });
+//       element.dataValues.added_by =
+//         getUserD && getUserD.full_name != null ? getUserD.full_name : "";
+//       let getUserDD = await adminService.geAdminDetailsById({
+//         admin_id: element.updated_by,
+//       });
+//       element.dataValues.updated_by =
+//         getUserDD && getUserDD.full_name != null ? getUserDD.full_name : "";
+//       let gameName;
+//       let str = JSON.parse(element.game_json_data, true);
+//       if (element.game_category_id == 2) {
+//         gameName = str.room_name;
+//       } else if (element.game_category_id == 3) {
+//         gameName = str.name ? str.name : str.Name;
+//       } else if (element.game_category_id == 4) {
+//         gameName = element.game_name;
+//       }
+//       console.log(gameName);
+//       element.dataValues.game_json_data = str;
+//       element.dataValues.game_name = gameName;
+//       element.dataValues.game_price_json_data = JSON.parse(
+//         element.game_price_json_data,
+//         true
+//       );
+//       element.dataValues.game_blind_structure_json_data = JSON.parse(
+//         element.game_blind_structure_json_data,
+//         true
+//       );
+//       return element;
+//     });
+//     getData = await Promise.all(getData);
+//     responseData.msg = "Game List";
+//     responseData.data = getData;
+//     return responseHelper.success(res, responseData);
+//   } catch (error) {
+//     responseData.msg = error.message;
+//     return responseHelper.error(res, responseData, 500);
+//   }
+// };
 const getGameTables = async (req, res) => {
   let responseData = {};
   try {
@@ -1188,9 +1319,9 @@ const dashboard = async (req, res) => {
   }
 };
 
-const getPagination = (page) => {
+const getPagination = (page, size) => {
   page = page - 1;
-  const limit = 15;
+  const limit = size ? size : 15;
   const offset = page ? page * limit : 0;
   return { limit, offset };
 };
@@ -5060,10 +5191,11 @@ const getAllpockerSuspiciousActions = async (req, res) => {
   try {
     let page = req.query.page || 1;
     let search_key = req.query.search_key || "";
+    let size = parseInt(req.query.rows_per_page, 10) || 10;
     let from_date = req.query.from_date || null;
     let end_date = req.query.end_date || null;
     
-    const { limit, offset } = getPagination(page);
+    const { limit, offset } = getPagination(page,size);
     // Get total count with filters
     let totalCountResult = await adminService.getSuspiciousActionsCount(search_key, from_date, end_date);
     let totalCount = totalCountResult[0]?.count || 0;
