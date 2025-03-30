@@ -31,7 +31,7 @@ const userSignup = async (req, res) => {
       let userDataMobile = await userService.getUserDetailsByQuery({mobile: mobile});
       if (userDataMobile.length) {
         // let otp = OTP();
-         // let otp = '123456';
+          let otp = '123456';
       //   await sendSms(mobile1, otp);
          let update = await userService.updateUserByQuery({
             otp: otp,
@@ -43,9 +43,9 @@ const userSignup = async (req, res) => {
 
       let device_token = reqObj.device_id;
       let device_type = 'Android';
-      let otp = OTP();
+     // let otp = OTP();
       
-      //let otp = '123456';
+      let otp = '123456';
       let pass = await randomPasswordGenerator(8);
       let password = await encryptPassword(pass);
       let referCode = makeString(4).toUpperCase() + mobile1.substr(mobile1.length - 4)
@@ -65,7 +65,7 @@ const userSignup = async (req, res) => {
          old_value: '',
          new_value: JSON.stringify(reqObj)
       }
-      await sendSms(mobile1, otp);
+      //await sendSms(mobile1, otp);
       let updateLog = await userService.addUserLog(userLog);
 
       let walletData = {
