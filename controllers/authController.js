@@ -30,9 +30,9 @@ const userSignup = async (req, res) => {
       }
       let userDataMobile = await userService.getUserDetailsByQuery({mobile: mobile});
       if (userDataMobile.length) {
-         let otp = OTP();
+        // let otp = OTP();
          // let otp = '123456';
-         await sendSms(mobile1, otp);
+      //   await sendSms(mobile1, otp);
          let update = await userService.updateUserByQuery({
             otp: otp,
             check_resend_otp_count_register: 0
