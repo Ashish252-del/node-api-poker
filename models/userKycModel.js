@@ -17,6 +17,14 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        pan_name: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        pan_dob: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         adhaar_number: {
             type: DataTypes.STRING,
             allowNull: true,

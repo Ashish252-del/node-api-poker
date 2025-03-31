@@ -43,6 +43,7 @@ module.exports = () => {
     routes.post("/verify-otp",forgot(),validate, userController.verifyOtp);
     routes.post("/verify-pan-detail" ,authenticate,userController.verifyPanDetail);
     routes.post("/verify-adhaar-detail" ,authenticate,userController.verifyAdhaarDetail);
+    routes.post("/verify-adhaar-otp" ,authenticate,userController.verifyAdhaarOtpDet);
     routes.get("/private-tables/game-type-list" ,authenticate, userController.gameTypeListForPrivateTable);
     routes.post("/create/private-table" ,authenticate, userController.createGameForPrivate);
     routes.put("/delete/private-table", authenticate , userController.changeGameStatusPrivateRoom)

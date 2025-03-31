@@ -219,6 +219,91 @@ function getRandomAlphanumeric(length) {
     return result;
 }
 
+const panVerify = async (requestData) => {
+    const axios = require('axios');
+    const qs = require('qs');
+    let data = qs.stringify({
+        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","pan_number":"${requestData.pan_number}"}`
+    });
+
+    console.log('data',data);
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://developer.satmatgroup.com/Verification_api/Authenticate/pan_verify',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cookie': 'ci_session=912cd50fdb73abb6e8a91ee45b2972ad0a01c3b7'
+        },
+        data : data
+    };
+
+    return axios.request(config)
+        .then((response) => {
+            console.log(JSON.stringify(response.data));
+            return JSON.parse(JSON.stringify(response.data))
+        })
+        .catch((error) => {
+            return error.response.data;
+        });
+}
+
+const adhaarVerify = async (requestData) => {
+    const axios = require('axios');
+    const qs = require('qs');
+    let data = qs.stringify({
+        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","aadhar_number":"${requestData.adhaar_number}"}`
+    });
+
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://developer.satmatgroup.com/Verification_api/Authenticate/aadhar_otp_generate',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cookie': 'ci_session=3074c1ab2c5b8797f6c070f3e15a1e63e7da595c'
+        },
+        data : data
+    };
+
+    return axios.request(config)
+        .then((response) => {
+            console.log(JSON.stringify(response.data));
+            return JSON.parse(JSON.stringify(response.data))
+        })
+        .catch((error) => {
+            return error.response.data;
+        });
+}
+
+const verifyAdhaarOtp = async (requestData) => {
+    const axios = require('axios');
+    const qs = require('qs');
+    let data = qs.stringify({
+        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","otp":"${requestData.otp}","refid":"${requestData.transaction_id}"}`
+    });
+
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://developer.satmatgroup.com/Verification_api/Authenticate/aadhar_otp_verify',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cookie': 'ci_session=3074c1ab2c5b8797f6c070f3e15a1e63e7da595c'
+        },
+        data : data
+    };
+
+    return axios.request(config)
+        .then((response) => {
+            console.log(JSON.stringify(response.data));
+            return JSON.parse(JSON.stringify(response.data))
+        })
+        .catch((error) => {
+            return error.response.data;
+        });
+}
+
 module.exports = {
     makeString,
     OTP,
@@ -234,6 +319,9 @@ module.exports = {
     encodeRequest,
     signRequest,
     getDates,
-    getRandomAlphanumeric
+    getRandomAlphanumeric,
+    panVerify,
+    adhaarVerify,
+    verifyAdhaarOtp,
     // setUserToken
 };

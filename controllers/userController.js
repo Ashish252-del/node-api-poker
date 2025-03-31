@@ -5,7 +5,9 @@ const adminService = require("../services/adminService");
 const pokerService = require('../services/pokerService');
 const {sendPushNotification} = require('../utils/sendnotification')
 
-const {comparePassword, encryptPassword, encryptData, decryptData, makeString, OTP} = require("../utils");
+const {comparePassword, encryptPassword, encryptData, decryptData, makeString, OTP,panVerify,
+    adhaarVerify,
+    verifyAdhaarOtp} = require("../utils");
 const {
     addBeneficiary,
     bankWithdraw,
@@ -2163,6 +2165,8 @@ const verifyPanDetail = async (req, res) => {
     try {
         let userId = req.user.user_id;
         let panNumber = req.body.pan_number;
+        let name = req.body.pan_name;
+        let dob = req.body.pan_dob;
         let query = {
             user_id: userId
         }
@@ -2172,43 +2176,58 @@ const verifyPanDetail = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
+        if (!dob) {
+            responseData.msg = 'DOB is required';
+            return responseHelper.error(res, responseData, 201);
+        }
+
         let checkUserKyc = await userService.getUserKycDetailsById({
             user_id: userId,
             pan_number: panNumber,
             is_pan_card_verify: '1'
         });
-        if (checkUserKyc) {
-            responseData.msg = 'Already updated';
-            return responseHelper.error(res, responseData, 201);
-        }
-
-        // let requestObj = {
-        //     pan_number: panNumber,
-        //     uuid: uuidv4()
-        // }
-        // let result = await panVerify(requestObj);
-        //if(result.kycStatus=='SUCCESS'){
-        let kycData = {
-            user_id: userId,
-            pan_number: panNumber,
-            is_pan_card_verify: '1'
-        }
-
-        let userLog = {
-            user_id: userId,
-            activity_type: 'pan verify kyc',
-            old_value: '',
-            new_value: JSON.stringify(kycData)
-        }
-        await userService.createUserKyc(kycData);
-        await userService.addUserLog(userLog);
-        responseData.msg = 'Pan Verify done';
-        responseData.data = {};
-        return responseHelper.success(res, responseData);
-        // }else{
-        //     responseData.msg = result.error.message;
+        // if (checkUserKyc) {
+        //     responseData.msg = 'Already updated';
         //     return responseHelper.error(res, responseData, 201);
         // }
+
+        let requestObj = {
+            pan_number: panNumber,
+            name: name,
+            dob: dob
+        }
+        let result = await panVerify(requestObj);
+        console.log(result);
+        if (result.response.status == 'SUCCESS') {
+            let kycData = {
+                user_id: userId,
+                pan_number: panNumber,
+                pan_name: result.response.data.name_pan_card,
+                pan_dob: dob,
+                is_pan_card_verify: '1'
+            }
+
+            let userLog = {
+                user_id: userId,
+                activity_type: 'pan verify kyc',
+                old_value: '',
+                new_value: JSON.stringify(kycData)
+            }
+            let check = await userService.getUserKycDetailsById({user_id: userId});
+            if (!check) {
+                await userService.createUserKyc(kycData);
+            } else {
+                await userService.updateUserKycByQuery(kycData, {user_kyc_id: check.user_kyc_id});
+            }
+            await userService.addUserLog(userLog);
+            responseData.msg = result.response.message;
+            responseData.data = {};
+            return responseHelper.success(res, responseData);
+        } else {
+            console.log('HHH1')
+            responseData.msg = result.response.message;
+            return responseHelper.error(res, responseData, 201);
+        }
 
     } catch (error) {
         responseData.msg = error.message;
@@ -2240,23 +2259,99 @@ const verifyAdhaarDetail = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        // let requestObj = {
-        //     adhaar_number: adhaarNumber,
-        //     uuid: uuidv4()
-        // }
-        // let result = await adhaarVerify(requestObj);
-        // console.log(result);
-        // if(result.status=='SUCCESS'){
-        let kycData = {
+        let requestObj = {
+            adhaar_number: adhaarNumber
+        }
+        let result = await adhaarVerify(requestObj);
+        console.log(result);
+        if (result.response.status == 'SUCCESS') {
+            let kycData = {
+                user_id: userId,
+                adhaar_number: adhaarNumber,
+                transaction_id: result.response.refid,
+                //transaction_id: '123456'
+            }
+            let check = await userService.getUserKycDetailsById({user_id: userId});
+            if (!check) {
+                await userService.createUserKyc(kycData);
+            } else {
+                await userService.updateUserKycByQuery(kycData, {user_kyc_id: check.user_kyc_id});
+            }
+
+            responseData.msg = 'Otp sent to your mobile number';
+            responseData.data = {};
+            return responseHelper.success(res, responseData);
+        } else {
+            responseData.msg = result.response.message;
+            return responseHelper.error(res, responseData, 201);
+        }
+
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
+const verifyAdhaarOtpDet = async (req, res) => {
+    let responseData = {}
+    try {
+        let userId = req.user.user_id;
+        let otp = req.body.otp;
+        let adhaarNumber = req.body.adhaar_number;
+        let query = {
+            user_id: userId
+        }
+        let userD = await userService.getUserDetailsById(query);
+        if (!userD) {
+            responseData.msg = 'user not found';
+            return responseHelper.error(res, responseData, 201);
+        }
+
+        let checkUserKyc = await userService.getUserKycDetailsById({
             user_id: userId,
             adhaar_number: adhaarNumber,
             is_adhaar_verify: '1'
+        });
+        if (checkUserKyc) {
+            responseData.msg = 'Already updated';
+            return responseHelper.error(res, responseData, 201);
         }
 
-        await userService.createUserKyc(kycData);
-        responseData.msg = 'Adhaar Updated';
-        responseData.data = {};
-        return responseHelper.success(res, responseData);
+        let resultKyc = await userService.getUserKycDetailsById({
+            user_id: userId,
+            is_adhaar_verify: '0'
+        });
+        // if(resultKyc.transaction_id!=otp){
+        //     responseData.msg = 'Invalid OTP';
+        //     return responseHelper.error(res, responseData, 201);
+        // }
+        let requestObj = {
+            transaction_id: resultKyc.transaction_id,
+            otp: otp
+        }
+        let result = await verifyAdhaarOtp(requestObj);
+        if (result.response.status == 'SUCCESS') {
+            let kycData = {
+                user_id: userId,
+                transaction_id: null,
+                is_adhaar_verify: '1'
+            }
+
+            let userLog = {
+                user_id: userId,
+                activity_type: 'Adhaar verify kyc',
+                old_value: '',
+                new_value: JSON.stringify(kycData)
+            }
+            await userService.updateUserKycByQuery(kycData, {user_id: userId});
+            await userService.addUserLog(userLog);
+            responseData.msg = 'Verify Done';
+            responseData.data = {};
+            return responseHelper.success(res, responseData);
+        }  else {
+            responseData.msg = result.response.message;
+            return responseHelper.error(res, responseData, 201);
+        }
 
     } catch (error) {
         responseData.msg = error.message;
@@ -3776,6 +3871,7 @@ module.exports = {
     getUserNameByUserId,
     verifyPanDetail,
     verifyAdhaarDetail,
+    verifyAdhaarOtpDet,
     gameTypeListForPrivateTable,
     createGameForPrivate,
     changeGameStatusPrivateRoom,
