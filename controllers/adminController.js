@@ -878,7 +878,7 @@ const gameList = async (req, res) => {
     if (req.query.is_tournament) {
       console.log("check 1");
       whereCondition.is_tournament = "1";
-    } else if (game_category_id == "2") {
+    } else if (game_category_id == game_category_id) {
       console.log("check 2");
       whereCondition.game_category_id = game_category_id;
       whereCondition.is_tournament = "0";
@@ -896,10 +896,6 @@ const gameList = async (req, res) => {
         }
       ];
     }
-    
-    
-    
-
     // Date filters
     if (from_date || end_date) {
       whereCondition.createdAt = {};
@@ -910,6 +906,7 @@ const gameList = async (req, res) => {
         whereCondition.createdAt[Op.lte] = new Date(end_date + " 23:59:59"); 
       }
     }
+    console.log("whereCondition--->",whereCondition);
 
     let totalCount = await adminService.getGameCount(whereCondition);
     let totalPages = Math.ceil(totalCount / limit);
