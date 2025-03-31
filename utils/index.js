@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const axios = require('axios');
 const moment = require('moment');
+const FormData = require("form-data");
 // const redisClient = require('../utils/redis');
 const key = crypto
     .createHash('sha512')
