@@ -223,7 +223,7 @@ const panVerify = async (requestData) => {
     const axios = require('axios');
     const qs = require('qs');
     let data = qs.stringify({
-        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","pan_number":"${requestData.pan_number}"}`
+        'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","pan_number":"${requestData.pan_number}"}`
     });
 
     console.log('data',data);
@@ -252,7 +252,7 @@ const adhaarVerify = async (requestData) => {
     const axios = require('axios');
     const qs = require('qs');
     let data = qs.stringify({
-        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","aadhar_number":"${requestData.adhaar_number}"}`
+        'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","aadhar_number":"${requestData.adhaar_number}"}`
     });
 
     let config = {
@@ -280,7 +280,7 @@ const verifyAdhaarOtp = async (requestData) => {
     const axios = require('axios');
     const qs = require('qs');
     let data = qs.stringify({
-        'requestData': `{"member_id":"7354159939","api_password":"82280","api_pin":"92097","otp":"${requestData.otp}","refid":"${requestData.transaction_id}"}`
+        'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","otp":"${requestData.otp}","refid":"${requestData.transaction_id}"}`
     });
 
     let config = {
