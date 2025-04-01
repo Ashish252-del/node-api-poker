@@ -258,10 +258,14 @@ const panVerify = async (requestData) => {
 const adhaarVerify = async (requestData) => {
     const axios = require('axios');
     const qs = require('qs');
-    let data = qs.stringify({
-        'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","aadhar_number":"${requestData.adhaar_number}"}`
-    });
-
+    // let data = qs.stringify({
+    //     'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","aadhar_number":"${requestData.adhaar_number}"}`
+    // });
+    let data = new FormData();
+    data.append('member_id', '8879019999');
+    data.append('api_password', '76307');
+    data.append('api_pin', '9624');
+    data.append('aadhar_number', requestData.adhaar_number);
     let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -286,10 +290,15 @@ const adhaarVerify = async (requestData) => {
 const verifyAdhaarOtp = async (requestData) => {
     const axios = require('axios');
     const qs = require('qs');
-    let data = qs.stringify({
-        'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","otp":"${requestData.otp}","refid":"${requestData.transaction_id}"}`
-    });
-
+    // let data = qs.stringify({
+    //     'requestData': `{"member_id":"8879019999","api_password":"76307","api_pin":"9624","otp":"${requestData.otp}","refid":"${requestData.transaction_id}"}`
+    // });
+    let data = new FormData();
+    data.append('member_id', '8879019999');
+    data.append('api_password', '76307');
+    data.append('api_pin', '9624');
+    data.append('otp', requestData.otp);
+    data.append('refid', requestData.transaction_id);
     let config = {
         method: 'post',
         maxBodyLength: Infinity,
