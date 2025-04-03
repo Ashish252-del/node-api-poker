@@ -1980,11 +1980,11 @@ const getGameFields = async (req, res) => {
                       'field_type': 'Number',
                       'key': 'commission_cap'
                   }, 
-                  // {
-                  //     'field': 'Turn Timmer',
-                  //     'field_type': 'Number',
-                  //     'key': 'turn_timmer'
-                  // },
+                  {
+                      'field': 'Turn Timmer',
+                      'field_type': 'Number',
+                      'key': 'turn_timmer'
+                  },
                   //  {
                   //     'field': 'Multi Run',
                   //     'field_type': 'Boolean',
@@ -2164,11 +2164,11 @@ const getGameFields = async (req, res) => {
                       'field_type': 'Number',
                       'key': 'commission_cap'
                    },
-                  // {
-                  //     'field': 'Turn Timmer',
-                  //     'field_type': 'Number',
-                  //     'key': 'turn_timmer'
-                  // },
+                  {
+                      'field': 'Turn Timmer',
+                      'field_type': 'Number',
+                      'key': 'turn_timmer'
+                  },
                   //  {
                   //     'field': 'Multi Run',
                   //     'field_type': 'Boolean',
