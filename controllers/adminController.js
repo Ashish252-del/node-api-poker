@@ -4928,6 +4928,344 @@ const todayDeposit = async (req, res) => {
   }
 }
 
+const totalWinning = async (req, res) => {
+  let responseData = {};
+  try {
+    const {game_type, page, search_key, from_date, end_date,csvtype} = req.query;
+    const {limit, offset} = getPagination(page,csvtype);
+    let query = `transactions.is_admin='0' AND transactions.other_type='Winning'`;
+    if(req.query.user_id){
+      query += ` AND transactions.user_id='${req.query.user_id}'`;
+    }
+    if (game_type) {
+      query += ` AND transactions.category='${search_key}'`;
+    }
+    if (from_date && end_date) {
+      let fromDate = moment(from_date).format('YYYY-MM-DD');
+      let endDate = moment(end_date).format('YYYY-MM-DD');
+      console.log('d');
+      query += ` AND DATE(transactions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+
+    if (search_key) {
+      // let gameCategory = await sequelize.query(`Select *  from game_categories where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
+      // if (gameCategory.length > 0) {
+      //     query += ` AND game_histories.game_type like '%${gameCategory[0].game_type_id}%'`;
+      // } else {
+      query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR transactions.category like '%${search_key}%')`;
+      // }
+    }
+    query += ` order by transaction_id DESC`;
+    let response = await sequelize.query(`Select transactions.amount,transactions.createdAt,transactions.category, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+    let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let totalCount = responseTotalCount.length;
+
+    if (responseTotalCount == 0) {
+      responseData.msg = 'Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let sum = 0;
+    response = response.map(async (element, i) => {
+      sum += parseFloat(element.amount)
+      return element;
+    })
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: 'Total Winning List!!!',
+      statusCode: 200,
+      status: true,
+      totalCount: totalCount,
+      totalAmount: sum.toFixed(2),
+      data: response,
+    })
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const ledgerDetails = async (req, res) => {
+  let responseData = {};
+  try{
+    let query, query1, query2, query3, query4, queryWallet
+    if(req.query.user_id){
+      queryWallet = `user_id='${req.query.user_id}'`;
+      query = `redemption_status = 'Pending' AND user_id='${req.query.user_id}'`;
+      query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
+      query2 = `other_type='Winning' AND user_id='${req.query.user_id}'`;
+      query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
+      query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
+    }else{
+      queryWallet = `1=1`
+      query = `redemption_status = 'Pending'`;
+      query1 = `redemption_status = 'Withdraw'`;
+      query2 = `other_type='Winning'`;
+      query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
+      query4 = `transaction_status = 'SUCCESS' AND other_type='Commission'`;
+    }
+
+    let userWallet = await sequelize.query(`Select SUM(win_amount) as winAmount, SUM(real_amount) as realAmount, SUM(bonus_amount) as bonusAmount from user_wallets where ${queryWallet}`, {type: sequelize.QueryTypes.SELECT});
+    let pendingWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalPending from redemptions where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let TotalWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalWithdraw, SUM(tds_amount) as totalTds from redemptions where ${query1}`, {type: sequelize.QueryTypes.SELECT});
+    let TotalWinning = await sequelize.query(`Select SUM(amount) as totalWinning  from transactions where ${query2}`, {type: sequelize.QueryTypes.SELECT});
+    let TotalDeposit = await sequelize.query(`Select SUM(amount) as totalDeposit, SUM(gst_amount) as totalGst  from transactions where ${query3}`, {type: sequelize.QueryTypes.SELECT});
+    let TotalCommission = await sequelize.query(`Select SUM(commission) as totalCommission  from transactions where ${query4}`, {type: sequelize.QueryTypes.SELECT});
+    console.log(userWallet)
+    responseData.msg = 'Cash Transaction List!!!';
+    responseData.data = {
+      totalPending: (pendingWithdraw[0].totalPending) ? parseFloat(pendingWithdraw[0].totalPending) : 0.00,
+      totalWithdraw: (TotalWithdraw[0].totalWithdraw) ? parseFloat(TotalWithdraw[0].totalWithdraw) : 0.00,
+      totalTds: (TotalWithdraw[0].totalTds) ? parseFloat(TotalWithdraw[0].totalTds) : 0.00,
+      totalGst: (TotalDeposit[0].totalGst) ? parseFloat(TotalDeposit[0].totalGst) : 0.00,
+      totalWinning: (userWallet[0].winAmount) ? parseFloat(userWallet[0].winAmount) : 0.00,
+      totalDeposit: (req.query.user_id && userWallet[0].realAmount) ? userWallet[0].realAmount : parseFloat(TotalDeposit[0].totalDeposit),
+      totalBonus: (userWallet[0].bonusAmount) ? parseFloat(userWallet[0].bonusAmount) : 0.00,
+      totalCommission: (TotalCommission[0].totalCommission) ? parseFloat(TotalCommission[0].totalCommission) : 0.00
+    }
+    return responseHelper.success(res, responseData);
+  }catch (error) {
+    responseData.msg = error.message
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const totalWithdrawal = async (req, res) => {
+  let responseData = {};
+  try {
+    const { page, search_key, from_date, end_date,csvtype} = req.query;
+    const {limit, offset} = getPagination(page,csvtype);
+    let query = `redemption_status='Withdraw'`;
+    if(req.query.user_id){
+      query += ` AND redemptions.user_id='${req.query.user_id}'`;
+    }
+    if (from_date && end_date) {
+      let fromDate = moment(from_date).format('YYYY-MM-DD');
+      let endDate = moment(end_date).format('YYYY-MM-DD');
+      console.log('d');
+      query += ` AND DATE(redemptions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+
+    if (search_key) {
+      query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+    }
+    query += ` order by redemption_id DESC`;
+    let response = await sequelize.query(`Select redemptions.redemption_id,redemptions.transaction_id,redemptions.redeem_amount,redemptions.bank_reason,redemptions.tds_amount,redemptions.createdAt,redemptions.updatedAt,redemptions.redemption_status, users.username  from redemptions join users on redemptions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+    let responseTotalCount = await sequelize.query(`Select redemptions.*  from redemptions join users on redemptions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let totalCount = responseTotalCount.length;
+
+    if (responseTotalCount == 0) {
+      responseData.msg = 'Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let sum = 0;
+    response = response.map(async (element, i) => {
+      sum += parseFloat(element.redeem_amount)
+      return element;
+    })
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: 'Total Deposit List!!!',
+      statusCode: 200,
+      status: true,
+      totalCount: totalCount,
+      totalAmount: sum.toFixed(2),
+      data: response,
+    })
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const tdsSummary = async (req, res) => {
+  let responseData = {};
+  try {
+    const { page, search_key, from_date, end_date,csvtype} = req.query;
+    const {limit, offset} = getPagination(page,csvtype);
+    let query = `redemption_status='Withdraw'`;
+    if(req.query.user_id){
+      query += ` AND redemptions.user_id='${req.query.user_id}'`;
+    }
+    if (from_date && end_date) {
+      let fromDate = moment(from_date).format('YYYY-MM-DD');
+      let endDate = moment(end_date).format('YYYY-MM-DD');
+      console.log('d');
+      query += ` AND DATE(redemptions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+
+    if (search_key) {
+      query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+    }
+    query += ` order by redemption_id DESC`;
+    let response = await sequelize.query(`Select redemptions.redemption_id,redemptions.transaction_id,redemptions.redeem_amount,redemptions.bank_reason,redemptions.tds_amount,redemptions.createdAt,redemptions.updatedAt,redemptions.redemption_status, users.username  from redemptions join users on redemptions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+    let responseTotalCount = await sequelize.query(`Select redemptions.*  from redemptions join users on redemptions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let totalCount = responseTotalCount.length;
+
+    if (responseTotalCount == 0) {
+      responseData.msg = 'Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let sum = 0;
+    response = response.map(async (element, i) => {
+      sum += parseFloat(element.tds_amount)
+      return element;
+    })
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: 'Total Deposit List!!!',
+      statusCode: 200,
+      status: true,
+      totalCount: totalCount,
+      totalAmount: sum.toFixed(2),
+      data: response,
+    })
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const totalDeposit = async (req, res) => {
+  let responseData = {};
+  try {
+    const { page, search_key, from_date, end_date,csvtype} = req.query;
+    const {limit, offset} = getPagination(page,csvtype);
+    let query = `other_type='Deposit' AND transaction_status='SUCCESS' AND is_admin=0`;
+    if(req.query.user_id){
+      query += ` AND transactions.user_id='${req.query.user_id}'`;
+    }
+    if (from_date && end_date) {
+      let fromDate = moment(from_date).format('YYYY-MM-DD');
+      let endDate = moment(end_date).format('YYYY-MM-DD');
+      console.log('d');
+      query += ` AND DATE(transactions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+
+    if (search_key) {
+      query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+    }
+    query += ` order by transaction_id DESC`;
+    let response = await sequelize.query(`Select transactions.amount,transactions.gst_amount,transactions.createdAt,transactions.transaction_status,transactions.order_id, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+    let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let totalCount = responseTotalCount.length;
+
+    if (responseTotalCount == 0) {
+      responseData.msg = 'Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let sum = 0;
+    response = response.map(async (element, i) => {
+      sum += parseFloat(element.amount)
+      return element;
+    })
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: 'Total Deposit List!!!',
+      statusCode: 200,
+      status: true,
+      totalCount: totalCount,
+      totalAmount: sum.toFixed(2),
+      data: response,
+    })
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const gstSummary = async (req, res) => {
+  let responseData = {};
+  try {
+    const { page, search_key, from_date, end_date,csvtype} = req.query;
+    const {limit, offset} = getPagination(page,csvtype);
+    let query = `other_type='Deposit' AND transaction_status='SUCCESS'`;
+    if(req.query.user_id){
+      query += ` AND transactions.user_id='${req.query.user_id}'`;
+    }
+    if (from_date && end_date) {
+      let fromDate = moment(from_date).format('YYYY-MM-DD');
+      let endDate = moment(end_date).format('YYYY-MM-DD');
+      console.log('d');
+      query += ` AND DATE(transactions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+    }
+
+    if (search_key) {
+      query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+    }
+    query += ` order by transaction_id DESC`;
+    let response = await sequelize.query(`Select transactions.amount,transactions.gst_amount,transactions.createdAt,transactions.transaction_status, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+    let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+    let totalCount = responseTotalCount.length;
+
+    if (responseTotalCount == 0) {
+      responseData.msg = 'Data not found';
+      return responseHelper.error(res, responseData, 201);
+    }
+    let sum = 0;
+    response = response.map(async (element, i) => {
+      sum += parseFloat(element.gst_amount)
+      return element;
+    })
+    response = await Promise.all(response);
+    return res.status(200).send({
+      message: 'Total Deposit List!!!',
+      statusCode: 200,
+      status: true,
+      totalCount: totalCount,
+      totalAmount: sum.toFixed(2),
+      data: response,
+    })
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const addDeposit = async (req, res) => {
+  let responseData = {};
+  try {
+    let userId = req.body.user_id;
+    let amount = req.body.amount;
+    let winamount = req.body.win_amount;
+    let check = await userService.getUserWalletDetailsById({user_id:userId});
+    if (check) {
+      let walletD = parseFloat(check.real_amount) + parseFloat(amount);
+      let winWalletD = parseFloat(check.win_amount) + parseFloat(winamount);
+      await userService.updateUserWallet({real_amount:walletD,win_amount:winWalletD}, {user_id:userId})
+    }
+    if(amount){
+      let transaction = {
+        user_id: userId,
+        type: "CR",
+        other_type: 'Deposit By Admin',
+        reference: 'Deposit',
+        amount: amount,
+        transaction_status: 'SUCCESS',
+        is_deposit: 1
+      }
+      await userService.createTransaction(transaction);
+    }
+    if(winamount){
+      let transaction1 = {
+        user_id: userId,
+        type: "CR",
+        other_type: 'Deposit By Admin',
+        reference: 'Winning',
+        amount: winamount,
+        transaction_status: 'SUCCESS',
+        is_deposit: 1
+      }
+      await userService.createTransaction(transaction1);
+    }
+
+    responseData.msg = 'Deposit Added';
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
 const cashTransaction = async (req, res) => {
   let responseData = {};
   try {
@@ -5359,6 +5697,7 @@ module.exports = {
   todayWithdrawal,
   changeWithDrawlStatus,
   todayDeposit,
+  totalWinning,
   cashTransaction,
   getBonusData,
   bonusUpdate,
@@ -5366,5 +5705,10 @@ module.exports = {
   // getPoolUsers
   gameWiseUserStatus,
   getAllpockerSuspiciousActions,
-
+  ledgerDetails,
+  tdsSummary,
+  gstSummary,
+  totalWithdrawal,
+  totalDeposit,
+  addDeposit
 }

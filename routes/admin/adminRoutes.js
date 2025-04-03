@@ -192,8 +192,14 @@ module.exports = () => {
 
     routes.get('/pending-withdrawal', authenticate, adminController.pendingWithdrawal)
     routes.get('/today-withdrawal', authenticate, adminController.todayWithdrawal)
-    routes.post('/change-withdrawl-status', authenticate, adminController.changeWithDrawlStatus)
     routes.get('/today-deposit', authenticate, adminController.todayDeposit)
+    routes.get('/total-winnings', authenticate, adminController.totalWinning)
+    routes.get("/ledger-detail",  adminController.ledgerDetails);
+    routes.get('/tds-summary', authenticate, adminController.tdsSummary)
+    routes.get('/gst-summary', authenticate, adminController.gstSummary)
+    routes.post('/add-deposit', authenticate, adminController.addDeposit);
+
+    routes.post('/change-withdrawl-status', authenticate, adminController.changeWithDrawlStatus)
     routes.get('/cash-transaction', authenticate, adminController.cashTransaction)
 
     routes.post('/bonus-update',authenticate,adminController.bonusUpdate);

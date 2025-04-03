@@ -24,28 +24,69 @@ const authentication = async () => {
 }
 const payIn = async (reqData) => {
     try {
-        let token = await authentication(); // Ensure authentication function works correctly
-        console.log('authToken:', token);
+        //let token = await authentication(); // Ensure authentication function works correctly
+        // console.log('authToken:', token);
+        //
+        // if (!token) {
+        //     throw new Error("Authentication failed. No token received.");
+        // }
 
-        if (!token) {
-            throw new Error("Authentication failed. No token received.");
-        }
-
-        let data = new FormData();
-        data.append('amount', reqData.amount);
-        data.append('reference', reqData.reference);
-        data.append('name', reqData.name);
-        data.append('mobile', reqData.mobile);
-        data.append('email', reqData.email);
+        const axios = require('axios');
+        let data = JSON.stringify({
+            "token": "xxxxxxxxxx",
+            "amount": reqData.amount,
+            "clientOrderId": reqData.transaction_id,
+            "returnUrl": "https://example.com",
+            "firstname": reqData.firstname,
+            "lastname": reqData.lastname,
+            "email": reqData.email,
+            "mobile": reqData.mobile
+        });
 
         let config = {
             method: 'post',
             maxBodyLength: Infinity,
-            url: process.env.WORLDPAYURL+'createUpiIntent',
+            url: 'https://ubi.kwicpay.com/api/upi/generateQr',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
-            data: data
+            data : data
+        };
+
+        const response = await axios.request(config);
+        console.log("payIn:", response.data);
+
+        return response.data; // Return the response data for further use
+    } catch (error) {
+        console.error("Error in payment request:", error.response?.data || error.message);
+        return {status: 400, data: {message: error.response?.data.message || error.message}};
+    }
+
+}
+
+const payInStatus = async (reqData) => {
+    try {
+        //let token = await authentication(); // Ensure authentication function works correctly
+        // console.log('authToken:', token);
+        //
+        // if (!token) {
+        //     throw new Error("Authentication failed. No token received.");
+        // }
+
+        const axios = require('axios');
+        let data = JSON.stringify({
+            "token":"xxxxxxxxx",
+            "clientOrderId":reqData.transaction_id
+        });
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://ubi.kwicpay.com/api/upi/statusCheck',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data : data
         };
 
         const response = await axios.request(config);
@@ -221,6 +262,7 @@ module.exports = {
     orderDetail,
     payOut,
     payIn,
+    payInStatus,
     authentication,
     verifyPanCard,
     getTransferStatus,
