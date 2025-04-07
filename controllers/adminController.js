@@ -5567,12 +5567,40 @@ const getAllpockerSuspiciousActions = async (req, res) => {
   }
 };
 
+const gameWiseCommission = async (req, res) => {
+  let responseData = {};
+  try {
+    let query = `
+    SELECT 
+    SUM(CASE WHEN category = 'poker' AND other_type = 'Table Commision' THEN commission ELSE 0 END) AS pokerCommission,
+    SUM(CASE WHEN category = 'rummy' AND is_admin = 1 AND other_type = 'commission' THEN commission ELSE 0 END) AS rummyCommission,
+    SUM(CASE WHEN category = 'ludo' AND is_admin = 1 AND other_type = 'commission' THEN commission ELSE 0 END) AS ludoCommission,
+    SUM(CASE WHEN other_type = 'deposit' AND transaction_status = 'SUCCESS' THEN gst_amount ELSE 0 END) AS totalGstAmount,
+    0 AS poolCommission,
+    SUM(
+        CASE 
+            WHEN category = 'poker' AND other_type = 'Table Commision' THEN commission
+            WHEN category = 'rummy' AND is_admin = 1 AND other_type = 'commission' THEN commission
+            WHEN category = 'ludo' AND is_admin = 1 AND other_type = 'commission' THEN commission
+            ELSE 0 
+        END
+    ) AS totalCommission
+FROM winnow.transactions;
 
+    `;
 
+    let [result] = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
 
+    responseData.msg = "All data fetched successfully";
+    responseData.data = result;
+    return responseHelper.success(res, responseData);
 
-
-
+  } catch (error) {
+    console.error("Error fetching game-wise commission:", error);
+    responseData.msg = error.message || "Something went wrong";
+    return responseHelper.error(res, responseData, 500);
+  }
+};
 module.exports = {
   adminLogin,
   addRole,
@@ -5705,6 +5733,7 @@ module.exports = {
   // getPoolUsers
   gameWiseUserStatus,
   getAllpockerSuspiciousActions,
+  gameWiseCommission,
   ledgerDetails,
   tdsSummary,
   gstSummary,

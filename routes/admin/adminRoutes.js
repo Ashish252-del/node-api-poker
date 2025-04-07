@@ -208,5 +208,6 @@ module.exports = () => {
     // routes.get("/pool-user",authenticate,adminController.getPoolUsers)
     routes.post('/update-user-game-status', authenticate, adminController.gameWiseUserStatus);
     routes.get("/get-pocker-suspicious-actions",authenticate,adminController.getAllpockerSuspiciousActions)
+    routes.get("/game-wise-commission",authenticate,adminController.gameWiseCommission)
     return routes;
 };
