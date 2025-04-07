@@ -52,5 +52,9 @@ module.exports = () => {
     // routes.post("/save-pool-game-history",authenticate,userController.savePoolGameHistory)
     routes.get("/get-banner", authenticate, userController.getBanner);
     routes.get("/logout" ,authenticate,userController.logout);
+
+    routes.post("/update-wallet" ,userController.updateWalletForFantasy);
+    routes.post("/update-wallet-refund" ,userController.updateWalletRefund);
+    routes.post("/update-win-wallet-fantasy" ,userController.updateWinWalletForFantasy);
     return routes;
 };

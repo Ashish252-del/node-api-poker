@@ -3830,6 +3830,118 @@ const getBanner = async (req, res) => {
     }
 }
 
+const updateWalletForFantasy = async (req, res) => {
+    let responseData = {}
+    try {
+        let {userId, depositeAmount, bonusAmount, winningAmount} = req.body;
+        let result = await userService.getUserWalletDetailsById({user_id: req.body.userId});
+        if (!result) {
+            responseData.msg = 'Data not Found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        let walletObj = {
+            real_amount: parseFloat(result.real_amount) - parseFloat(depositeAmount),
+            bonus_amount: parseFloat(result.bonus_amount) - parseFloat(bonusAmount),
+            win_amount: parseFloat(result.win_amount) - parseFloat(winningAmount)
+        }
+        let totalBetAmount = parseFloat(depositeAmount) + parseFloat(bonusAmount) + parseFloat(winningAmount)
+        let transaction = {
+            order_id: "MT" + Date.now(),
+            user_id: userId,
+            type: "DR",
+            other_type: 'Bet Amount',
+            category: 'Fantasy',
+            amount: totalBetAmount
+        }
+
+        await userService.updateUserWallet(walletObj, {user_id: userId})
+        await userService.createTransaction(transaction)
+        responseData.msg = 'Wallet Update';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
+
+const updateWalletRefund = async (req, res) => {
+    let responseData = {}
+    try {
+        let {userId, depositeAmount, bonusAmount, winningAmount, message} = req.body;
+        let result = await userService.getUserWalletDetailsById({user_id: req.body.userId});
+        if (!result) {
+            responseData.msg = 'Data not Found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        let walletObj = {
+            real_amount: parseFloat(result.real_amount) + parseFloat(depositeAmount),
+            bonus_amount: parseFloat(result.bonus_amount) + parseFloat(bonusAmount),
+            win_amount: parseFloat(result.win_amount) + parseFloat(winningAmount)
+        }
+        let totalBetAmount = parseFloat(depositeAmount) + parseFloat(bonusAmount) + parseFloat(winningAmount)
+        let transaction = {
+            order_id: "MT" + Date.now(),
+            user_id: userId,
+            type: "CR",
+            other_type: 'Refund',
+            category: 'Fantasy',
+            amount: totalBetAmount
+        }
+        await userService.updateUserWallet(walletObj, {user_id: userId})
+        await userService.createTransaction(transaction)
+        let data = {
+            sender_user_id: 1,
+            receiver_user_id: userId,
+            title: 'Fantasy Refund',
+            message: message
+        };
+
+        await adminService.sendNotification(data);
+
+
+        responseData.msg = 'Wallet Update';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
+
+const updateWinWalletForFantasy = async (req, res) => {
+    let responseData = {}
+    try {
+        let {bulk} = req.body;
+        for (let i = 0; i < bulk.length; i++) {
+            let result = await userService.getUserWalletDetailsById({user_id: bulk[i].userId});
+            if (result) {
+                let walletObj = {
+                    win_amount: parseFloat(result.win_amount) + parseFloat(bulk[i].winningAmount)
+                }
+                //console.log(walletObj,bulk[i].userId)
+                let transaction = {
+                    order_id: "MT" + Date.now(),
+                    user_id: bulk[i].userId,
+                    type: "CR",
+                    other_type: 'Winning',
+                    category: 'Fantasy',
+                    amount: parseFloat(bulk[i].winningAmount)
+                }
+                //console.log(transaction,bulk[i].userId)
+                await userService.updateUserWallet(walletObj, {user_id: bulk[i].userId})
+                await userService.createTransaction(transaction)
+            }
+        }
+        responseData.msg = 'Wallet Update';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
+
 
 module.exports = {
     getBanner,
@@ -3888,6 +4000,9 @@ module.exports = {
     addWinningAmountForRummy,
     userBonusPercentage,
     get_all_avatars,
-    addPokerSusPiciousUser
+    addPokerSusPiciousUser,
+    updateWalletForFantasy,
+    updateWalletRefund,
+    updateWinWalletForFantasy
     // savePoolGameHistory
 }
