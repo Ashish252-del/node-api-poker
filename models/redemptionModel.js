@@ -29,6 +29,11 @@ function model(sequelize) {
             type: DataTypes.DECIMAL(15,2),
             allowNull: true,
         },
+        tds_amount: {
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: false,
+            defaultValue: 0.00
+        },
         redemption_status: {
             type: DataTypes.ENUM,
             allowNull: false,
