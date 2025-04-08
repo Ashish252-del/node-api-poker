@@ -276,17 +276,11 @@ const getepayPortal = (data) => {
             terminalId: data.terminalId,
             req: newCipher,
         });
-        var requestOptions = {
-            method: "POST",
-            headers: myHeaders,
-            body: raw,
-            redirect: "follow",
-        };
 
-        fetch(`${process.env.GetepayUrl}generateInvoice`, requestOptions)
-            .then((response) => response.text())
-            .then((result) => {
-                var resultobj = JSON.parse(result);
+        // Make the POST request using axios
+        axios.post(`${process.env.GetepayUrl}generateInvoice`, raw, { headers: myHeaders })
+            .then((response) => {
+                var resultobj = response.data; // Axios returns response as `data`
                 var responseurl = resultobj.response;
                 var dataitem = decryptEas(
                     responseurl,
@@ -294,12 +288,14 @@ const getepayPortal = (data) => {
                     process.env.GetepayIV
                 );
                 const parsedData = JSON.parse(dataitem);
-                console.log('dd',parsedData)
+                console.log('dd', parsedData);
                 const paymentUrl = parsedData.paymentUrl;
                 const paymentId = parsedData.paymentId;
                 resolve({ paymentUrl, paymentId });
             })
-            .catch((error) => reject(error));
+            .catch((error) => {
+                reject(error);
+            });
     });
 };
 
