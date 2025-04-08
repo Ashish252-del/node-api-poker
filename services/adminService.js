@@ -189,6 +189,14 @@ const updateRole = (data, query) => {
     );
 }
 
+const deleteRole = ( id) => {
+    db.user_roles.destroy({where:{roleId:id}});
+    db.role_modules.destroy({where:{roleId:id}});
+    return db.roles.destroy(
+        {where: {role_id:id}}
+    );
+}
+
 const getRoleByQuery = (query) => {
     return db.roles.findOne({where: query});
 }
@@ -881,5 +889,6 @@ module.exports = {
     updateTournamentById,
     getLudoGameHistory,
     getPoolGameHistory,
-    getAllAdmins
+    getAllAdmins,
+    deleteRole
 }

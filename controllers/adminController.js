@@ -363,11 +363,18 @@ const changeRoleStatus = async (req, res) => {
       responseData.msg = "Role not found";
       return responseHelper.error(res, responseData, 201);
     }
-    let roleObj = {
-      role_status: status,
-      updated_by: req.user.admin_id,
-    };
-    await adminService.updateRole(roleObj, { role_id: id });
+    if(status!=2){
+      let roleObj = {
+        role_status: status,
+        updated_by: req.user.admin_id,
+      };
+
+      await adminService.updateRole(roleObj, { role_id: id });
+    }else{
+
+      await adminService.deleteRole( id );
+    }
+
     responseData.msg = "Role Status Updated";
     return responseHelper.success(res, responseData);
   } catch (error) {
