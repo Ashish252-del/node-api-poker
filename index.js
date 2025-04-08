@@ -64,7 +64,7 @@ app.get('/success', (req, res) => {
       payment_status: req.query.status
    });
 });
-app.post("success-payment", handleSuccessPayment);
+app.post("/success-payment", handleSuccessPayment);
 
 // api routes
 routeService(app);
