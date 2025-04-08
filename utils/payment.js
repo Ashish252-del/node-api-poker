@@ -3,7 +3,6 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { encryptEas } = require('./../components/encryptEas');
 const { decryptEas } = require('./../components/decryptEas');
-const fetch = require('node-fetch');
 const authentication = async () => {
     var FormData = require('form-data');
     var data = new FormData();
