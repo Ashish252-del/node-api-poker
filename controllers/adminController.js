@@ -5597,7 +5597,7 @@ const gameWiseCommission = async (req, res) => {
             ELSE 0 
         END
     ) AS totalCommission
-FROM winnow.transactions;
+FROM transactions;
 
     `;
 
