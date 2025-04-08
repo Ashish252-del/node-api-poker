@@ -13,7 +13,7 @@ const errorHandler = require('./middleware/error-handler');
 const routeService = require('./routes');
 const grpcServer = require('./grpc/grpc-server');
 //const userController = require("./controllers/userController");
-const { updatePaymentStatus } = require("./controllers/userController");
+const { handleSuccessPayment,updatePaymentStatus } = require("./controllers/userController");
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -64,6 +64,7 @@ app.get('/success', (req, res) => {
       payment_status: req.query.status
    });
 });
+app.post("success-payment", handleSuccessPayment);
 
 // api routes
 routeService(app);

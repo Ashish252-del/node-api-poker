@@ -3879,7 +3879,7 @@ const depositAmount = async(req,res) => {
             udf9: "",
             udf10: "",
             ru: `${process.env.API_URL}success-payment`,
-            callbackUrl: `${process.env.API_URL}deposit-callback`,
+            callbackUrl: `${process.env.API_URL}api/v1/user/deposit-callback`,
             currency: "INR",
             paymentMode: "ALL",
             bankId: "",

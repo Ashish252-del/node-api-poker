@@ -59,7 +59,6 @@ module.exports = () => {
     routes.post("/update-win-wallet-fantasy" ,userController.updateWinWalletForFantasy);
 
     routes.post("/add-amount" ,authenticate,userController.depositAmount);
-    routes.post("/success-payment", userController.handleSuccessPayment);
     routes.post("/deposit-callback" ,userController.handleSuccessPayment);
     return routes;
 };
