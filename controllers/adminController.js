@@ -1316,11 +1316,16 @@ const dashboard = async (req, res) => {
   }
 };
 
-const getPagination = (page, size) => {
+const getPagination = (page,type=null) => {
   page = page - 1;
-  const limit = size ? size : 15;
-  const offset = page ? page * limit : 0;
-  return { limit, offset };
+  let limit = 15;
+  let offset = page ? page * limit : 0;
+  if(type==1){
+    limit = 5000
+    offset = 0
+  }
+
+  return {limit, offset};
 };
 
 const userList = async (req, res) => {

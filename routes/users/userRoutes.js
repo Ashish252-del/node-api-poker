@@ -13,6 +13,7 @@ const {
 } = require('./../auth/validator');
 const {forgot} = require("../auth/validator");
 const authController = require("../../controllers/authController");
+const {handleSuccessPayment} = require("../../controllers/userController");
 
 module.exports = () => {
     routes.get("/profile" ,authenticate,userController.getProfile);
@@ -22,7 +23,7 @@ module.exports = () => {
     routes.post("/update-kyc" ,authenticate,upload.single("document"),postKyc(),validate,userController.updateKyc);
     routes.post("/add-bank-account" ,authenticate,postBank(), validate, userController.addBankAccount);
     routes.get("/bank-account-list" ,authenticate,userController.getBankAccounts);
-    routes.post("/add-amount" ,authenticate,userController.addAmount);
+    //routes.post("/add-amount" ,authenticate,userController.addAmount);
     routes.post("/redeem-amount" ,authenticate,userController.withdrawAmount);
     routes.get("/get-redeem-list" ,authenticate,userController.getRedeemList);
     routes.post("/tds" ,authenticate,upload.single("tds_file"),userController.tds);
@@ -56,5 +57,9 @@ module.exports = () => {
     routes.post("/update-wallet" ,userController.updateWalletForFantasy);
     routes.post("/update-wallet-refund" ,userController.updateWalletRefund);
     routes.post("/update-win-wallet-fantasy" ,userController.updateWinWalletForFantasy);
+
+    routes.post("/add-amount" ,authenticate,userController.depositAmount);
+    routes.post("/success-payment", userController.handleSuccessPayment);
+    routes.post("/deposit-callback" ,userController.handleSuccessPayment);
     return routes;
 };

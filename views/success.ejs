@@ -3,17 +3,16 @@
 <div class="container" style="margin-top:5%;">
     <div class="row">
         <div class="jumbotron" style="box-shadow: 2px 2px 4px #000000;">
-            <% if(payment_status=='PAYMENT_SUCCESS'){ %>
+            <% if(payment_status=='SUCCESS'){ %>
                 <h2 class="text-center">YOUR TRANSACTION HAS BEEN SUCCESSFULLY DONE</h2>
-                <h3 class="text-center">Thank you for your payment, it’s processing</h3>
                 <p class="text-center">Your Transaction id # is: <%= transaction_id %></p>
-            <% }else if(payment_status=='PAYMENT_ERROR'){ %>
+            <% }else if(payment_status=='FAILED'){ %>
                 <h2 class="text-center">YOUR TRANSACTION HAS BEEN FAILED</h2>
                 <p class="text-center">Your Transaction id # is: <%= transaction_id %></p>
-            <% }else if(payment_status=='PAYMENT_PENDING'){ %>
+            <% }else if(payment_status=='PENDING'){ %>
                 <h2 class="text-center">YOUR TRANSACTION HAS BEEN PENDING</h2>
                 <p class="text-center">Your Transaction id # is: <%= transaction_id %></p>
-            <% }else if(payment_status=='PAYMENT_DECLINED'){ %>
+            <% }else if(payment_status=='DECLINED'){ %>
                 <h2 class="text-center">YOUR TRANSACTION HAS BEEN DECLINED</h2>
                 <p class="text-center">Your Transaction id # is: <%= transaction_id %></p>
             <% } else{ %>

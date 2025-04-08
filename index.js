@@ -12,7 +12,8 @@ const path = require('path');
 const errorHandler = require('./middleware/error-handler');
 const routeService = require('./routes');
 const grpcServer = require('./grpc/grpc-server');
-const userController = require("./controllers/userController");
+//const userController = require("./controllers/userController");
+const { updatePaymentStatus } = require("./controllers/userController");
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -28,14 +29,14 @@ app.use(errorHandler);
 app.set('view engine', 'ejs');
 const directory = path.join(__dirname, '/upload/user');
 app.use('/user', express.static(directory));
-//require('./cron')
+require('./cron')
 
 app.get('/', async (req, res) => {
    res.send("Hello world!");
 });
 
 app.post('/payment-return-url', async (req, res) => {
-   let paymentStatus = await userController.updatePaymentStatus(req.body);
+   let paymentStatus = await updatePaymentStatus(req.body);
    res.redirect('/success?transactionid=' + req.body.reference + '&status=' + req.body.status);
 });
 

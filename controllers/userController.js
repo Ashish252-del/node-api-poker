@@ -15,8 +15,11 @@ const {
     getBeneficiaryId,
     signRequest,
     payIn,
-    payOut
+    payOut,
+    getepayPortal
 } = require("../utils/payment");
+const { decryptEas } = require('./../components/decryptEas');
+const { encryptEas } = require('./../components/encryptEas');
 const {
     getRandomAlphanumeric
 } = require("../utils/index");
@@ -80,221 +83,122 @@ const getProfile = async (req, res) => {
     }
 }
 const updateProfile = async (req, res) => {
-    let responseData = {};
+    const responseData = {};
+    let transaction;
+
     try {
-        let reqObj = req.body;
-        let user = req.user;
-        let id = user.user_id;
-        let query = {user_id: id}
-        let getUser = await userService.getUserDetailsById(query);
+        const { body: reqObj, user } = req;
+        const { user_id: id } = user;
+        const query = { user_id: id };
+
+        // Start transaction
+        transaction = await sequelize.transaction();
+
+        // Get user details
+        const getUser = await userService.getUserDetailsById(query, { transaction });
         if (!getUser) {
+            await transaction.rollback();
             responseData.msg = 'No User Found';
-            return responseHelper.error(res, responseData, 201);
-        }
-        console.log('request', req.body)
-        let fullname, username, dobs, gendar, phone, emails;
-        if (typeof reqObj.user_name == 'undefined') {
-            username = getUser.username;
-        } else if (reqObj.user_name == '') {
-            username = getUser.username;
-        } else {
-            username = reqObj.user_name;
+            return responseHelper.error(res, responseData, 404);
         }
 
+        // Helper function to safely update fields
+        const getUpdatedValue = (newValue, currentValue) =>
+            (newValue !== undefined && newValue !== '') ? newValue : currentValue;
 
+        // Prepare updated user data
+        const userData = {
+            username: getUpdatedValue(reqObj.user_name, getUser.username),
+            email: getUpdatedValue(reqObj.email, getUser.email),
+            gender: getUpdatedValue(reqObj.gender, getUser.gender),
+            dob: getUpdatedValue(reqObj.dob, getUser.dob),
+            is_email_verified: getUser.is_email_verified
+        };
 
-        if (typeof reqObj.gender == 'undefined') {
-            gendar = getUser.gender;
-        } else if (reqObj.gender == '') {
-            gendar = getUser.gender;
-        } else {
-            gendar = reqObj.gender;
+        // Check for duplicate username
+        if (userData.username !== getUser.username) {
+            const existingUser = await userService.getUserDetailsById(
+                { user_id: { [Op.ne]: id }, username: userData.username },
+                { transaction }
+            );
+            if (existingUser) {
+                await transaction.rollback();
+                responseData.msg = 'Username is already registered';
+                return responseHelper.error(res, responseData, 409);
+            }
         }
 
-        if (typeof reqObj.dob == 'undefined') {
-            dobs = getUser.dob;
-        } else if (reqObj.dob == '') {
-            dobs = getUser.dob;
-        } else {
-            dobs = reqObj.dob;
-        }
-        let isEmailVerify = getUser.is_email_verified;
-        // if (typeof reqObj.email == 'undefined') {
-        //     emails = getUser.email;
-        // } else if (reqObj.email == '') {
-        //     emails = getUser.email;
-        // } else {
-        //     // emails = await encryptData(reqObj.email);
-        //     emails = await reqObj.email
+        // Update user
+        await userService.updateUserByQuery(userData, query, { transaction });
 
-        //     // if (getUser.email && (await decryptData(getUser.email) != reqObj.email)) {
-        //         if (getUser.email && (getUser.email) != reqObj.email) {
-        //         isEmailVerify = 0;
-        //     }
-        // }
-
-
-        // let query1 = {user_id: {[Op.ne]: id}, email: emails}
-        let query2 = {user_id: {[Op.ne]: id}, username: username}
-        // let checkEmail = await userService.getUserDetailsById(query1);
-        // if (emails && checkEmail) {
-        //     responseData.msg = 'Email is already registered';
-        //     return responseHelper.error(res, responseData, 201);
-        // }
-
-        let checkUsername = await userService.getUserDetailsById(query2);
-        if (checkUsername) {
-            responseData.msg = 'UserName is already registered';
-            return responseHelper.error(res, responseData, 201);
-        }
-
-        let userData = {
-            username: username,
-            // email: emails,
-            gender: gendar,
-            dob: dobs,
-            is_email_verified: isEmailVerify
-        }
-
-
-        let userLog = {
+        // Create user log
+        const userLog = {
             user_id: id,
             device_token: getUser.device_token,
             activity_type: 'update profile',
             old_value: JSON.stringify(getUser),
             new_value: JSON.stringify(userData)
-        }
-        let updateUser = await userService.updateUserByQuery(userData, query);
-        let updateLog = await userService.addUserLog(userLog);
+        };
+        await userService.addUserLog(userLog, { transaction });
 
-        //Bank Account Update
-        let checkUserBank = await userService.getUserBankDetailsById({user_id: id});
+        // Bank Account Update
+        const checkUserBank = await userService.getUserBankDetailsById({ user_id: id }, { transaction });
+        const {
+            bank_name,
+            account_holder_name,
+            ifsc_code,
+            account_no,
+            bank_address
+        } = reqObj;
+
+        // Helper function for bank fields
+        const getBankFieldValue = async (newValue, existingValue, shouldEncrypt = false) => {
+            if (newValue !== undefined && newValue !== '') {
+                return shouldEncrypt ? await encryptData(newValue) : newValue;
+            }
+            return existingValue;
+        };
+
+        const beneficiaryId = checkUserBank?.beneficiary_id || new Date().getTime();
+        const accountData = {
+            user_id: id,
+            beneficiary_id: beneficiaryId,
+            bank_name: await getBankFieldValue(bank_name, checkUserBank?.bank_name),
+            account_holder_name: await getBankFieldValue(account_holder_name, checkUserBank?.account_holder_name),
+            ifsc_code: await getBankFieldValue(ifsc_code, checkUserBank?.ifsc_code, true),
+            account_no: await getBankFieldValue(account_no, checkUserBank?.account_no, true),
+            bank_address: await getBankFieldValue(bank_address, checkUserBank?.bank_address)
+        };
+
+        // Validate required bank fields when creating or updating
+        if (!accountData.bank_name || !accountData.account_no) {
+            await transaction.rollback();
+            responseData.msg = 'Bank name and account number are required';
+            return responseHelper.error(res, responseData, 400);
+        }
+
         if (checkUserBank) {
-            let bankName, accountHoldername, ifscCode, accountNo, upiNo, bankAddress;
-            if (req.body.bank_name != '' && typeof req.body.bank_name != 'undefined') {
-                bankName = req.body.bank_name;
-            } else {
-                bankName = checkUserBank.bank_name;
-            }
-
-            if (req.body.account_holder_name != '' && typeof req.body.account_holder_name != 'undefined') {
-                accountHoldername = req.body.account_holder_name;
-            } else {
-                accountHoldername = checkUserBank.account_holder_name;
-            }
-
-            if (req.body.ifsc_code != '' && typeof req.body.ifsc_code != 'undefined') {
-                ifscCode = await encryptData(req.body.ifsc_code);
-            } else {
-                ifscCode = checkUserBank.ifsc_code;
-            }
-
-            if (req.body.account_no != '' && typeof req.body.account_no != 'undefined') {
-                accountNo = await encryptData(req.body.account_no);
-            } else {
-                accountNo = checkUserBank.account_no;
-            }
-
-            if (req.body.bank_address != '' && typeof req.body.bank_address != 'undefined') {
-                bankAddress = req.body.bank_address;
-            } else {
-                bankAddress = checkUserBank.bank_address;
-            }
-            let benefiaciaryId = new Date().getTime();
-            let benefiaciaryData = await getBeneficiaryId(await decryptData(accountNo), await decryptData(ifscCode));
-            if (benefiaciaryData.status == 'SUCCESS') {
-                benefiaciaryId = benefiaciaryData.data.beneId;
-            }
-
-            let bankData = {
-                beneId: benefiaciaryId,
-                name: accountHoldername,
-                // email: await decryptData(emails),
-                phone: await decryptData(getUser.mobile),
-                bankAccount: await decryptData(accountNo),
-                ifsc: await decryptData(ifscCode),
-                address1: bankAddress,
-                vpa: ''
-            }
-            let addBank = await addBeneficiary(bankData);
-
-
-            let accountData = {
-                user_id: id,
-                beneficiary_id: benefiaciaryId,
-                bank_name: bankName,
-                account_holder_name: accountHoldername,
-                ifsc_code: ifscCode,
-                account_no: accountNo,
-                bank_address: bankAddress
-            }
-            let save = await userService.updateBankAccount(accountData, {user_account_id: checkUserBank.user_account_id});
+            await userService.updateBankAccount(accountData,
+                { user_account_id: checkUserBank.user_account_id },
+                { transaction }
+            );
         } else {
-
-            let bankName, accountHoldername, ifscCode, accountNo, upiNo, bankAddress;
-            if (req.body.bank_name != '' && typeof req.body.bank_name != 'undefined') {
-                bankName = req.body.bank_name;
-            }
-            if (req.body.account_holder_name != '' && typeof req.body.account_holder_name != 'undefined') {
-                accountHoldername = req.body.account_holder_name;
-            }
-
-            if (req.body.ifsc_code != '' && typeof req.body.ifsc_code != 'undefined') {
-                ifscCode = await encryptData(req.body.ifsc_code);
-            }
-
-            if (req.body.account_no != '' && typeof req.body.account_no != 'undefined') {
-                accountNo = await encryptData(req.body.account_no);
-            }
-
-
-            if (req.body.bank_address != '' && typeof req.body.bank_address != 'undefined') {
-                bankAddress = req.body.bank_address;
-            }
-
-            let benefiaciaryId = new Date().getTime();
-            if (bankName && accountNo) {
-                let benefiaciaryData = await getBeneficiaryId(await decryptData(accountNo), await decryptData(ifscCode));
-                if (benefiaciaryData.status == 'SUCCESS') {
-                    benefiaciaryId = benefiaciaryData.data.beneId;
-                }
-                let bankData = {
-                    beneId: benefiaciaryId,
-                    name: accountHoldername,
-                    // email: await decryptData(emails),
-                    phone: await decryptData(getUser.mobile),
-                    bankAccount: await decryptData(accountNo),
-                    ifsc: await decryptData(ifscCode),
-                    address1: bankAddress,
-                    vpa: ''
-                }
-
-
-                let bankVerify = await addBeneficiary(bankData);
-                // if (bankVerify.status == 'ERROR' && bankVerify.message=='Beneficiary Id already exists') {
-                //    responseData.msg = 'Bank already added with other user account';
-                //    return responseHelper.error(res, responseData, 201);
-                // }
-                let accountData = {
-                    beneficiary_id: benefiaciaryId,
-                    user_id: id,
-                    bank_name: bankName,
-                    account_holder_name: accountHoldername,
-                    ifsc_code: ifscCode,
-                    account_no: accountNo,
-                    bank_address: bankAddress
-                }
-                let save = await userService.createBankAccount(accountData);
-            }
+            await userService.createBankAccount(accountData, { transaction });
         }
-        responseData.msg = 'User Updated successfully!!!';
+
+        // Commit transaction
+        await transaction.commit();
+
+        responseData.msg = 'User updated successfully';
         responseData.data = {};
         return responseHelper.success(res, responseData);
+
     } catch (error) {
+        if (transaction) await transaction.rollback();
         responseData.msg = error.message;
-        return responseHelper.error(res, responseData, 500);
+        return responseHelper.error(res, responseData, error.status || 500);
     }
-}
+};
 const updateProfileImage = async (req, res) => {
     let responseData = {};
     try {
@@ -3942,6 +3846,168 @@ const updateWinWalletForFantasy = async (req, res) => {
     }
 }
 
+const depositAmount = async(req,res) => {
+    let responseData = {}
+    try{
+        let amount = req.body.amount;
+        let userId = req.user.user_id;
+        let userD = await userService.getUserDetailsById({user_id: userId});
+        if (!userD) {
+            responseData.msg = 'user not found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        console.log('v',new Date());
+        let mobile = await decryptData(userD.mobile);
+        let random = await getRandomAlphanumeric(8);
+        let transactionId = "TXN-" + random;
+
+        const email = (userD.email) ? userD.email : 'test@gmail.com';
+        const data = {
+            mid: process.env.GetepayMid,
+            amount: amount,
+            merchantTransactionId: transactionId,
+            transactionDate: new Date(),
+            terminalId: process.env.GeepayTerminalId,
+            udf1: mobile,
+            udf2: `mailto:${email}`,
+            udf3: userD.username,
+            udf4: "",
+            udf5: "",
+            udf6: "",
+            udf7: "",
+            udf8: "",
+            udf9: "",
+            udf10: "",
+            ru: `${process.env.API_URL}success-payment`,
+            callbackUrl: `${process.env.API_URL}deposit-callback`,
+            currency: "INR",
+            paymentMode: "ALL",
+            bankId: "",
+            txnType: "single",
+            productType: "IPG",
+            txnNote: "Deposit",
+            vpa: process.env.GeepayTerminalId,
+        };
+
+        getepayPortal(data)
+            .then(async ({ paymentUrl, paymentId }) => {
+                console.log(paymentId, "Payment URL");
+                let transactionData = {
+                    order_id: transactionId,
+                    payment_id:paymentId,
+                    user_id: userId,
+                    type: 'CR',
+                    other_type: 'Deposit',
+                    amount: amount,
+                    transaction_status: 'PENDING',
+                    reference: 'Deposit',
+                    is_deposit:1
+                }
+                await userService.createTransaction(transactionData);
+                responseData.msg = 'Payment link generated';
+                responseData.data = {link: paymentUrl};
+                return responseHelper.success(res, responseData);
+            })
+            .catch((error) => {
+                responseData.msg = error.message;
+                return responseHelper.error(res, responseData, 500);
+            });
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+
+}
+
+const handleSuccessPayment = async(req, res) => {
+    const result = req.body.response;
+    var dataitems = decryptEas(
+        result,
+        process.env.GetepayKey,
+        process.env.GetepayIV
+
+    );
+    const parsedData = JSON.parse(JSON.parse(dataitems));
+    let paymentId = parsedData.getepayTxnId;
+    let resultData = await userService.getOneTransactionByQuery({payment_id:paymentId})
+    let status = parsedData.txnStatus;
+    await userService.updateTransaction({transaction_status: status}, {payment_id: paymentId})
+    let userId = resultData.user_id;
+    let amount = parsedData.txnAmount;
+    if(parsedData.txnStatus=='SUCCESS'){
+        const getUserWallet = await userService.getUserWalletDetailsById({
+            user_id: userId
+        })
+        if (!getUserWallet) {
+            const walletInfo = {
+                user_id: userId,
+                real_amount: amount
+            }
+            await userService.createUserWallet(walletInfo);
+        } else {
+            const mainBal = +(getUserWallet.real_amount) + (+amount);
+            await userService.updateUserWallet({real_amount: mainBal}, {user_wallet_id: getUserWallet.user_wallet_id});
+        }
+    }
+    res.render("success", {
+        payment_status: parsedData.txnStatus,
+        transaction_id: parsedData.getepayTxnId
+    });
+}
+
+const checkStatus = async(req,res) => {
+    let responseData = {};
+    const axios = require('axios');
+    let JsonData = JSON.stringify({
+        "mid": "108",
+        "paymentId": "19164131",
+        "referenceNo": "",
+        "status": "",
+        "terminalId": "Getepay.merchant61062@icici"
+    });
+    var ciphertext = encryptEas(
+        JsonData,
+        process.env.GetepayKey,
+        process.env.GetepayIV
+    );
+    var newCipher = ciphertext.toUpperCase();
+
+    var data = JSON.stringify({
+        mid: process.env.GetepayMid,
+        terminalId: process.env.GeepayTerminalId,
+        req: newCipher,
+    });
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://pay1.getepay.in:8443/getepayPortal/pg/invoiceStatus',
+        headers: {
+            'Content-Type': 'application/json',
+            'Cookie': 'JSESSIONID=D436C0E66CEA81127963E742F1C21014'
+        },
+        data : data
+    };
+
+    axios.request(config)
+        .then((response) => {
+            console.log(JSON.parse(JSON.stringify(response.data)));
+            const response1 = JSON.parse(JSON.stringify(response.data));
+            var dataitem = decryptEas(
+                response1.response,
+                process.env.GetepayKey,
+                process.env.GetepayIV
+            );
+            const parsedData = JSON.parse(dataitem);
+            console.log('dd',parsedData)
+        })
+        .catch((error) => {
+            console.log(error);
+            responseData.msg = error.message;
+            return responseHelper.error(res, responseData, 500);
+        });
+
+}
+
 
 module.exports = {
     getBanner,
@@ -4003,6 +4069,9 @@ module.exports = {
     addPokerSusPiciousUser,
     updateWalletForFantasy,
     updateWalletRefund,
-    updateWinWalletForFantasy
+    updateWinWalletForFantasy,
+    depositAmount,
+    handleSuccessPayment,
+    checkStatus
     // savePoolGameHistory
 }

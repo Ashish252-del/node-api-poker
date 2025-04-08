@@ -1,6 +1,8 @@
 const confg = require("../config/config.json");
 const axios = require('axios');
 const crypto = require('crypto');
+const { encryptEas } = require('./../components/encryptEas');
+const { decryptEas } = require('./../components/decryptEas');
 const authentication = async () => {
     var FormData = require('form-data');
     var data = new FormData();
@@ -257,6 +259,50 @@ const signRequest = (payload) => {
         .digest("hex");
 }
 
+const getepayPortal = (data) => {
+    return new Promise((resolve, reject) => {
+        const JsonData = JSON.stringify(data);
+        var ciphertext = encryptEas(
+            JsonData,
+            process.env.GetepayKey,
+            process.env.GetepayIV
+        );
+        var newCipher = ciphertext.toUpperCase();
+        var myHeaders = {
+            "Content-Type": "application/json"
+        };
+        var raw = JSON.stringify({
+            mid: data.mid,
+            terminalId: data.terminalId,
+            req: newCipher,
+        });
+        var requestOptions = {
+            method: "POST",
+            headers: myHeaders,
+            body: raw,
+            redirect: "follow",
+        };
+
+        fetch(`${process.env.GetepayUrl}generateInvoice`, requestOptions)
+            .then((response) => response.text())
+            .then((result) => {
+                var resultobj = JSON.parse(result);
+                var responseurl = resultobj.response;
+                var dataitem = decryptEas(
+                    responseurl,
+                    process.env.GetepayKey,
+                    process.env.GetepayIV
+                );
+                const parsedData = JSON.parse(dataitem);
+                console.log('dd',parsedData)
+                const paymentUrl = parsedData.paymentUrl;
+                const paymentId = parsedData.paymentId;
+                resolve({ paymentUrl, paymentId });
+            })
+            .catch((error) => reject(error));
+    });
+};
+
 module.exports = {
     createOrder,
     orderDetail,
@@ -267,5 +313,6 @@ module.exports = {
     verifyPanCard,
     getTransferStatus,
     encodeRequest,
-    signRequest
+    signRequest,
+    getepayPortal
 }

@@ -97,6 +97,10 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        payment_id:{
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         upi_txn_id:{
             type: DataTypes.TEXT,
             allowNull: true,
