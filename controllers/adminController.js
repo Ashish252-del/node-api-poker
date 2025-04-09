@@ -5637,6 +5637,145 @@ FROM transactions;
     return responseHelper.error(res, responseData, 500);
   }
 };
+
+const liveUserCount = async (req, res) => {
+  let responseData = {};
+  try {
+
+    let newdate = moment(new Date(), 'DD/MM/YYYY').format('YYYY-MM-DD')
+    let response = await sequelize.query(`Select live_users.id  from live_users where DATE(live_users.createdAt)='${newdate}' AND live_users.game_type='Fantasy' group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+    let response1 = await sequelize.query(`Select live_users.id  from live_users where DATE(live_users.createdAt)='${newdate}' AND live_users.game_type='Poker' group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+    let response2 = await sequelize.query(`Select live_users.id  from live_users where DATE(live_users.createdAt)='${newdate}' AND live_users.game_type='Rummy' group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+    let response3 = await sequelize.query(`Select live_users.id  from live_users where DATE(live_users.createdAt)='${newdate}' AND live_users.game_type='Ludo' group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+    console.log('response2.length',response1.length)
+    responseData.msg = 'User List';
+    responseData.data = {fantasy_user:response.length,poker_user:response1.length,rummy_user:response2.length,ludo_user:response3.length};
+    return responseHelper.success(res, responseData);
+  } catch (error) {
+    responseData.msg = error.message;
+    return responseHelper.error(res, responseData, 500);
+  }
+}
+
+const getGameHistoryData = async (req, res) => {
+  try {
+    const { game_type, page, search_key, from_date, end_date } = req.query;
+    const { limit, offset } = getPagination(page);
+
+    // Initialize WHERE conditions and replacements
+    const whereConditions = [];
+    const replacements = { limit, offset };
+
+    // Add conditions based on query parameters
+    if (game_type) {
+      whereConditions.push('gh.game_category = :game_type');
+      replacements.game_type = game_type;
+
+      if (game_type == 2) {
+        whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
+      }
+    }
+
+    if (from_date && end_date) {
+      whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
+      replacements.fromDate = moment(from_date).format('YYYY-MM-DD');
+      replacements.endDate = moment(end_date).format('YYYY-MM-DD');
+    }
+
+    if (search_key) {
+      const gameTypes = await sequelize.query(
+          `SELECT game_type_id FROM game_types WHERE name LIKE :searchKey`,
+          { replacements: { searchKey: `%${search_key}%` }, type: sequelize.QueryTypes.SELECT }
+      );
+
+      if (gameTypes.length > 0) {
+        whereConditions.push('gh.game_type = :gameTypeId');
+        replacements.gameTypeId = gameTypes[0].game_type_id;
+      } else {
+        whereConditions.push(
+            `(u.username LIKE :searchKey OR 
+                     u.referral_code LIKE :searchKey OR 
+                     u.full_name LIKE :searchKey OR 
+                     gh.table_name LIKE :searchKey OR 
+                     gh.table_id LIKE :searchKey)`
+        );
+        replacements.searchKey = `%${search_key}%`;
+      }
+    }
+
+    // Build the final query
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Get table_ids with pagination
+    const tableIdsResult = await sequelize.query(
+        `SELECT DISTINCT gh.table_id, gh.table_name, gh.game_type, gh.blind, gh.createdAt, gh.updatedAt
+             FROM game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}
+             ORDER BY gh.game_history_id DESC
+                 LIMIT :limit OFFSET :offset`,
+        { replacements, type: sequelize.QueryTypes.SELECT }
+    );
+
+    // Get total count
+    const countResult = await sequelize.query(
+        `SELECT COUNT(DISTINCT gh.table_id) as totalCount
+             FROM game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}`,
+        { replacements, type: sequelize.QueryTypes.SELECT }
+    );
+
+    // Get detailed history for each table
+    const tableDetails = await Promise.all(
+        tableIdsResult.map(async ({ table_id,table_name, game_type,blind,createdAt,updatedAt }) => {
+          // Get game history for the table
+          const gameHistory = await userService.getGameHistoryByQuery({ table_id });
+
+          // Get game type name
+          const getGameType = await adminService.getGameTypeByQuery({ game_type_id: game_type });
+
+          // Enrich each game history entry with username
+          const enrichedHistory = await Promise.all(
+              gameHistory.map(async (history) => {
+                const user = await adminService.getUserDetailsById({ user_id: history.user_id });
+                return {
+                  ...history,
+                  community_card: JSON.parse(history.community_card),
+                  hands_record: JSON.parse(history.hands_record),
+                  hand_history: JSON.parse(history.hand_history),
+                  username: user?.username || 'Unknown'  // Add username to each entry
+                };
+              })
+          );
+
+          return {
+            table_id,
+            table_name,
+            blind,
+            createdAt,
+            updatedAt,
+            game_category: getGameType?.name || '',
+            users: enrichedHistory  // Now includes usernames
+          };
+        })
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: countResult[0]?.totalCount || 0,
+      data: tableDetails
+    });
+
+  } catch (error) {
+    console.error('Error fetching game history:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 module.exports = {
   adminLogin,
   addRole,
@@ -5775,5 +5914,7 @@ module.exports = {
   gstSummary,
   totalWithdrawal,
   totalDeposit,
-  addDeposit
+  addDeposit,
+  liveUserCount,
+  getGameHistoryData
 }

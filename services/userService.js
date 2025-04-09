@@ -293,6 +293,16 @@ const getBanner = (query) => {
    return db.banners.findAll({where:query});
 }
 
+const createLiveUsers = (userObj) => {
+   return db.live_users.create(userObj);
+}
+
+const getLiveUserByDate = (query) => {
+   return db.live_users.findOne({where: query});
+}
+const updateLiveUser = (userObj,query) => {
+   return db.live_users.update(userObj,query);
+}
 
 module.exports = {
    getBanner,
@@ -367,5 +377,9 @@ module.exports = {
    getOneLockedBalanceHistoryByOrder,
    getDocumentsByRawQuery,
    getLastTransactionById,
-   createPokerSuspiciousUser
+   createPokerSuspiciousUser,
+
+   createLiveUsers,
+   getLiveUserByDate,
+   updateLiveUser
 };

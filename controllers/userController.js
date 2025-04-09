@@ -4007,7 +4007,57 @@ const checkStatus = async(req,res) => {
         });
 
 }
+const liveData = async (req, res) => {
+    let responseData = {};
+    try {
+        console.log(req.body);
+        let gameType = req.body.game_type;
+        let userId = req.user.user_id;
 
+        // Get user details
+        let userD = await userService.getUserDetailsById({user_id: userId});
+        if (!userD) {
+            responseData.msg = 'User not found';
+            return responseHelper.error(res, responseData, 201);
+        }
+
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const dateOnly = today.toISOString().split('T')[0]; // Extracts just the date part
+
+        // Check if user already has an entry for today
+        const existingEntry = await userService.getLiveUserByDate({
+            user_id: userId,
+            livedate: dateOnly, // Use just the date string
+            game_type: gameType
+        });
+
+        let reqData = {
+            user_id: userId,
+            game_type: gameType,
+            livedate: dateOnly // Store just the date without time
+        };
+
+        if (existingEntry) {
+            // Update existing entry
+            await userService.updateLiveUser(
+                reqData,
+                {where:{id: existingEntry.id}}
+            );
+            responseData.msg = 'Your existing request has been updated';
+        } else {
+            // Create new entry
+            await userService.createLiveUsers(reqData);
+            responseData.msg = 'Your request has been saved';
+        }
+
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        console.error("Error in liveData:", error);
+        responseData.msg = error.message || 'Internal server error';
+        return responseHelper.error(res, responseData, 500);
+    }
+};
 
 module.exports = {
     getBanner,
@@ -4072,6 +4122,7 @@ module.exports = {
     updateWinWalletForFantasy,
     depositAmount,
     handleSuccessPayment,
-    checkStatus
+    checkStatus,
+    liveData
     // savePoolGameHistory
 }
