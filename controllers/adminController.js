@@ -27,176 +27,82 @@ const adminLogin = async (req, res) => {
   let responseData = {};
   let reqObj = req.body;
   try {
-    console.log("hello from login");
-    let emailMobile = await encryptData(reqObj.email);
-    console.log("emailMobile-->",emailMobile);
-    let mac_address = req.body.mac_address;
-    let os_version = req.body.os_version;
-    let app_version = req.body.app_version;
-    // emails = await encryptData(emailMobile);
-    // let admin_id = req.user;
-    // console.log("admin_id",req.user.admin_id);
-    let userData = await adminService.geAdminDetailsById({
-      email: emailMobile,
-      admin_status: "1",
-    });
-      // If not found, search by encrypted mobile
+      let emailMobile = reqObj.email;
+      let mac_address = req.body.mac_address;
+      let os_version = req.body.os_version;
+      let app_version = req.body.app_version;
+      let userData = await adminService.geAdminDetailsById({email: emailMobile, admin_status: '1'});
+      //console.log('========', userData);
+      //return false;
+      //if no user found, return error
       if (!userData) {
-        userData = await adminService.geAdminDetailsById({
-          mobile: emailMobile,
-          admin_status: "1",
-        });
+          responseData.msg = 'Email Id doesn\'t exists';
+          return responseHelper.error(res, responseData, 201);
       }
-    // console.log("admin_id",admin_id);
-    console.log("userData",userData);
-    if (!userData) {
-      responseData.msg = " User doesn't exists";
-      return responseHelper.error(res, responseData, 201);
-    }
-  
+      //Role CHeck
+      let checkRole = await adminService.geAdminDetailsById({admin_id: userData.admin_id});
+      if (!checkRole) {
+          responseData.msg = 'Email Id doesn\'t exists';
+          return responseHelper.error(res, responseData, 201);
+      }
 
-    let reqPassword = reqObj.password;
-    let userPassword = userData.password;
-    //compare req body password and user password,
-    let isPasswordMatch = await comparePassword(reqPassword, userPassword);
-    console.log("isPasswordMatch-->",isPasswordMatch);
+      let reqPassword = reqObj.password;
+      let userPassword = userData.password;
 
-
-    if (!isPasswordMatch) {
-      responseData.msg = "Credential does not match";
-      return responseHelper.error(res, responseData, 201);
-    }
-    let tokenData = {
-      id: userData.admin_id,
-      email: userData.email,
-    };
-    //generate jwt token with the token obj
-    let jwtToken = generateUserToken(tokenData);
-    let loginLogs = {
-      admin_id: userData.user_id,
-      mac_address: mac_address,
-      os_version: os_version,
-      app_version: app_version,
-      ip: "",
-    };
-
-    const adminId = userData.admin_id;
-    console.log("adminId", adminId);
-    const getRoles = `
-        SELECT
-            roles.roles
-        FROM
-            admins
-        INNER JOIN
-            user_roles ON user_roles.userId = admins.admin_id
-        INNER JOIN
-            roles ON roles.role_id = user_roles.roleId
-        WHERE
-            admins.admin_id = :adminId;
-    `;
-
-    allRoles = await sequelize.query(getRoles, {
-      replacements: { adminId },
-      type: QueryTypes.SELECT,
-    });
-    const formattedRoles = allRoles.map((roleObj) => {
-      return roleObj.roles;
-    });
-
-    if (!formattedRoles || formattedRoles.length === 0) {
-      responseData.msg = `No roles assigned !!!`;
-      return responseHelper.error(res, responseData, 201);
-    }
-
-    const modulesIds = `
-    SELECT 
-        role_modules.moduleId
-    FROM 
-        admins
-        INNER JOIN user_roles ON user_roles.userId = admins.admin_id
-        INNER JOIN roles ON roles.role_id = user_roles.roleId
-        INNER JOIN role_modules ON user_roles.roleId = role_modules.roleId
-    WHERE 
-        admins.admin_id = ${adminId}
-    GROUP BY 
-        role_modules.moduleId;
-`;
-
-    modulesIdsData = await sequelize.query(modulesIds, {
-      type: QueryTypes.SELECT,
-    });
-
-    const formattedIds = modulesIdsData.map((roleObj) => {
-      return roleObj.moduleId;
-    });
-
-    const moduleIds = formattedIds;
-
-    let recursiveQuery = `
-WITH RECURSIVE ModuleHierarchy AS (
-    SELECT 
-        m.moduleId,
-        m.moduleName,
-        m.isSidebar,
-        m.apiMethod,
-        m.routes,
-        m.parentId,
-        m.icon
-    FROM 
-        modules m
-    WHERE
-        m.moduleId IN (${moduleIds.join(", ")})  -- Inject module IDs here
-    
-    UNION ALL
-    
-    SELECT 
-        m.moduleId,
-        m.moduleName,
-        m.isSidebar,
-        m.apiMethod,
-        m.routes,
-        m.parentId,
-        m.icon
-    FROM 
-        ModuleHierarchy mh
-    INNER JOIN modules m ON m.parentId = mh.moduleId  -- Fetch child modules where parentId matches moduleId
-)
-SELECT 
-    mh.moduleId,
-    mh.moduleName,
-    mh.isSidebar,
-    mh.apiMethod,
-    mh.routes,
-    mh.parentId,
-    mh.icon
-FROM 
-    ModuleHierarchy mh;
-`;
-
-    modulesIdsData = await sequelize.query(recursiveQuery, {
-      type: QueryTypes.SELECT,
-    });
-    const organizedPermissions = organizePermissions(modulesIdsData);
-    await adminService.createLoginLog(loginLogs);
-    responseData.msg = "You are login successfully";
-    responseData.data = {
-      id: userData.user_id,
-      full_name: userData.full_name,
-      // email: userData.email,
-      // mobile: userData.mobile,
-      email: userData.email ? await decryptData(userData.email) : null,
-      mobile: userData.mobile ? await decryptData(userData.mobile) : null,
-      role_id: userData.role_id,
-      role_assigned: formattedRoles ? formattedRoles : "",
-      token: jwtToken,
-      permissions: organizedPermissions,
-    };
-    return responseHelper.success(res, responseData);
+      //compare req body password and user password,
+      let isPasswordMatch = await comparePassword(reqPassword, userPassword);
+      console.log(isPasswordMatch);
+      //if password does not match, return error
+      if (!isPasswordMatch) {
+          responseData.msg = 'Credential does not match';
+          return responseHelper.error(res, responseData, 201);
+      }
+      let tokenData = {
+          id: userData.admin_id,
+          email: userData.email
+      };
+      //generate jwt token with the token obj
+      let jwtToken = generateUserToken(tokenData);
+      let loginLogs = {
+          admin_id: userData.user_id,
+          mac_address: mac_address,
+          os_version: os_version,
+          app_version: app_version,
+          ip: ''
+      }
+      let getModules = await adminService.getModules();
+      getModules = getModules.map(async (element, i) => {
+          let getAssignData = await adminService.getPermissionQuery({
+              role_id: userData.role_id,
+              permission_module_id: element.module_id
+          });
+          element.dataValues.module_access = (getAssignData) ? getAssignData.module_access : '';
+          element.dataValues.add_access = (getAssignData) ? getAssignData.add_access : false;
+          element.dataValues.edit_access = (getAssignData) ? getAssignData.edit_access : false;
+          element.dataValues.view_access = (getAssignData) ? getAssignData.view_access : false;
+          element.dataValues.delete_access = (getAssignData) ? getAssignData.delete_access : false;
+          return element;
+      })
+      getModules = await Promise.all(getModules);
+      let getRoles = await adminService.getRoleByQuery({role_id: userData.role_id});
+      await adminService.createLoginLog(loginLogs);
+      responseData.msg = 'You are login successfully';
+      responseData.data = {
+          id: userData.user_id,
+          full_name: userData.full_name,
+          email: userData.email,
+          mobile: userData.mobile,
+          role_id: userData.role_id,
+          role_name: (getRoles) ? getRoles.roles : '',
+          token: jwtToken,
+          permissions: (getModules) ? getModules : ''
+      };
+      return responseHelper.success(res, responseData);
   } catch (error) {
-    responseData.msg = error.message;
-    return responseHelper.error(res, responseData, 500);
+      responseData.msg = error.message;
+      return responseHelper.error(res, responseData, 500);
   }
-};
+}
 
 const organizePermissions = (permissions) => {
   // Create a map to store permissions by moduleId
@@ -3773,16 +3679,14 @@ const running_tables_rummy = async (req, res) => {
   try {
       let redisClient = await getRedisClient();
       let rooms = await redisClient.hGetAll("ROOMS");
-
       // Define page size and get page number from request parameters
       const pageSize = 10;
       const page = parseInt(req.query.page) || 1;
 
-      // Calculate start and end indices for pagination
       const startIndex = (page - 1) * pageSize;
       const endIndex = startIndex + pageSize;
 
-      // Filter and paginate the rooms
+    
       let data = [];
       for (const roomId in rooms) {
           let roomString = rooms[roomId];
@@ -3791,7 +3695,10 @@ const running_tables_rummy = async (req, res) => {
               roomId: room.roomId,
               playerCount: room.playerCount,
               gameId: room.gameId,
-              gameRules: room.gameRules
+              gameRules: {
+                  ...room.gameRules,
+                  Points: parseFloat(room.gameRules.Points.toFixed(2))
+              }
           };
           data.push(roomData);
 
@@ -4328,7 +4235,30 @@ const getRunningTable = async (req, res) => {
   try {
       let gameType = req.query.game_type;
       let data;
-      if (gameType) {
+      if(gameType=='Poker'){
+          let redisClient = await getRedisClient();
+          let runningTableData = await redisClient.hGetAll("TABLE");
+          data = Object.entries(runningTableData).map(([tableId, tableString]) => {
+              try {
+                  const parsed = JSON.parse(tableString);
+                  return {
+                      tableId,
+                      game_id:parsed.gameId,
+                      game_type:parsed.gameType,
+                      tableId:parsed.tableId,
+                      table_name:parsed.table_name,
+                      game_table_status:'running table',
+                      tableData:parsed
+                  };
+              } catch (e) {
+                  console.warn(`Failed to parse table ${tableId}:`, e.message);
+                  return null;
+              }
+          }).filter(Boolean); 
+          responseData.msg = 'Running Table!!!';
+          responseData.data = data;
+          return responseHelper.success(res, responseData);
+      }else if (gameType) {
           data = await adminService.getRunningTableData({
               game_category: gameType,
               game_table_status: ['Active', 'Full']
@@ -4344,7 +4274,6 @@ const getRunningTable = async (req, res) => {
 
       data = data.map(async (element) => {
           let getGame = await adminService.getGameByQuery({game_id: element.game_id})
-          console.log(getGame);
           if (getGame) {
               let getGameType = await adminService.getGameTypeByQuery({game_type_id: getGame.dataValues.game_type_id})
               element.dataValues.game_type = (getGameType) ? getGameType.dataValues.name : '';
@@ -4354,7 +4283,6 @@ const getRunningTable = async (req, res) => {
 
           return element;
       })
-
       data = await Promise.all(data);
       responseData.msg = 'Running Table!!!';
       responseData.data = data;
