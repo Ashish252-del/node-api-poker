@@ -3878,47 +3878,65 @@ return responseHelper.success(res, responseData, 200);
 const sendNotification = async (req, res) => {
   let responseData = {};
   try {
-      let reqData = req.body;
-      if (!reqData || !reqData.user_id || !reqData.title || !reqData.message) {
-          responseData.msg = 'Invalid request data';
-          return responseHelper.error(res,responseData,201);
+    let reqData = req.body;
+    // if (!reqData.user_id) {
+    //     responseData.msg = 'User ID is required';
+    //     return responseHelper.error(res, responseData, 400);
+    // }
+    let rangeStart = reqData.range_start;
+    let rangeEnd = reqData.range_end;
+    let userIds = [];
+    if(reqData.type==1){
+      userIds = reqData.user_id.split(',');
+    }else if(reqData.type==2 && rangeStart && rangeEnd){
+      let response = await sequelize.query(`Select user_id  from users where user_status!='2' AND is_influencer='0' LIMIT ${rangeStart}, ${rangeEnd}`, {type: sequelize.QueryTypes.SELECT});
+      userIds = response.map((row) => row.user_id);
+      console.log('userIds',userIds); // [101, 102, 103, 104, 105]
+    }else{
+      let response = await sequelize.query(`Select user_id from users where user_status!='2' AND is_influencer='0'`, {type: sequelize.QueryTypes.SELECT});
+      userIds = response.map((row) => row.user_id);
+    }
+
+    if (!userIds.length) {
+      responseData.msg = 'No valid user IDs provided';
+      return responseHelper.error(res, responseData, 400);
+    }
+
+    let notifications = userIds.map(async (userIDS) => {
+      let checkUser = await adminService.getUserDetailsById({ user_id: userIDS });
+      if (!checkUser) {
+        throw new Error(`User not found: ${userIDS}`);
       }
-       // Ensure title and message are strings
-       reqData.title = String(reqData.title);
-       reqData.message = String(reqData.message);
 
-      let userId = reqData.user_id.split(',');
-      for (let i = 0; i < userId.length; i++) {
-          let userIDS = userId[i].trim();
+      let data = {
+        sender_user_id: req.user.admin_id,
+        receiver_user_id: userIDS,
+        title: reqData.title,
+        message: reqData.message
+      };
 
-          // let checkUser = await user.findOne({ where: {id:userIDS } });
-          let checkUser=await adminService.getUserDetailsById({user_id:userIDS})
+      await adminService.sendNotification(data);
 
-          if (!checkUser) {
-              responseData.msg = `User with ID ${userIDS} not found`;
-              return res.status(404).json(responseData);
-          }
-
-          let data = {
-              sender_user_id: req.user.admin_id,
-              receiver_user_id: userIDS,
-              title: reqData.title,
-              message: reqData.message
-          };
-          console.log(data);
-          await adminService.createNotification(data)
-
-          if (checkUser.device_token) {
-              let pushData = {
-                  title: reqData.title,
-                  message: reqData.message,
-                  device_token: checkUser.device_token
-              };
-              let result = await sendPushNotification(pushData);
-          }
+      if (checkUser.device_token && checkUser.device_token!='') {
+        let pushData = {
+          title: reqData.title,
+          message: reqData.message,
+          device_token: checkUser.device_token
+        };
+        try {
+          let result = await sendPushNotification(pushData);
+          console.log("Push Notification Result:", result);
+        } catch (error) {
+          console.error("Error sending push notification:", error.message);
+        }
       }
-      responseData.msg = 'Notification sent successfully!!!';
-      return responseHelper.success(res, responseData, 200);
+    });
+
+    await Promise.all(notifications);
+
+    responseData.msg = 'Notification sent successfully!!!';
+    responseData.data = {};
+    return responseHelper.success(res, responseData);
   } catch (error) {
     responseData.msg = error.message;
     return responseHelper.error(res, responseData, 500);

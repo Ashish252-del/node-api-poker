@@ -9,40 +9,18 @@ if (!admin.apps.length) {
     });
 }
 
-const sendPushNotification = async (message) => {
+const sendPushNotification = (message) => {
     const firebaseToken = message.device_token;
-
-    if (!firebaseToken) {
-        throw new Error("Device token is required for sending push notifications");
-    }
-
     const payload = {
         token: firebaseToken,
         notification: {
             title: message.title,
-            body: String(message.message),
-        },
-        android: {
-            priority: "high",
-            ttl: 60 * 60 * 24 * 1000, // 1 day in milliseconds
-        },
-        apns: {
-            payload: {
-                aps: {
-                    sound: "default",
-                },
-            },
-        },
+            body: message.message,
+
+        }
     };
 
-    try {
-        const response = await admin.messaging().send(payload);
-        console.log("Successfully sent message:", response);
-        return response;
-    } catch (error) {
-        console.error("Error sending message:", error);
-       throw error;
-    }
-};
+    return firebase.messaging().send(payload);
+}
 
 module.exports = { sendPushNotification };
