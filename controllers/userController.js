@@ -64,6 +64,10 @@ const getProfile = async (req, res) => {
         if (userWallet && (moment(userWallet.last_claim_date).format('YYYY-MM-DD') == today)) {
             isClaim = 1;
         }
+        let isKycDone = 0;
+        if (userKyc && userKyc.is_pan_card_verify == 1 && userKyc.is_adhaar_verify == 1) {
+            isKycDone = 1;
+        }
         userWallet.dataValues.is_claim = isClaim;
         getUser.profile_image = (getUser.profile_image) ? getUser.profile_image : '';
         getUser.mobile = getUser.mobile ? await decryptData(getUser.mobile) : "";
@@ -71,6 +75,7 @@ const getProfile = async (req, res) => {
         getUser.user_wallet = userWallet;
         getUser.pan_number = (userKyc) ? await userKyc.pan_number : '';
         getUser.is_pan_card_verify = (userKyc) ? await userKyc.is_pan_card_verify : '';
+        getUser.dataValues.is_kyc_done = isKycDone;
         getUser.adhaar_number = (userKyc) ? await userKyc.adhaar_number : '';
         getUser.is_adhaar_verify = (userKyc) ? await userKyc.is_adhaar_verify : '';
         getUser.bank_details = bankD;
