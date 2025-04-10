@@ -3897,6 +3897,7 @@ const checkStatus = async(req,res) => {
         });
 
 }
+
 const liveData = async (req, res) => {
     let responseData = {};
     try {
@@ -3949,6 +3950,21 @@ const liveData = async (req, res) => {
     }
 };
 
+const readNotification = async (req, res) => {
+    let responseData = {};
+    try {
+        let user = req.user;
+        let id = req.query.id;
+        let query = {notification_id: id}
+        await userService.updateNotifications({is_read:1},query);
+        responseData.msg = 'Notification Fetch successfully!!!';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
 module.exports = {
     getBanner,
     sendOtp,
@@ -4013,6 +4029,7 @@ module.exports = {
     depositAmount,
     handleSuccessPayment,
     checkStatus,
-    liveData
+    liveData,
+    readNotification
     // savePoolGameHistory
 }

@@ -304,6 +304,11 @@ const updateLiveUser = (userObj,query) => {
    return db.live_users.update(userObj,query);
 }
 
+const updateNotifications = (data,query) => {
+   return db.notifications.update(data,
+       {where: query});
+}
+
 module.exports = {
    getBanner,
    getUserDetailsByDeviceToken,
@@ -381,5 +386,6 @@ module.exports = {
 
    createLiveUsers,
    getLiveUserByDate,
-   updateLiveUser
+   updateLiveUser,
+   updateNotifications
 };
