@@ -75,7 +75,7 @@ const getProfile = async (req, res) => {
         getUser.user_wallet = userWallet;
         getUser.pan_number = (userKyc) ? await userKyc.pan_number : '';
         getUser.is_pan_card_verify = (userKyc) ? await userKyc.is_pan_card_verify : '';
-        getUser.dataValues.is_kyc_done = isKycDone;
+        getUser.is_kyc_done = isKycDone;
         getUser.adhaar_number = (userKyc) ? await userKyc.adhaar_number : '';
         getUser.is_adhaar_verify = (userKyc) ? await userKyc.is_adhaar_verify : '';
         getUser.bank_details = bankD;
