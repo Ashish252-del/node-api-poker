@@ -3216,133 +3216,133 @@ const logout = async (req, res) => {
     }
 };
 
-const deductJoinFeesForRummy = async (deductBalanceReq) => {
-    try {
-        console.log('Rummy deductBalanceReq------>', deductBalanceReq)
-        let userId = deductBalanceReq.user_id;
-        let deductBalance = Math.abs(parseFloat(deductBalanceReq.deductBalance));
-        let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+// const deductJoinFeesForRummy = async (deductBalanceReq) => {
+//     try {
+//         console.log('Rummy deductBalanceReq------>', deductBalanceReq)
+//         let userId = deductBalanceReq.user_id;
+//         let deductBalance = Math.abs(parseFloat(deductBalanceReq.deductBalance));
+//         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
 
-        if (!userWallet) {
-            throw Error("Wallet does not exist");
-        }
-        console.log("userWallet-->", userWallet);
-        // Parse the string values to float
-        let realAmount = parseFloat(userWallet.real_amount) || 0;
-        let bonusAmount = parseFloat(userWallet.bonus_amount) || 0;
-        let winAmount = parseFloat(userWallet.win_amount) || 0;
-        let otpAmount = parseFloat(userWallet.otp_amount) || 0;
-        let locked_amt = parseFloat(userWallet.locked_amount) || 0;
-        let updated_locked_amt = locked_amt + deductBalance;
-// Check the parsed values
-        console.log("Parsed values: ", realAmount, bonusAmount, winAmount, otpAmount);
+//         if (!userWallet) {
+//             throw Error("Wallet does not exist");
+//         }
+//         console.log("userWallet-->", userWallet);
+//         // Parse the string values to float
+//         let realAmount = parseFloat(userWallet.real_amount) || 0;
+//         let bonusAmount = parseFloat(userWallet.bonus_amount) || 0;
+//         let winAmount = parseFloat(userWallet.win_amount) || 0;
+//         let otpAmount = parseFloat(userWallet.otp_amount) || 0;
+//         let locked_amt = parseFloat(userWallet.locked_amount) || 0;
+//         let updated_locked_amt = locked_amt + deductBalance;
+// // Check the parsed values
+//         console.log("Parsed values: ", realAmount, bonusAmount, winAmount, otpAmount);
 
-// Perform calculations
-        let balance = realAmount + bonusAmount + winAmount + otpAmount;
+// // Perform calculations
+//         let balance = realAmount + bonusAmount + winAmount + otpAmount;
 
-// Check the total amount
-        console.log("Total amount user: ", balance);
+// // Check the total amount
+//         console.log("Total amount user: ", balance);
 
-        // let balance = parseFloat(userWallet.real_amount) + parseFloat(userWallet.otp_amount) + parseFloat(userWallet.bonus_amount)
-        //     + parseFloat(userWallet.win_amount);
-        // console.log("user all amount--->",balance);
-        if (deductBalance > balance) {
-            throw Error("Locked amount is greater than balance");
-        }
+//         // let balance = parseFloat(userWallet.real_amount) + parseFloat(userWallet.otp_amount) + parseFloat(userWallet.bonus_amount)
+//         //     + parseFloat(userWallet.win_amount);
+//         // console.log("user all amount--->",balance);
+//         if (deductBalance > balance) {
+//             throw Error("Locked amount is greater than balance");
+//         }
 
-        let transactionAdmin = {
-            user_id: 1,
-            type: "CR",
-            amount: deductBalance,
-            opening_balance: balance,
-            closing_balance: balance + deductBalance,
-        }
-        let getBonus = await userService.getBonusSetting();
-        let betAmount = deductBalance;
-        let otpAmt = 0;
-        let bonusAmt = 0;
-        let deductOtpAmount = 0;
-        let realDeductAmt = 0;
-        let winDeductAmt = 0;
-        let bonDeductAmt = 0;
-        let otpDeductAmt = 0;
+//         let transactionAdmin = {
+//             user_id: 1,
+//             type: "CR",
+//             amount: deductBalance,
+//             opening_balance: balance,
+//             closing_balance: balance + deductBalance,
+//         }
+//         let getBonus = await userService.getBonusSetting();
+//         let betAmount = deductBalance;
+//         let otpAmt = 0;
+//         let bonusAmt = 0;
+//         let deductOtpAmount = 0;
+//         let realDeductAmt = 0;
+//         let winDeductAmt = 0;
+//         let bonDeductAmt = 0;
+//         let otpDeductAmt = 0;
 
-        if (getBonus && getBonus.bet_bonus_amount) {
-            bonusAmt = bonusAmount * getBonus.bet_bonus_amount / 100
-            betAmount = parseFloat("" + betAmount) - parseFloat("" + bonusAmt);
-        }
+//         if (getBonus && getBonus.bet_bonus_amount) {
+//             bonusAmt = bonusAmount * getBonus.bet_bonus_amount / 100
+//             betAmount = parseFloat("" + betAmount) - parseFloat("" + bonusAmt);
+//         }
 
-        if (otpAmount >= parseFloat(betAmount)) {
-            betAmount = otpAmount - parseFloat(betAmount);
-            deductOtpAmount = parseFloat(betAmount);
-            otpAmt = 0;
-        } else {
-            betAmount = otpAmount - parseFloat(betAmount);
-            betAmount = betAmount * -1
-            otpAmt = betAmount;
-            deductOtpAmount = 0;
-        }
+//         if (otpAmount >= parseFloat(betAmount)) {
+//             betAmount = otpAmount - parseFloat(betAmount);
+//             deductOtpAmount = parseFloat(betAmount);
+//             otpAmt = 0;
+//         } else {
+//             betAmount = otpAmount - parseFloat(betAmount);
+//             betAmount = betAmount * -1
+//             otpAmt = betAmount;
+//             deductOtpAmount = 0;
+//         }
 
-        let deductBonusAmount = bonusAmount - parseFloat(bonusAmt);
-        let deductAmount = 0;
-        if (parseFloat(realAmount) >= parseFloat(betAmount)) {
-            deductAmount = realAmount - parseFloat(betAmount);
-            realDeductAmt = parseFloat(betAmount)
-        } else {
-            deductAmount = realAmount - parseFloat(betAmount);
-            realDeductAmt = parseFloat(realAmount)
-        }
-        let deductWinAmount = winAmount;
-        console.log('deductAmount', deductAmount)
-        if (deductAmount < 0) {
-            deductAmount = deductAmount * -1
-            deductWinAmount = winAmount - parseFloat(deductAmount);
-            winDeductAmt = Math.abs(deductAmount)
-            deductAmount = 0;
-        }
-        console.log('Rummy deduction', {
-            real_amount: deductAmount,
-            bonus_amount: deductBonusAmount,
-            win_amount: deductWinAmount,
-            otp_amount: deductOtpAmount,
-            locked_amount: updated_locked_amt,
-            user_id: userId
-        })
-        await userService.updateUserWallet({
-            real_amount: deductAmount,
-            bonus_amount: deductBonusAmount,
-            win_amount: deductWinAmount,
-            otp_amount: deductOtpAmount,
-            locked_amount: updated_locked_amt,
-        }, {user_wallet_id: userWallet.user_wallet_id});
+//         let deductBonusAmount = bonusAmount - parseFloat(bonusAmt);
+//         let deductAmount = 0;
+//         if (parseFloat(realAmount) >= parseFloat(betAmount)) {
+//             deductAmount = realAmount - parseFloat(betAmount);
+//             realDeductAmt = parseFloat(betAmount)
+//         } else {
+//             deductAmount = realAmount - parseFloat(betAmount);
+//             realDeductAmt = parseFloat(realAmount)
+//         }
+//         let deductWinAmount = winAmount;
+//         console.log('deductAmount', deductAmount)
+//         if (deductAmount < 0) {
+//             deductAmount = deductAmount * -1
+//             deductWinAmount = winAmount - parseFloat(deductAmount);
+//             winDeductAmt = Math.abs(deductAmount)
+//             deductAmount = 0;
+//         }
+//         console.log('Rummy deduction', {
+//             real_amount: deductAmount,
+//             bonus_amount: deductBonusAmount,
+//             win_amount: deductWinAmount,
+//             otp_amount: deductOtpAmount,
+//             locked_amount: updated_locked_amt,
+//             user_id: userId
+//         })
+//         await userService.updateUserWallet({
+//             real_amount: deductAmount,
+//             bonus_amount: deductBonusAmount,
+//             win_amount: deductWinAmount,
+//             otp_amount: deductOtpAmount,
+//             locked_amount: updated_locked_amt,
+//         }, {user_wallet_id: userWallet.user_wallet_id});
 
 
-        let transaction = {
-            user_id: userId,
-            type: "DR",
-            other_type: 'Bet Amount',
-            category: 'Rummy',
-            amount: deductBalance,
-            opening_balance: balance,
-            real_amount: parseFloat(realDeductAmt) + parseFloat(otpDeductAmt),
-            win_amount: parseFloat(winDeductAmt),
-            bonus_amount: parseFloat(bonusAmt),
-            closing_balance: balance - deductBalance,
-        }
-        console.log("transaction-->", transaction);
-        await userService.createTransaction(transaction);
-        return {
-            status: true,
-            message: "Balance locked successfully",
-        }
-    } catch (error) {
-        console.log("Error in lock balance of user ", error);
-        return {
-            status: false,
-            message: error.message
-        }
-    }
-}
+//         let transaction = {
+//             user_id: userId,
+//             type: "DR",
+//             other_type: 'Bet Amount',
+//             category: 'Rummy',
+//             amount: deductBalance,
+//             opening_balance: balance,
+//             real_amount: parseFloat(realDeductAmt) + parseFloat(otpDeductAmt),
+//             win_amount: parseFloat(winDeductAmt),
+//             bonus_amount: parseFloat(bonusAmt),
+//             closing_balance: balance - deductBalance,
+//         }
+//         console.log("transaction-->", transaction);
+//         await userService.createTransaction(transaction);
+//         return {
+//             status: true,
+//             message: "Balance locked successfully",
+//         }
+//     } catch (error) {
+//         console.log("Error in lock balance of user ", error);
+//         return {
+//             status: false,
+//             message: error.message
+//         }
+//     }
+// }
 // const addWinningAmountForRummy = async (addWinBalanceRequest) => {
 //     try {
 //         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
@@ -3468,6 +3468,149 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
 //         }
 //     }
 // }
+const deductJoinFeesForRummy = async (deductBalanceReq) => {
+    try {
+        //let deductBalanceReq = req.body;
+        console.log('Rummy deductBalanceReq------>', deductBalanceReq)
+        let userId = deductBalanceReq.user_id;
+        let deductBalance = Math.abs(parseFloat(deductBalanceReq.deductBalance));
+        let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
+
+        if (!userWallet) {
+            throw Error("Wallet does not exist");
+        }
+        // console.log("userWallet-->", userWallet);
+        // Parse the string values to float
+        let depositAmount = parseFloat(userWallet.dataValues.real_amount) || 0;
+        let bonusAmount = parseFloat(userWallet.dataValues.bonus_amount) || 0;
+        let winAmount = parseFloat(userWallet.dataValues.win_amount) || 0;
+        let locked_amt = parseFloat(userWallet.dataValues.locked_amount) || 0;
+        let updated_locked_amt = locked_amt + deductBalance;
+// Check the parsed values
+        console.log("Parsed values: ", depositAmount, bonusAmount, winAmount);
+
+        let getBonus = await userService.getBonusSetting();
+        let betAmount = deductBalance;
+
+// Step 1: Deduct 10% of the bet amount from the bonus amount
+        let bonusDeduction = 0;
+        if (getBonus && getBonus.bet_bonus_amount) {
+            bonusDeduction = betAmount * getBonus.bet_bonus_amount / 100;
+        }
+        let bonusPerAmt = 0;
+        if (bonusAmount >= bonusDeduction) {
+            bonusPerAmt = bonusDeduction;
+        }
+// Perform calculations
+        let balance = depositAmount + bonusPerAmt + winAmount;
+
+// Check the total amount
+        console.log("Total amount user: ", balance);
+
+        // let balance = parseFloat(userWallet.real_amount) + parseFloat(userWallet.otp_amount) + parseFloat(userWallet.bonus_amount)
+        //     + parseFloat(userWallet.win_amount);
+        // console.log("user all amount--->",balance);
+        if (deductBalance > balance) {
+            throw Error("Locked amount is greater than balance");
+        }
+
+        let transactionAdmin = {
+            user_id: 1,
+            type: "CR",
+            amount: deductBalance,
+            opening_balance: balance,
+            closing_balance: balance + deductBalance,
+        }
+
+        if (bonusAmount >= bonusDeduction) {
+            bonusAmount -= bonusDeduction;
+        } else {
+            console.log("Not enough bonus amount to deduct.");
+            bonusDeduction = bonusAmount;
+            bonusAmount = 0;
+        }
+
+        let remainingBet = betAmount - bonusDeduction;
+
+// Step 2: Deduct the remaining bet amount from the deposit amount
+        if (depositAmount >= remainingBet) {
+            depositAmount -= remainingBet;
+            remainingBet = 0;
+        } else {
+            remainingBet -= depositAmount;
+            depositAmount = 0;
+        }
+
+// Step 3: Deduct any remaining bet amount from the win amount
+        if (remainingBet > 0) {
+            if (winAmount >= remainingBet) {
+                winAmount -= remainingBet;
+                remainingBet = 0;
+            } else {
+                console.log("Not enough win amount to deduct.");
+                remainingBet -= winAmount;
+                winAmount = 0;
+            }
+        }
+
+        console.log(`Bonus Amount: ${bonusAmount}`);
+        console.log(`Deposit Amount: ${depositAmount}`);
+        console.log(`Win Amount: ${winAmount}`);
+        console.log(`Remaining Bet Amount: ${remainingBet}`);
+
+
+        console.log('Rummy deduction', {
+            real_amount: depositAmount,
+            bonus_amount: bonusAmount,
+            win_amount: winAmount,
+            locked_amount: updated_locked_amt,
+            user_id: userId
+        })
+
+
+        let depositAmounts = parseFloat(userWallet.dataValues.real_amount) || 0;
+        let bonusAmounts = parseFloat(userWallet.dataValues.bonus_amount) || 0;
+        let winAmounts = parseFloat(userWallet.dataValues.win_amount) || 0;
+
+        console.log('Transaction Amount', {
+            depositAmounts: parseFloat(depositAmounts) - parseFloat(depositAmount),
+            bonusAmounts: parseFloat(bonusAmounts) - parseFloat(bonusAmount),
+            winAmounts: parseFloat(winAmounts) - parseFloat(winAmount)
+        })
+
+        await userService.updateUserWallet({
+            real_amount: parseFloat(depositAmount),
+            bonus_amount: parseFloat(bonusAmount),
+            win_amount: parseFloat(winAmount),
+            locked_amount: updated_locked_amt,
+        }, {user_wallet_id: userWallet.user_wallet_id});
+
+        let transaction = {
+            user_id: userId,
+            type: "DR",
+            other_type: 'Bet Amount',
+            category: 'Rummy',
+            amount: deductBalance,
+            opening_balance: balance,
+            real_amount: parseFloat(depositAmounts) - parseFloat(depositAmount),
+            win_amount: parseFloat(winAmounts) - parseFloat(winAmount),
+            bonus_amount: parseFloat(bonusAmounts) - parseFloat(bonusAmount),
+            closing_balance: balance - deductBalance,
+        }
+        // console.log("transaction-->", transaction);
+        await userService.createTransaction(transaction);
+        return {
+            status: true,
+            message: "Balance locked successfully",
+        }
+    } catch (error) {
+        console.log("Error in lock balance of user ", error);
+        return {
+            status: false,
+            message: error.message
+        }
+    }
+}
 
 const addWinningAmountForRummy = async (addWinBalanceRequest) => {
     try {
