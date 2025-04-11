@@ -3956,26 +3956,67 @@ const sendNotification = async (req, res) => {
 const getWinningAmount = async (req, res) => {
     let responseData = {};
     try {
-        let game_type = req.query.game_type;
+        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype} = req.query;
+        const {limit, offset} = getPagination(page);
         let getUserData;
+        let baseQuery;
+        let getCount;
         if (game_type === 'Poker') {
-            getUserData = await adminService.getCashTransaction({other_type: 'Table Commision', category: game_type});
+                baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            FROM transactions t
+                     JOIN users u ON t.user_id = u.user_id
+            WHERE t.other_type= 'Table Commision' AND t.category='${game_type}'`;
         } else if (game_type) {
-            getUserData = await adminService.getCashTransaction({other_type: 'Winning', category: game_type});
+            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            FROM transactions t
+                     JOIN users u ON t.user_id = u.user_id
+            WHERE t.other_type= 'Winning' AND t.category='${game_type}'`;
         } else {
-            getUserData = await adminService.getCashTransaction({other_type: 'Winning'});
+            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            FROM transactions t
+                     JOIN users u ON t.user_id = u.user_id
+            WHERE t.other_type= 'Winning'`;
         }
+        // Add search condition if search_key is provided
+        if (search_key) {
+            baseQuery += ` AND (
+                u.username LIKE '%${search_key}%' OR 
+                u.email LIKE '%${search_key}%' OR 
+                u.mobile LIKE '%${search_key}%'
+            )`;
+        }
+
+        // Add date range filter if dates are provided
+        if (from_date && end_date) {
+            baseQuery += ` AND t.createdAt BETWEEN '${from_date}' AND '${end_date}'`;
+        } else if (from_date) {
+            baseQuery += ` AND t.createdAt >= '${from_date}'`;
+        } else if (end_date) {
+            baseQuery += ` AND t.createdAt <= '${end_date}'`;
+        }
+        // Get paginated data with count
+        getUserData = await sequelize.query(
+            `${baseQuery} ORDER BY t.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
+            {type: sequelize.QueryTypes.SELECT}
+        );
+
+        getCount = await sequelize.query(
+            `SELECT COUNT(*) as total
+             FROM (${baseQuery}) as count_query`,
+            {type: sequelize.QueryTypes.SELECT}
+        )
         if (getUserData.length == 0) {
             responseData.msg = 'Data not found';
             return responseHelper.error(res, responseData, 201);
         }
         getUserData = getUserData.map(async (element, i) => {
-            let getUserD = await adminService.getUserDetailsById({user_id: element.user_id});
-            element.dataValues.user_id = (getUserD && getUserD.username != null) ? getUserD.username : '';
+            element.user_id = element.username;
             return element;
         })
+        const totalCount = getCount[0].total;
         getUserData = await Promise.all(getUserData);
         responseData.msg = 'Winning Transaction List!!!';
+        responseData.count = totalCount;
         responseData.data = getUserData;
         return responseHelper.success(res, responseData);
     } catch (error) {
@@ -4836,7 +4877,7 @@ const pendingWithdrawal = async (req, res) => {
         // }
 
         // Get paginated data with count
-        const getUserData = await sequelize.query(
+        let getUserData = await sequelize.query(
             `${baseQuery} ORDER BY r.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
             {type: sequelize.QueryTypes.SELECT}
         );
@@ -4852,9 +4893,12 @@ const pendingWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        // Calculate pagination info
+        getUserData = getUserData.map(async (element, i) => {
+            element.user_id = element.username;
+            return element;
+        })
         const totalCount = getCount[0].total;
-        //const totalPages = Math.ceil(totalCount / limit);
+        getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Pending Withdrawal List!!!';
         responseData.count = totalCount;
@@ -4899,7 +4943,7 @@ const todayWithdrawal = async (req, res) => {
             baseQuery += ` AND r.createdAt <= '${end_date}'`;
         }
         // Get paginated data with count
-        const getUserData = await sequelize.query(
+        let getUserData = await sequelize.query(
             `${baseQuery} ORDER BY r.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
             {type: sequelize.QueryTypes.SELECT}
         );
@@ -4915,9 +4959,12 @@ const todayWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        // Calculate pagination info
+        getUserData = getUserData.map(async (element, i) => {
+            element.user_id = element.username;
+            return element;
+        })
         const totalCount = getCount[0].total;
-        //const totalPages = Math.ceil(totalCount / limit);
+        getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Today Withdrawal List!!!';
         responseData.count = totalCount;
@@ -4962,7 +5009,7 @@ const todayDeposit = async (req, res) => {
             baseQuery += ` AND t.createdAt <= '${end_date}'`;
         }
         // Get paginated data with count
-        const getUserData = await sequelize.query(
+        let getUserData = await sequelize.query(
             `${baseQuery} ORDER BY t.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
             {type: sequelize.QueryTypes.SELECT}
         );
@@ -4978,9 +5025,12 @@ const todayDeposit = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        // Calculate pagination info
+        getUserData = getUserData.map(async (element, i) => {
+            element.user_id = element.username;
+            return element;
+        })
         const totalCount = getCount[0].total;
-        //const totalPages = Math.ceil(totalCount / limit);
+        getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Total Deposit List!!!';
         responseData.count = totalCount;
@@ -5542,35 +5592,58 @@ const addDeposit = async (req, res) => {
 const cashTransaction = async (req, res) => {
     let responseData = {};
     try {
-        let game_type = req.query.game_type;
+        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype} = req.query;
+        const {limit, offset} = getPagination(page);
         let getUserData;
+        let baseQuery;
+        let getCount;
         if (game_type) {
-            getUserData = await adminService.getCashTransaction({other_type: {[Op.ne]: 'Coin'}, category: game_type});
+            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            FROM transactions t
+                     JOIN users u ON t.user_id = u.user_id
+            WHERE t.other_type!= 'Coin' AND t.category='${game_type}'`;
         } else {
-            getUserData = await adminService.getCashTransaction({other_type: {[Op.ne]: 'Coin'}});
+            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            FROM transactions t
+                     JOIN users u ON t.user_id = u.user_id
+            WHERE t.other_type!= 'Coin'`;
         }
+        // Add search condition if search_key is provided
+        if (search_key) {
+            baseQuery += ` AND (
+                u.username LIKE '%${search_key}%' OR 
+                u.email LIKE '%${search_key}%' OR 
+                u.mobile LIKE '%${search_key}%'
+            )`;
+        }
+
+        // Add date range filter if dates are provided
+        if (from_date && end_date) {
+            baseQuery += ` AND t.createdAt BETWEEN '${from_date}' AND '${end_date}'`;
+        } else if (from_date) {
+            baseQuery += ` AND t.createdAt >= '${from_date}'`;
+        } else if (end_date) {
+            baseQuery += ` AND t.createdAt <= '${end_date}'`;
+        }
+        // Get paginated data with count
+        getUserData = await sequelize.query(
+            `${baseQuery} ORDER BY t.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
+            {type: sequelize.QueryTypes.SELECT}
+        );
+
+        getCount = await sequelize.query(
+            `SELECT COUNT(*) as total
+             FROM (${baseQuery}) as count_query`,
+            {type: sequelize.QueryTypes.SELECT}
+        )
         if (getUserData.length == 0) {
             responseData.msg = 'Data not found';
             return responseHelper.error(res, responseData, 201);
         }
-        getUserData = getUserData.map(async (element, i) => {
-            console.log(element.user_id);
-            let getUserD = await adminService.getUserDetailsById({user_id: element.user_id});
-            // console.log('getUserD', getUserD);
-            element.dataValues.user_id = (getUserD && getUserD.user_id != null) ? getUserD.user_id : '';
-            // Check if getUserD is not null and has a username property
-            const username = getUserD && getUserD.username ? getUserD.username : '';
 
-            // Ensure dataValues exists
-            if (!element.dataValues) {
-                element.dataValues = {};
-            }
-
-            element.dataValues.username = username;
-            return element;
-        })
-        getUserData = await Promise.all(getUserData);
+        const totalCount = getCount[0].total;
         responseData.msg = 'Cash Transaction List!!!';
+        responseData.count = totalCount;
         responseData.data = getUserData;
         return responseHelper.success(res, responseData);
     } catch (error) {
