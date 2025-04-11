@@ -60,5 +60,8 @@ module.exports = () => {
 
     routes.post("/add-amount" ,authenticate,userController.depositAmount);
     routes.post("/deposit-callback" ,userController.handleSuccessPayment);
+    routes.post("/live-user", authenticate, userController.liveData);
+
+    routes.get("/read-notification" ,authenticate,userController.readNotification);
     return routes;
 };

@@ -64,6 +64,10 @@ const getProfile = async (req, res) => {
         if (userWallet && (moment(userWallet.last_claim_date).format('YYYY-MM-DD') == today)) {
             isClaim = 1;
         }
+        let isKycDone = 0;
+        if (userKyc && userKyc.is_pan_card_verify == 1 && userKyc.is_adhaar_verify == 1) {
+            isKycDone = 1;
+        }
         userWallet.dataValues.is_claim = isClaim;
         getUser.profile_image = (getUser.profile_image) ? getUser.profile_image : '';
         getUser.mobile = getUser.mobile ? await decryptData(getUser.mobile) : "";
@@ -71,6 +75,7 @@ const getProfile = async (req, res) => {
         getUser.user_wallet = userWallet;
         getUser.pan_number = (userKyc) ? await userKyc.pan_number : '';
         getUser.is_pan_card_verify = (userKyc) ? await userKyc.is_pan_card_verify : '';
+        getUser.is_kyc_done = isKycDone;
         getUser.adhaar_number = (userKyc) ? await userKyc.adhaar_number : '';
         getUser.is_adhaar_verify = (userKyc) ? await userKyc.is_adhaar_verify : '';
         getUser.bank_details = bankD;
@@ -928,7 +933,7 @@ const getNotification = async (req, res) => {
     try {
         let user = req.user;
         let id = user.user_id;
-        let query = {receiver_user_id: id}
+        let query = {receiver_user_id: id, is_read:0}
         let getNotification = await userService.getUserNotifications(query);
         if (getNotification.length == 0) {
             responseData.msg = 'No Notification Found';
@@ -3348,11 +3353,11 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
 //         console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
 //         console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
 //         console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
-        
+
 
 //         let userWallet = await userService.getUserWalletDetailsByQuery({user_id: userId});
 //         console.log("before update --->",userWallet);
-       
+
 //         if (!userWallet) {
 //             throw Error("Wallet does not exist");
 //         }
@@ -3413,7 +3418,7 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
 //             locked_amount: newlocked_amt,
 //             win_amount: winAmount,
 //         }, { user_id: userId });
-        
+
 //         console.log("Rows affected in user_wallet:", affectedRows);
 //         if (affectedRows === 0) {
 //             throw new Error("No rows were updated in user_wallet.");
@@ -3471,10 +3476,10 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
 
 
         console.log("User ID:", userId);
-                console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
-                console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
-                console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
-                console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
+        console.log("Real Amount:", realAmount, "Type:", typeof realAmount);
+        console.log("Winning Amount:", winAmount, "Type:", typeof winAmount);
+        console.log("Admin Commission:", AdminCommision, "Type:", typeof AdminCommision);
+        console.log("New Locked Amount:", newlocked_amt, "Type:", typeof newlocked_amt);
 
 
 
@@ -3873,7 +3878,7 @@ const depositAmount = async(req,res) => {
             transactionDate: new Date(),
             terminalId: process.env.GeepayTerminalId,
             udf1: mobile,
-            udf2: `mailto:${email}`,
+            udf2: email,
             udf3: userD.username,
             udf4: "",
             udf5: "",
@@ -4012,7 +4017,73 @@ const checkStatus = async(req,res) => {
 
 }
 
+const liveData = async (req, res) => {
+    let responseData = {};
+    try {
+        console.log(req.body);
+        let gameType = req.body.game_type;
+        let userId = req.user.user_id;
 
+        // Get user details
+        let userD = await userService.getUserDetailsById({user_id: userId});
+        if (!userD) {
+            responseData.msg = 'User not found';
+            return responseHelper.error(res, responseData, 201);
+        }
+
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const dateOnly = today.toISOString().split('T')[0]; // Extracts just the date part
+
+        // Check if user already has an entry for today
+        const existingEntry = await userService.getLiveUserByDate({
+            user_id: userId,
+            livedate: dateOnly, // Use just the date string
+            game_type: gameType
+        });
+
+        let reqData = {
+            user_id: userId,
+            game_type: gameType,
+            livedate: dateOnly // Store just the date without time
+        };
+
+        if (existingEntry) {
+            // Update existing entry
+            await userService.updateLiveUser(
+                reqData,
+                {where:{id: existingEntry.id}}
+            );
+            responseData.msg = 'Your existing request has been updated';
+        } else {
+            // Create new entry
+            await userService.createLiveUsers(reqData);
+            responseData.msg = 'Your request has been saved';
+        }
+
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        console.error("Error in liveData:", error);
+        responseData.msg = error.message || 'Internal server error';
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
+const readNotification = async (req, res) => {
+    let responseData = {};
+    try {
+        let user = req.user;
+        let id = req.query.id;
+        let query = {notification_id: id}
+        await userService.updateNotifications({is_read:1},query);
+        responseData.msg = 'Notification Fetch successfully!!!';
+        responseData.data = {};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
 module.exports = {
     getBanner,
     sendOtp,
@@ -4076,6 +4147,8 @@ module.exports = {
     updateWinWalletForFantasy,
     depositAmount,
     handleSuccessPayment,
-    checkStatus
+    checkStatus,
+    liveData,
+    readNotification
     // savePoolGameHistory
 }

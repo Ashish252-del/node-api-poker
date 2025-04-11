@@ -70,9 +70,9 @@ async function initialize() {
     db.modules = require('../models/module')(sequelize, DataTypes);
     db.user_roles = require('../models/userRoleModel')(sequelize, DataTypes);
     db.club_member_roles = require('../models/clubMemberRoles')(sequelize, DataTypes);
-    db.club_modules=require('../models/clubModules')(sequelize, DataTypes);
-    db.club_member_role_modules=require("../models/clubMemberRoleModule")(sequelize, DataTypes);
-    db.user_game_status=require("../models/userGameStatus")(sequelize, DataTypes);
+    db.club_modules = require('../models/clubModules')(sequelize, DataTypes);
+    db.club_member_role_modules = require("../models/clubMemberRoleModule")(sequelize, DataTypes);
+    db.user_game_status = require("../models/userGameStatus")(sequelize, DataTypes);
 
 
     db.union = require('../models/unionModel')(sequelize, DataTypes);
@@ -80,34 +80,35 @@ async function initialize() {
     db.mission = require('../models/missionModel')(sequelize, DataTypes);
     db.club_level = require('../models/clubLevel')(sequelize, DataTypes);
     db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
-    db.avatar = require('../models/avatar')(sequelize,DataTypes);
+    db.avatar = require('../models/avatar')(sequelize, DataTypes);
     db.ludo_chat_template = require('../models/ludo_chat_template')(sequelize, DataTypes);
-    db.ludo_emojis = require('../models/ludo_emojis')(sequelize,DataTypes);
-    db.ludo_game_history = require('../models/ludo_game_history')(sequelize,DataTypes);
-    db.ludo_game_type = require ('../models/ludo_game_type')(sequelize,DataTypes);
-    db.ludo_game_varient = require('../models/ludo_game_varient')(sequelize,DataTypes);
-    db.ludo_game = require('../models/ludo_game')(sequelize,DataTypes);
-    db.ludo_leaderboard = require('../models/ludo_leaderboard')(sequelize,DataTypes);
-    db.ludo_prize_structure = require('../models/ludo_prize_structure')(sequelize,DataTypes);
-    db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize,DataTypes);
-    db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize,DataTypes);
-    db.ludo_shop = require('../models/ludo_shop')(sequelize,DataTypes);
+    db.ludo_emojis = require('../models/ludo_emojis')(sequelize, DataTypes);
+    db.ludo_game_history = require('../models/ludo_game_history')(sequelize, DataTypes);
+    db.ludo_game_type = require('../models/ludo_game_type')(sequelize, DataTypes);
+    db.ludo_game_varient = require('../models/ludo_game_varient')(sequelize, DataTypes);
+    db.ludo_game = require('../models/ludo_game')(sequelize, DataTypes);
+    db.ludo_leaderboard = require('../models/ludo_leaderboard')(sequelize, DataTypes);
+    db.ludo_prize_structure = require('../models/ludo_prize_structure')(sequelize, DataTypes);
+    db.ludo_shop_goods = require('../models/ludo_shop_goods')(sequelize, DataTypes);
+    db.ludo_shop_users = require('../models/ludo_shop_users')(sequelize, DataTypes);
+    db.ludo_shop = require('../models/ludo_shop')(sequelize, DataTypes);
     db.banners = require('../models/bannerModel')(sequelize, DataTypes);
     // pool ->
-     // init models and add them to the exported db object
-   db.pool_games = require('../models/pool_game')(sequelize, DataTypes);
-   db.pool_emojis = require('../models/pool_emojisModel')(sequelize, DataTypes);
-   db.pool_game_history = require('../models/pool_game_history')(sequelize, DataTypes);
-   db.pool_game_tables = require('../models/pool_game_table')(sequelize, DataTypes);
-   db.pool_table_transaction = require('../models/pool_tableTransactionModel')(sequelize, DataTypes);
-   db.pool_tournaments = require('../models/pool_tournamentModel')(sequelize, DataTypes);
-   db.pool_tournament_tables = require('../models/pool_tournamentTableModel')(sequelize, DataTypes);
-   db.pool_notifications = require('../models/notificationModel')(sequelize, DataTypes);
-   db.pool_block_user = require('../models/blockUser')(sequelize, DataTypes);
-   db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
-   db.pockerSuspiciousActions = require('../models/pokerSuspiciousActions')(sequelize, DataTypes);
+    // init models and add them to the exported db object
+    db.pool_games = require('../models/pool_game')(sequelize, DataTypes);
+    db.pool_emojis = require('../models/pool_emojisModel')(sequelize, DataTypes);
+    db.pool_game_history = require('../models/pool_game_history')(sequelize, DataTypes);
+    db.pool_game_tables = require('../models/pool_game_table')(sequelize, DataTypes);
+    db.pool_table_transaction = require('../models/pool_tableTransactionModel')(sequelize, DataTypes);
+    db.pool_tournaments = require('../models/pool_tournamentModel')(sequelize, DataTypes);
+    db.pool_tournament_tables = require('../models/pool_tournamentTableModel')(sequelize, DataTypes);
+    db.pool_notifications = require('../models/notificationModel')(sequelize, DataTypes);
+    db.pool_block_user = require('../models/blockUser')(sequelize, DataTypes);
+    db.referral_bonus_settings = require('../models/referralBonusSettingModel')(sequelize, DataTypes);
+    db.pockerSuspiciousActions = require('../models/pokerSuspiciousActions')(sequelize, DataTypes);
     // --<
     db.buy_in_records = require('../models/buyInRequest')(sequelize, DataTypes)
+    db.live_users = require("../models/liveUserModel")(sequelize, DataTypes);
     db.user_log.belongsTo(db.users, {
         foreignKey: "user_id",
         as: "user_log_user",
@@ -129,9 +130,9 @@ async function initialize() {
     //     as: "user_wallet_user_id",
     // });
     db.users.hasOne(db.user_wallet, {
-      foreignKey: 'user_id',
-      as: 'user_wallet_user_id'
-  });
+        foreignKey: 'user_id',
+        as: 'user_wallet_user_id'
+    });
 
     db.transactions.belongsTo(db.users, {
         foreignKey: "user_id",
@@ -175,39 +176,39 @@ async function initialize() {
         foreignKey: "clubId",
         as: "registered_club_id"
     })
-    db.users.belongsTo(db.avatar,{
+    db.users.belongsTo(db.avatar, {
         foreignKey: 'avatarId',
         // onDelete: 'SET NULL',
         // onUpdate: 'CASCADE',
-   })
+    })
     db.avatar.hasMany(db.users, {
         foreignKey: 'avatarId',
     })
-    db.ludo_game_history.belongsTo(db.ludo_game,{
+    db.ludo_game_history.belongsTo(db.ludo_game, {
         foreignKey: "gameId",
-      });
-      db.ludo_game.hasMany(db.ludo_game_history , {
+    });
+    db.ludo_game.hasMany(db.ludo_game_history, {
         foreignKey: "gameId"
-      })
-      db.ludo_game_history.belongsTo(db.users,{
+    })
+    db.ludo_game_history.belongsTo(db.users, {
         foreignKey: "userId",
-      });
-      db.users.hasMany(db.ludo_game_history, {
+    });
+    db.users.hasMany(db.ludo_game_history, {
         foreignKey: "userId",
-      });
-      db.ludo_game.belongsTo(db.ludo_game_type,{
+    });
+    db.ludo_game.belongsTo(db.ludo_game_type, {
         foreignKey: "type_id",
-      });
-      db.ludo_game_type.hasMany(db.ludo_game, {
+    });
+    db.ludo_game_type.hasMany(db.ludo_game, {
         foreignKey: "type_id",
-      });
-      db.ludo_game.belongsTo(db.ludo_game_varient,{
+    });
+    db.ludo_game.belongsTo(db.ludo_game_varient, {
         foreignKey: "varient_id",
-      });
-      db.ludo_game_varient.hasMany(db.ludo_game, {
+    });
+    db.ludo_game_varient.hasMany(db.ludo_game, {
         foreignKey: "varient_id",
-      });
-      db.buy_in_records.belongsTo(db.users, {
+    });
+    db.buy_in_records.belongsTo(db.users, {
         foreignKey: "user_id"
     })
 
@@ -221,11 +222,11 @@ async function initialize() {
         foreignKey: "userId"
     })
     db.games.hasMany(db.pockerSuspiciousActions, {
-      foreignKey: "gameId"
-  })
-  db.pockerSuspiciousActions.belongsTo(db.games, {
-    foreignKey: "gameId"
-})
+        foreignKey: "gameId"
+    })
+    db.pockerSuspiciousActions.belongsTo(db.games, {
+        foreignKey: "gameId"
+    })
 
     // sync all models with database
     await sequelize.sync({alter: true});
