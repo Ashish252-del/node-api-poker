@@ -1232,6 +1232,7 @@ const lockBalanceOfUser = async (lockBalanceReq) => {
 }
 const deductJoinFees = async (deductBalanceReq) => {
     try {
+        console.log("deductBalanceReq---->",deductBalanceReq);
         let userId = deductBalanceReq.user_id;
         let amount = parseFloat(deductBalanceReq.lockAmount+"");
         let deductBalance = parseFloat(deductBalanceReq.deductBalance+"");
@@ -1315,6 +1316,8 @@ const deductJoinFees = async (deductBalanceReq) => {
                     + deductBalance)
             },
             {user_wallet_id: userWalletAdmin.user_wallet_id});
+            console.log("transaction--->",transaction);
+            console.log("transactionAdmin--->",transactionAdmin);
         await userService.createTransaction(transaction);
         await userService.createTransaction(transactionAdmin);
         return {
@@ -1680,6 +1683,7 @@ console.log("resp of setteld balance is =======================", resp);
 
 const addPrizeMoney = async (addPrizeMoneyReq) => {
     try {
+        console.log("addPrizeMoneyReq---->",addPrizeMoneyReq);
         let userId = addPrizeMoneyReq.user_id;
         let amount = parseFloat(addPrizeMoneyReq.prizeMoney);
         let tableId = addPrizeMoneyReq.tableId;
