@@ -933,7 +933,7 @@ const getNotification = async (req, res) => {
     try {
         let user = req.user;
         let id = user.user_id;
-        let query = {receiver_user_id: id}
+        let query = {receiver_user_id: id, is_read:0}
         let getNotification = await userService.getUserNotifications(query);
         if (getNotification.length == 0) {
             responseData.msg = 'No Notification Found';
