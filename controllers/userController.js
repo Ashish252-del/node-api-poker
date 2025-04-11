@@ -1126,6 +1126,7 @@ const updateAddress = async (req, res) => {
 }
 const lockBalanceOfUser = async (lockBalanceReq) => {
     try {
+        console.log("lockBalanceReq---->",lockBalanceReq);
         let userId = lockBalanceReq.user_id;
         let amount = parseFloat(lockBalanceReq.amount);
         let tableId = lockBalanceReq.tableId;
@@ -1176,6 +1177,8 @@ const lockBalanceOfUser = async (lockBalanceReq) => {
             user_id: userId,
             table_id: tableId,
             type: "DR",
+            category:"Poker",
+            other_type:"Bet Amount",
             amount: amount,
             opening_balance: balance,
             closing_balance: balance - amount,
