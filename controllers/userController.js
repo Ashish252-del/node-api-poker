@@ -3479,7 +3479,7 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
         if (!userWallet) {
             throw Error("Wallet does not exist");
         }
-        // console.log("userWallet-->", userWallet);
+        console.log("userWallet-->", userWallet);
         // Parse the string values to float
         let depositAmount = parseFloat(userWallet.dataValues.real_amount) || 0;
         let bonusAmount = parseFloat(userWallet.dataValues.bonus_amount) || 0;

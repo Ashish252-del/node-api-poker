@@ -58,7 +58,7 @@ const getUserWalletDetailsById = (query) => {
 }
 
 const getUserWalletDetailsByQuery = (query) => {
-   return db.user_wallet.findOne({ where: query,raw:true });
+   return db.user_wallet.findOne({where: query});
 }
 
 const updateUserWallet = async (data, query) => {
