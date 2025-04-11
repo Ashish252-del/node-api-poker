@@ -3759,7 +3759,7 @@ const depositAmount = async(req,res) => {
             transactionDate: new Date(),
             terminalId: process.env.GeepayTerminalId,
             udf1: mobile,
-            udf2: `mailto:${email}`,
+            udf2: email,
             udf3: userD.username,
             udf4: "",
             udf5: "",
