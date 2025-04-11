@@ -7,6 +7,7 @@ module.exports = {
             message: body.msg,
             statusCode: 200,
             status: true,
+            count: (body.count) ? body.count : 0,
             allModules: body.modules, 
             data: body.data
         });
