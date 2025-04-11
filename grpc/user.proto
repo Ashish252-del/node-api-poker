@@ -15,6 +15,7 @@ message LockBalanceRequest {
   string gameType = 4;
 }
 
+
 message DeductBalanceRequest {
   int64 user_id = 1;
   float deductBalance = 2;
@@ -36,23 +37,8 @@ message TopUpBalanceRequest {
   string gameType = 5;
 }
 
-message AddPrizeMoneyRequestForClub {
-  int64 user_id = 1;
-  float prizeMoney = 2;
-  int64 tableId = 3;
-  int64 clubId = 4;
-}
-
-message TopUpBalanceRequestForClub {
-  int64 user_id = 1;
-  float prev_amount = 2;
-  int64 tableId = 3;
-  float top_up_amount = 4;
-  string gameType = 5;
-  int64 clubId = 6;
-}
-
-// message for response of userDetails
+// message for response of userDetails 
+//new added
 message details {
   string username = 1;
   string profile_image = 2;
@@ -67,38 +53,23 @@ message details {
    float locked_amount=11;
 }
 
+//message bonus percentage
+message bonusResponse {
+  string bonus_percentage = 1;
+}
+
 //Add Winning Amount
 message addWinBalanceRequest {
   int64 user_id = 1;
   float realAmount = 2;
   float winningAmount = 3;
-  float adminCommision = 4;
-  int64 success=5;
-  float newLockedAmount=6;
-}
-//Get min-max buyIn 
-message userMinMaxBuyInReq {
-  int64 userId = 1;
   string tableId = 4;
-}
-
-message userMinMaxBuyInReqClub {
-  int64 userId = 1;
-  int64 clubId = 2;
-  string tableId = 3;
-}
-
-message userMinMaxBuyInReqRes {
-  int64 minimum_buyin = 1;
-  int64 maximum_buyin = 2;
-  string message = 3;
-  string tableId = 4;
-  float user_balance = 5;
-}
-
-//message bonus percentage
-message bonusResponse {
-  string bonus_percentage = 1;
+  float winTransaction = 5;
+  float adminCommision = 6;
+  float betAmount = 7;
+  int64 success=8;
+  float newLockedAmount=9;
+  float remainingAmount =10;
 }
 
 //message for boolean response to balance update
@@ -121,22 +92,6 @@ service BalanceUpdateService {
   rpc UpdateBalance(UpdateBalanceRequest) returns (GenericResponse) {}
 }
 
-message DeductBalanceRequestClub {
-  int64 user_id = 1;
-  float deductBalance = 2;
-  int64 tableId = 3;
-  float lockAmount = 4;
-  int64 clubId = 5;
-}
-
-message LockBalanceRequestClub {
-  int64 user_id = 1;
-  float amount = 2;
-  int64 tableId = 3;
-  string gameType = 4;
-  int64 clubId = 5;
-}
-
 //service for locking balance of user
 service LockBalanceService {
   rpc LockBalance(LockBalanceRequest) returns (GenericResponse) {}
@@ -145,19 +100,11 @@ service LockBalanceService {
   rpc TopUpBalance(TopUpBalanceRequest) returns (GenericResponse) {}
   rpc DeductJoinFees(DeductBalanceRequest) returns (GenericResponse) {}
   rpc AddPrizeMoney(AddPrizeMoneyRequest) returns (GenericResponse) {}
-  rpc GetMaxBuyInMinBuyIn (userMinMaxBuyInReq) returns (userMinMaxBuyInReqRes){}
-
-  rpc UpdateLockBalanceForClub(LockBalanceRequestClub) returns (GenericResponse) {}
-  rpc GetMaxBuyInMinBuyInForClub (userMinMaxBuyInReqClub) returns (userMinMaxBuyInReqRes){}
-  rpc LockBalanceForClub(LockBalanceRequestClub) returns (GenericResponse) {}
-  rpc DeductJoinFeesForClub(DeductBalanceRequestClub) returns (GenericResponse) {}
-  rpc TopUpBalanceForClub(TopUpBalanceRequestForClub) returns (GenericResponse) {}
-  rpc AddPrizeMoneyForClub(AddPrizeMoneyRequestForClub) returns (GenericResponse) {}
 }
 // service for getting user details
 service getUserDetailsService {
   rpc GetUserDetails(userDetailsRequest) returns (details){}
-    rpc userBonusPercentage(Empty) returns (bonusResponse){}
+  rpc userBonusPercentage(Empty) returns (bonusResponse){}
   rpc deductJoinFeesForLudo(DeductBalanceRequest) returns (GenericResponse) {}
   rpc addWinningAmountForLudo(addWinBalanceRequest) returns (GenericResponse) {}
   rpc getUserNameByUserId(UserNameByUserIdRequest) returns (UserNameByUserIdResponse){}
