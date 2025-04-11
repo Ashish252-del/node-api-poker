@@ -1660,7 +1660,8 @@ const unlockBalanceOfUser = async (unlockBalanceReq) => {
          // console.log("===== is_balance_unlocked is =========", is_balance_unlocked);
             if (is_balance_unlocked) {
                 await userService.updateUserWallet({
-                        real_amount: (parseFloat(userWallet.real_amount+"") + parseFloat("" + amount)),
+                        // real_amount: (parseFloat(userWallet.real_amount+"") + parseFloat("" + amount)),
+                        real_amount: (parseFloat(userWallet.win_amount+"") + parseFloat("" + amount)),
                         locked_amount: newLockBalance
                     }
                     , {user_wallet_id: userWallet.user_wallet_id});
