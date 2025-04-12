@@ -279,7 +279,7 @@ const getDocumentsByRawQuery = async (sql) => {
    return await sequelize.query(sql, { raw: true, type: sequelize.QueryTypes.SELECT });
 }
 const getLastTransactionById = (query) => {
-   return db.transactions.findOne({where:query, order: [['transaction_id', 'DESC']]});
+   return db.transactions.findOne({where:query,raw:true, order: [['transaction_id', 'DESC']]});
 }
 const getUserDetailsByDeviceToken = (query) => {
    console.log("query-->",query);
