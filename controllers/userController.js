@@ -4225,6 +4225,20 @@ const readNotification = async (req, res) => {
         return responseHelper.error(res, responseData, 500);
     }
 }
+
+const getBetBonusPercentage = async (req, res) => {
+    let responseData = {};
+    try {
+        let user = req.user;
+       // let bonus = await userService.getBonusSetting()
+        responseData.msg = 'Done';
+        responseData.data = {'bet_bonus_amount': 10};
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
 module.exports = {
     getBanner,
     sendOtp,
@@ -4290,6 +4304,7 @@ module.exports = {
     handleSuccessPayment,
     checkStatus,
     liveData,
-    readNotification
+    readNotification,
+    getBetBonusPercentage
     // savePoolGameHistory
 }
