@@ -4298,7 +4298,7 @@ const getGameHistory = async (req, res) => {
         if(game_type=='Pool'){
             if (game_type) {
                 console.log('d');
-                query += `game_category = '${game_type}'`;
+                query += `game_category = 1`;
             }
             if (from_date && end_date) {
                 console.log('d');
