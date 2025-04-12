@@ -248,6 +248,10 @@ const getGameTypeByQuery = (query) => {
     return db.game_type.findOne({where: query});
 }
 
+const getPoolGameTypeByQuery = (query) => {
+    return db.pool_games.findOne({where: query});
+}
+
 const getAllGameType = (query) => {
     if (query) {
         return db.game_type.findAll({
@@ -890,5 +894,6 @@ module.exports = {
     getLudoGameHistory,
     getPoolGameHistory,
     getAllAdmins,
-    deleteRole
+    deleteRole,
+    getPoolGameTypeByQuery
 }

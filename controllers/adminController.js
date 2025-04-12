@@ -4370,9 +4370,17 @@ const getGameHistory = async (req, res) => {
         }
         response = response.map(async (element) => {
             //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
-            let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+            let getGameType, category;
+            if(game_type=='Pool'){
+                getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
+                category = (getGameType) ? getGameType.table_type : ''
+            }else{
+                getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+                category = (getGameType) ? getGameType.name : ''
+            }
+
             let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
-            element.game_category = (getGameType) ? getGameType.name : '';
+            element.game_category = category;
             element.username = (getUserDetail) ? getUserDetail.username : '';
             element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
             element.win_amount = (element.win_amount) ? element.win_amount : '0';
