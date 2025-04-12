@@ -350,6 +350,7 @@ server.addService(rummyProto.GameDataService.service, {
    GetSingleGame: async (call, callback) => {
       try {
          let res = await get_singleGame(call.request, callback);
+         console.log("res from get single game -->",res);
          callback(null, res)
       } catch (error) {
          console.log('error occured in grpc service ', error);
