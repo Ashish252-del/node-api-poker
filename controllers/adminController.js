@@ -4160,7 +4160,7 @@ const getGameWiseUsers = async (req, res) => {
 
             // ✅ Using SELECT with Aggregate Functions to avoid ONLY_FULL_GROUP_BY issues
             response = await sequelize.query(
-                `SELECT game_histories.user_id,
+                `SELECT pool_game_histories.user_id,
                     MAX(pool_game_histories.game_history_id) AS game_history_id,
                     MAX(pool_game_histories.createdAt)       AS createdAt
              FROM pool_game_histories
