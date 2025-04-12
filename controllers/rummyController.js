@@ -155,8 +155,8 @@ const get_singleGame = async (req, res)=>{
         gameId: parseInt(game.game_id),
           rummy_code: parseInt(p.rummy_code),
         Max_Player: parseInt(p.maximum_player),
-          Min_Chips: parseInt(p.entry_fee),
-         Comission: parseInt(p.commission),
+          Min_Chips: parseFloat(p.entry_fee+""),
+         Comission: parseFloat(p.commission+""),
           Name: p.name
     };
     
@@ -165,15 +165,19 @@ const get_singleGame = async (req, res)=>{
     //             if(p.deal_type!=undefined) a.break_Round=p.deal_type;
     //             if(p.rummy_code == 1) a.is_practice = p.is_practice;
     if(p.rummy_code == 1) {
-        a.Points = parseInt(p.point_value);
+        let point_number= parseFloat(p.point_value+"");
+        a.Points =point_number;
         if(p.is_practice) a.is_practice = parseInt(p.is_practice); 
     }
     if(p.rummy_code == 2) {
         a.break_Score = parseInt(p.pool_type);
     }
     if(p.rummy_code == 3) {
+       // let point_number= parseFloat(p.point_value+"")
         a.break_Round = parseInt(p.deal_type);
-         a.Points = parseInt(p.point_value); 
+       //  a.Points =point_number;
+
+  
     }
     return a;
 }
