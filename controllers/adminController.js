@@ -4134,47 +4134,92 @@ const getGameWiseUsers = async (req, res) => {
 
         const {limit, offset} = getPagination(page);
         let query = '1=1'; // Start with a base query
+        let responseTotalCount = 0;
+        let response;
+        if(game_type==1){
+            if (game_type) {
+                query += ` AND pool_game_histories.game_category = '${game_type}'`;
+                console.log('Game Type Filter Applied');
+            }
 
-        if (game_type) {
-            query += ` AND game_histories.game_category = '${game_type}'`;
-            console.log('Game Type Filter Applied');
-        }
+            if (from_date && end_date) {
+                let fromDate = moment(from_date).format('YYYY-MM-DD');
+                let endDate = moment(end_date).format('YYYY-MM-DD');
+                console.log('Date Filter Applied:', {fromDate, endDate});
+                query += ` AND DATE(pool_game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            }
 
-        if (from_date && end_date) {
-            let fromDate = moment(from_date).format('YYYY-MM-DD');
-            let endDate = moment(end_date).format('YYYY-MM-DD');
-            console.log('Date Filter Applied:', {fromDate, endDate});
-            query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
-        }
-
-        if (search_key) {
-            console.log('Search Key Filter Applied:', search_key);
-            query += ` AND (users.username LIKE '%${search_key}%' OR 
+            if (search_key) {
+                console.log('Search Key Filter Applied:', search_key);
+                query += ` AND (users.username LIKE '%${search_key}%' OR 
                           users.referral_code LIKE '%${search_key}%' OR 
                           users.full_name LIKE '%${search_key}%')`;
-        }
+            }
 
-        query += ` GROUP BY game_histories.user_id ORDER BY MAX(game_histories.createdAt) DESC`;
+            query += ` GROUP BY pool_game_histories.user_id ORDER BY MAX(pool_game_histories.createdAt) DESC`;
 
-        // ✅ Using SELECT with Aggregate Functions to avoid ONLY_FULL_GROUP_BY issues
-        let response = await sequelize.query(
-            `SELECT game_histories.user_id,
+            // ✅ Using SELECT with Aggregate Functions to avoid ONLY_FULL_GROUP_BY issues
+            response = await sequelize.query(
+                `SELECT pool_game_histories.user_id,
+                    MAX(pool_game_histories.game_history_id) AS game_history_id,
+                    MAX(pool_game_histories.createdAt)       AS createdAt
+             FROM pool_game_histories
+                      JOIN users ON pool_game_histories.user_id = users.user_id
+             WHERE ${query} LIMIT ${offset}
+                 , ${limit}`,
+                {type: sequelize.QueryTypes.SELECT}
+            );
+
+            responseTotalCount = await sequelize.query(
+                `SELECT COUNT(DISTINCT pool_game_histories.user_id) AS totalCount
+             FROM pool_game_histories
+                      JOIN users ON pool_game_histories.user_id = users.user_id
+             WHERE ${query}`,
+                {type: sequelize.QueryTypes.SELECT}
+            );
+
+        }else{
+            if (game_type) {
+                query += ` AND game_histories.game_category = '${game_type}'`;
+                console.log('Game Type Filter Applied');
+            }
+
+            if (from_date && end_date) {
+                let fromDate = moment(from_date).format('YYYY-MM-DD');
+                let endDate = moment(end_date).format('YYYY-MM-DD');
+                console.log('Date Filter Applied:', {fromDate, endDate});
+                query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            }
+
+            if (search_key) {
+                console.log('Search Key Filter Applied:', search_key);
+                query += ` AND (users.username LIKE '%${search_key}%' OR 
+                          users.referral_code LIKE '%${search_key}%' OR 
+                          users.full_name LIKE '%${search_key}%')`;
+            }
+
+            query += ` GROUP BY game_histories.user_id ORDER BY MAX(game_histories.createdAt) DESC`;
+
+            // ✅ Using SELECT with Aggregate Functions to avoid ONLY_FULL_GROUP_BY issues
+            response = await sequelize.query(
+                `SELECT game_histories.user_id,
                     MAX(game_histories.game_history_id) AS game_history_id,
                     MAX(game_histories.createdAt)       AS createdAt
              FROM game_histories
                       JOIN users ON game_histories.user_id = users.user_id
              WHERE ${query} LIMIT ${offset}
                  , ${limit}`,
-            {type: sequelize.QueryTypes.SELECT}
-        );
+                {type: sequelize.QueryTypes.SELECT}
+            );
 
-        let responseTotalCount = await sequelize.query(
-            `SELECT COUNT(DISTINCT game_histories.user_id) AS totalCount
+            responseTotalCount = await sequelize.query(
+                `SELECT COUNT(DISTINCT game_histories.user_id) AS totalCount
              FROM game_histories
                       JOIN users ON game_histories.user_id = users.user_id
              WHERE ${query}`,
-            {type: sequelize.QueryTypes.SELECT}
-        );
+                {type: sequelize.QueryTypes.SELECT}
+            );
+        }
 
         let totalCount = responseTotalCount[0]?.totalCount || 0;
 
@@ -4248,38 +4293,76 @@ const getGameHistory = async (req, res) => {
         const {game_type, page, search_key, from_date, end_date} = req.query;
         const {limit, offset} = getPagination(page);
         let query = '';
-        if (game_type) {
-            console.log('d');
-            query += `game_category = '${game_type}'`;
-        }
-        if (from_date && end_date) {
-            console.log('d');
-            let fromDate = moment(from_date).format('YYYY-MM-DD');
-            let endDate = moment(end_date).format('YYYY-MM-DD');
-            query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
-        }
-        if (search_key) {
-            //let gameType = await adminService.getGameTypeByQuery({name:search_key});
-            let gameType = await sequelize.query(`Select *
+        let response;
+        let responseTotalCount;
+        if(game_type=='Pool'){
+            if (game_type) {
+                console.log('d');
+                query += `game_category = 1`;
+            }
+            if (from_date && end_date) {
+                console.log('d');
+                let fromDate = moment(from_date).format('YYYY-MM-DD');
+                let endDate = moment(end_date).format('YYYY-MM-DD');
+                query += ` AND DATE(pool_game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            }
+            if (search_key) {
+                //let gameType = await adminService.getGameTypeByQuery({name:search_key});
+                let gameType = await sequelize.query(`Select *
                                                   from game_types
                                                   where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
-            if (gameType.length > 0) {
-                query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
-            } else {
-                query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
-            }
+                if (gameType.length > 0) {
+                    query += ` AND pool_game_histories.game_type like '%${gameType[0].game_type_id}%'`;
+                } else {
+                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR pool_game_histories.table_name like '%${search_key}%' OR pool_game_histories.table_id like '%${search_key}%')`;
+                }
 
-        }
-        query += ` order by game_history_id DESC`;
-        let response = await sequelize.query(`Select game_histories.*
+            }
+            query += ` order by game_history_id DESC`;
+            response = await sequelize.query(`Select pool_game_histories.*
+                                              from pool_game_histories
+                                                       join users on pool_game_histories.user_id = users.user_id
+                                              where ${query} LIMIT ${offset}
+                                                  , ${limit}`, {type: sequelize.QueryTypes.SELECT});
+            responseTotalCount = await sequelize.query(`Select pool_game_histories.*
+                                                        from pool_game_histories
+                                                                 join users on pool_game_histories.user_id = users.user_id
+                                                        where ${query}`, {type: sequelize.QueryTypes.SELECT});
+        }else{
+            if (game_type) {
+                console.log('d');
+                query += `game_category = '${game_type}'`;
+            }
+            if (from_date && end_date) {
+                console.log('d');
+                let fromDate = moment(from_date).format('YYYY-MM-DD');
+                let endDate = moment(end_date).format('YYYY-MM-DD');
+                query += ` AND DATE(game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            }
+            if (search_key) {
+                //let gameType = await adminService.getGameTypeByQuery({name:search_key});
+                let gameType = await sequelize.query(`Select *
+                                                  from game_types
+                                                  where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
+                if (gameType.length > 0) {
+                    query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
+                } else {
+                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+                }
+
+            }
+            query += ` order by game_history_id DESC`;
+            response = await sequelize.query(`Select game_histories.*
                                               from game_histories
                                                        join users on game_histories.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
                                                   , ${limit}`, {type: sequelize.QueryTypes.SELECT});
-        let responseTotalCount = await sequelize.query(`Select game_histories.*
+            responseTotalCount = await sequelize.query(`Select game_histories.*
                                                         from game_histories
                                                                  join users on game_histories.user_id = users.user_id
                                                         where ${query}`, {type: sequelize.QueryTypes.SELECT});
+        }
+
 
         if (responseTotalCount.length == 0) {
             responseData.msg = 'Game history not found';
@@ -4287,9 +4370,17 @@ const getGameHistory = async (req, res) => {
         }
         response = response.map(async (element) => {
             //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
-            let getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+            let getGameType, category;
+            if(game_type=='Pool'){
+                getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
+                category = (getGameType) ? getGameType.table_type : ''
+            }else{
+                getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+                category = (getGameType) ? getGameType.name : ''
+            }
+
             let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
-            element.game_category = (getGameType) ? getGameType.name : '';
+            element.game_category = category;
             element.username = (getUserDetail) ? getUserDetail.username : '';
             element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
             element.win_amount = (element.win_amount) ? element.win_amount : '0';
