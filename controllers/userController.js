@@ -969,7 +969,7 @@ const getTransactions = async (req, res) => {
     let responseData = {};
     try {
         let userId = req.user.user_id;
-        let getData = await userService.getTransactionData({user_id: userId, is_admin_detail: { $ne: '1' }, });
+        let getData = await userService.getTransactionData({user_id: userId, is_admin: 0,is_admin_detail:0});
         if (getData.length == 0) {
             responseData.msg = 'Transaction Data not found';
             return responseHelper.success(res, responseData, 201);
