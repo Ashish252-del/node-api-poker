@@ -4295,7 +4295,7 @@ const getGameHistory = async (req, res) => {
         let query = '';
         let response;
         let responseTotalCount;
-        if(game_type==1){
+        if(game_type=='Pool'){
             if (game_type) {
                 console.log('d');
                 query += `game_category = '${game_type}'`;
