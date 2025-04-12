@@ -3635,7 +3635,7 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 user_id: userId,
                 category: 'Rummy',
                 other_type: 'Bet Amount',
-                amount: realAmount
+                // amount: realAmount
             })
             console.log("transaction-->", transaction);
             if (transaction && transaction.amount > 0) {
