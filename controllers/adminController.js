@@ -6024,14 +6024,14 @@ const gameWiseCommission = async (req, res) => {
                            WHEN category = 'ludo' AND is_admin = 1 AND other_type = 'commission' THEN commission
                            ELSE 0 END) AS ludoCommission,
                    SUM(CASE
-                           WHEN other_type = 'deposit' AND transaction_status = 'SUCCESS' THEN gst_amount
-                           ELSE 0 END) AS totalGstAmount,
-                   0                   AS poolCommission,
+                           WHEN category = 'pool' AND is_admin = 1 AND other_type = 'commission' THEN commission
+                           ELSE 0 END) AS poolCommission,
                    SUM(
                            CASE
                                WHEN category = 'poker' AND other_type = 'Table Commision' THEN commission
                                WHEN category = 'rummy' AND is_admin = 1 AND other_type = 'commission' THEN commission
                                WHEN category = 'ludo' AND is_admin = 1 AND other_type = 'commission' THEN commission
+                               WHEN category = 'pool' AND is_admin = 1 AND other_type = 'commission' THEN commission
                                ELSE 0
                                END
                    )                   AS totalCommission
