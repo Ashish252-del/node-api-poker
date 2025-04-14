@@ -63,5 +63,6 @@ module.exports = () => {
     routes.post("/live-user", authenticate, userController.liveData);
 
     routes.get("/read-notification" ,authenticate,userController.readNotification);
+    routes.get("/bet-bonus-percentage", userController.getBetBonusPercentage);
     return routes;
 };
