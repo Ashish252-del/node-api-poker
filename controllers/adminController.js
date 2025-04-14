@@ -3796,7 +3796,7 @@ const running_tables_rummy = async (req, res) => {
                 gameId: room.gameId,
                 gameRules: {
                     ...room.gameRules,
-                    Points: parseFloat(room.gameRules.Points.toFixed(2))
+                    Points: parseFloat((room.gameRules?.Points || 0).toFixed(2))
                 }
             };
             data.push(roomData);
