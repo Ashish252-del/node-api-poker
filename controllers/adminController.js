@@ -6025,14 +6025,14 @@ const gameWiseCommission = async (req, res) => {
         const [result] = await db.sequelize.query(query, {
             type: db.sequelize.QueryTypes.SELECT
         });
-
+        let totalCommision = parseFloat(result.ludoCommission) + parseFloat(result.poolCommission) + parseFloat(result.rummyCommission) + parseFloat(result.pokerCommission);
         responseData.msg = "All data fetched successfully";
         responseData.data = {
             ludoCommission: result.ludoCommission || 0,
             pokerCommission: result.pokerCommission || 0,
             poolCommission: result.poolCommission || 0,
             rummyCommission: result.rummyCommission || 0,
-            totalCommission: parseFloat(result.ludoCommission) + parseFloat(result.poolCommission) + parseFloat(result.rummyCommission) + parseFloat(result.pokerCommission)
+            totalCommission: totalCommision.toFixed(2)
         };
 
         return responseHelper.success(res, responseData);
