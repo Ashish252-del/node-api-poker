@@ -6013,6 +6013,7 @@ const getAllpockerSuspiciousActions = async (req, res) => {
 const gameWiseCommission = async (req, res) => {
     let responseData = {};
     try {
+<<<<<<< HEAD
       let query = `
       SELECT 
       SUM(CASE WHEN category = 'poker' AND other_type = 'Table Commision' THEN commission ELSE 0 END) AS pokerCommission,
@@ -6038,6 +6039,32 @@ const gameWiseCommission = async (req, res) => {
       responseData.data = result;
       return responseHelper.success(res, responseData);
   
+=======
+        const query = `
+            SELECT 
+                SUM(CASE WHEN category = 'Poker' AND other_type = 'Table Commision' THEN amount ELSE 0 END) AS pokerCommission,
+                SUM(CASE WHEN category = 'Rummy' AND other_type = 'commission' THEN amount ELSE 0 END) AS rummyCommission,
+                SUM(CASE WHEN category = 'Ludo' AND other_type = 'commission' THEN amount ELSE 0 END) AS ludoCommission,
+                SUM(CASE WHEN category = 'Pool' AND other_type = 'commission' THEN amount ELSE 0 END) AS poolCommission
+            FROM europaGame.transactions
+        `;
+
+        const [result] = await db.sequelize.query(query, {
+            type: db.sequelize.QueryTypes.SELECT
+        });
+        let totalCommision = parseFloat(result.ludoCommission) + parseFloat(result.poolCommission) + parseFloat(result.rummyCommission) + parseFloat(result.pokerCommission);
+        responseData.msg = "All data fetched successfully";
+        responseData.data = {
+            ludoCommission: result.ludoCommission || 0,
+            pokerCommission: result.pokerCommission || 0,
+            poolCommission: result.poolCommission || 0,
+            rummyCommission: result.rummyCommission || 0,
+            totalCommission: totalCommision.toFixed(2)
+        };
+
+        return responseHelper.success(res, responseData);
+
+>>>>>>> 8ae88de72dda2cffc82f6b3f56173daa37bf3c8e
     } catch (error) {
       console.error("Error fetching game-wise commission:", error);
       responseData.msg = error.message || "Something went wrong";
