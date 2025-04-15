@@ -729,6 +729,11 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
       { replacements, raw: true, type: sequelize.QueryTypes.SELECT }
     );
   };
+
+  const getAllPoolTables = (query) => {
+    return db.pool_game_tables.findAll({where:query,raw:true});
+}
+
   
 
 module.exports = {
@@ -895,5 +900,6 @@ module.exports = {
     getPoolGameHistory,
     getAllAdmins,
     deleteRole,
-    getPoolGameTypeByQuery
+    getPoolGameTypeByQuery,
+    getAllPoolTables
 }

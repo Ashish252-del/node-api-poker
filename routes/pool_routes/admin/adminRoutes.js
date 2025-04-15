@@ -60,5 +60,6 @@ module.exports = () => {
     routes.get("/tournament-detail/:id", authenticate, adminController.tournamentDetail);
     routes.post("/update-tournament", authenticate, postTournament(), validate201 ,adminController.updateTournament);
     routes.post("/change-tournament-status", authenticate,adminController.changeTournamentStatus);
+    routes.get("/get-all-pool-tables",authenticate,adminController.getAllPoolTables)
     return routes;
 };
