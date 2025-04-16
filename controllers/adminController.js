@@ -6029,10 +6029,10 @@ const gameWiseCommission = async (req, res) => {
         let totalCommision = parseFloat(result.ludoCommission) + parseFloat(result.poolCommission) + parseFloat(result.rummyCommission) + parseFloat(result.pokerCommission);
         responseData.msg = "All data fetched successfully";
         responseData.data = {
-            ludoCommission: result.ludoCommission || 0,
-            pokerCommission: result.pokerCommission || 0,
-            poolCommission: result.poolCommission || 0,
-            rummyCommission: result.rummyCommission || 0,
+            ludoCommission: result.ludoCommission.toFixed(2) || 0,
+            pokerCommission: result.pokerCommission.toFixed(2) || 0,
+            poolCommission: result.poolCommission.toFixed(2) || 0,
+            rummyCommission: result.rummyCommission.toFixed(2) || 0,
             totalCommission: totalCommision.toFixed(2)
         };
 
