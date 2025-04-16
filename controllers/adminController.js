@@ -6230,7 +6230,56 @@ const getGameHistoryData = async (req, res) => {
         });
     }
 };
+const commissionSummary = async (req, res) => {
+    let responseData = {};
+    try {
+        const { page, search_key, from_date, end_date,csvtype} = req.query;
+        const {limit, offset} = getPagination(page,csvtype);
+        let query = `other_type='Commission' AND transaction_status='SUCCESS' AND is_admin='1'`;
+        if(req.query.user_id){
+            query += ` AND transactions.user_id='${req.query.user_id}'`;
+        }
+        if (from_date && end_date) {
+            let fromDate = moment(from_date).format('YYYY-MM-DD');
+            let endDate = moment(end_date).format('YYYY-MM-DD');
+            console.log('d');
+            query += ` AND DATE(transactions.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+        }
+
+        if (search_key) {
+            query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+        }
+        query += ` order by transaction_id DESC`;
+        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.createdAt,transactions.transaction_status, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+        let totalCount = responseTotalCount.length;
+
+        if (responseTotalCount == 0) {
+            responseData.msg = 'Data not found';
+            return responseHelper.error(res, responseData, 201);
+        }
+        let sum = 0;
+        response = response.map(async (element, i) => {
+            sum += parseFloat(element.commission)
+            element.bet_amount = parseFloat(element.commission) + parseFloat(element.amount)
+            return element;
+        })
+        response = await Promise.all(response);
+        return res.status(200).send({
+            message: 'Total Commission List!!!',
+            statusCode: 200,
+            status: true,
+            totalCount: totalCount,
+            totalAmount: sum.toFixed(2),
+            data: response,
+        })
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+}
 module.exports = {
+    commissionSummary,
     adminLogin,
     addRole,
     roleList,

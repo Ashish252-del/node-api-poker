@@ -198,6 +198,7 @@ module.exports = () => {
     routes.get('/tds-summary', authenticate, adminController.tdsSummary)
     routes.get('/gst-summary', authenticate, adminController.gstSummary)
     routes.post('/add-deposit', authenticate, adminController.addDeposit);
+    routes.get('/rake-commission-summary', authenticate, adminController.commissionSummary)
 
     routes.post('/change-withdrawl-status', authenticate, adminController.changeWithDrawlStatus)
     routes.get('/cash-transaction', authenticate, adminController.cashTransaction)
