@@ -6016,9 +6016,9 @@ const gameWiseCommission = async (req, res) => {
   
         const query = `
             SELECT 
-                SUM(CASE WHEN category = 'Poker' AND other_type = 'Table Commision' THEN amount ELSE 0 END) AS pokerCommission,
-                SUM(CASE WHEN category = 'Rummy' AND other_type = 'commission' THEN amount ELSE 0 END) AS rummyCommission,
-                SUM(CASE WHEN category = 'Ludo' AND other_type = 'commission' THEN amount ELSE 0 END) AS ludoCommission,
+                SUM(CASE WHEN category = 'Poker' AND other_type = 'Table Commision' THEN commission ELSE 0 END) AS pokerCommission,
+                SUM(CASE WHEN category = 'Rummy' AND other_type = 'commission' THEN commission ELSE 0 END) AS rummyCommission,
+                SUM(CASE WHEN category = 'Ludo' AND other_type = 'Winning' THEN commission ELSE 0 END) AS ludoCommission,
                 SUM(CASE WHEN category = 'Pool' AND other_type = 'commission' THEN amount ELSE 0 END) AS poolCommission
             FROM europaGame.transactions
         `;
