@@ -6031,7 +6031,7 @@ const gameWiseCommission = async (req, res) => {
         const rummyCommission = parseFloat(result.rummyCommission) || 0;
         const pokerCommission = parseFloat(result.pokerCommission) || 0;
 
-        let totalCommision = parseFloat(result.ludoCommission) + parseFloat(result.poolCommission) + parseFloat(result.rummyCommission) + parseFloat(result.pokerCommission);
+        const totalCommision = ludoCommission + poolCommission + rummyCommission + pokerCommission;
         responseData.msg = "All data fetched successfully";
         responseData.data = {
              ludoCommission: ludoCommission.toFixed(2),
