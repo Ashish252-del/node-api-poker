@@ -875,14 +875,36 @@ const gameList = async (req, res) => {
             whereCondition.is_tournament = {[Op.ne]: "1"};
         }
 
+        // if (search_key) {
+        //     whereCondition[Op.or] = [
+        //         {game_name: {[Op.like]: `%${search_key}%`}},
+        //         {
+        //             game_json_data: {[Op.like]: `%"room_name":"%${search_key}%"%`} // Search inside JSON-like text
+        //         }
+        //     ];
+        // }
         if (search_key) {
-            whereCondition[Op.or] = [
-                {game_name: {[Op.like]: `%${search_key}%`}},
-                {
-                    game_json_data: {[Op.like]: `%"room_name":"%${search_key}%"%`} // Search inside JSON-like text
-                }
-            ];
+            if (game_category_id == 3) {
+                whereCondition[Op.or] = [
+                    { game_name: { [Op.like]: `%${search_key}%` } },
+                    {
+                        game_json_data: {
+                            [Op.like]: `%"name":"%${search_key}%"%` // Use "name" for category 3
+                        }
+                    }
+                ];
+            } else {
+                whereCondition[Op.or] = [
+                    { game_name: { [Op.like]: `%${search_key}%` } },
+                    {
+                        game_json_data: {
+                            [Op.like]: `%"room_name":"%${search_key}%"%` // Default: room_name
+                        }
+                    }
+                ];
+            }
         }
+        
         // Date filters
         if (from_date || end_date) {
             whereCondition.createdAt = {};
