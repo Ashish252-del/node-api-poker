@@ -6278,6 +6278,99 @@ const commissionSummary = async (req, res) => {
         return responseHelper.error(res, responseData, 500);
     }
 }
+const getUsersByWalletAmount = async (req, res) => {
+    let responseData = {};
+    try {
+        const { page, search_key, from_date, end_date, amount } = req.query;
+        const { limit, offset } = getPagination(page);
+
+        // Step 1: Get user_ids with low wallet balance
+        const lowWalletUsers = await db.sequelize.query(
+            `SELECT user_id 
+             FROM user_wallets 
+             WHERE (real_amount + win_amount) <= ?`,
+            {
+                replacements: [parseFloat(amount)],
+                type: db.sequelize.QueryTypes.SELECT
+            }
+        );
+
+        const userIds = lowWalletUsers.map(user => user.user_id);
+        if (userIds.length === 0) {
+            return res.status(200).send({
+                message: "No users found with wallet <= amount",
+                statusCode: 200,
+                status: true,
+                count: 0,
+                data: []
+            });
+        }
+
+        // Step 2: Build user query
+        let query = `user_status != '2' AND is_influencer = '0' AND user_id IN (${userIds.join(",")})`;
+
+        if (from_date && end_date) {
+            let fromDate = moment(from_date).format("YYYY-MM-DD");
+            let endDate = moment(end_date).format("YYYY-MM-DD");
+            query += ` AND DATE(createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+        }
+
+        if (search_key) {
+            query += ` AND (username LIKE '%${search_key}%' OR referral_code LIKE '%${search_key}%' OR full_name LIKE '%${search_key}%')`;
+        }
+
+        query += ` ORDER BY user_id DESC`;
+
+        const response = await sequelize.query(
+            `SELECT * FROM users WHERE ${query} LIMIT ${offset}, ${limit}`,
+            { type: sequelize.QueryTypes.SELECT }
+        );
+
+        const responseTotalCount = await sequelize.query(
+            `SELECT COUNT(*) AS total FROM users WHERE ${query}`,
+            { type: sequelize.QueryTypes.SELECT }
+        );
+
+        const totalCount = responseTotalCount[0].total;
+
+        if (response.length === 0) {
+            return responseHelper.error(res, { msg: "No users found" }, 201);
+        }
+
+        const enrichedResponse = await Promise.all(response.map(async (element) => {
+            let getWithDrawAmt = await adminService.getWithdrawl({ user_id: element.user_id });
+            let getDepositAmt = await adminService.getDeposit({ user_id: element.user_id });
+
+            element.withdraw_amount = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
+            element.deposit_amount = getDepositAmt?.[0]?.amount ?? 0;
+
+            if (element.is_ludo_bot === 0) {
+                try {
+                    element.mobile = element.mobile ? await decryptData(element.mobile) : null;
+                } catch (err) {
+                    console.error("Error decrypting mobile:", err.message);
+                    element.mobile = null;
+                }
+            }
+
+            element.user_level = 10;
+            return element;
+        }));
+        responseData.msg = "All data fetched successfully";
+        responseData.count= totalCount,
+        responseData.data =enrichedResponse;
+
+        return responseHelper.success(res, responseData);
+
+    } catch (error) {
+        console.error("getFilteredUsersByWalletAmount:", error);
+        responseData.msg = error.message || "Something went wrong";
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
+
+
 module.exports = {
     commissionSummary,
     adminLogin,
@@ -6419,5 +6512,6 @@ module.exports = {
     totalDeposit,
     addDeposit,
     liveUserCount,
-    getGameHistoryData
+    getGameHistoryData,
+    getUsersByWalletAmount
 }

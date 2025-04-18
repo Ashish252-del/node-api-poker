@@ -212,6 +212,7 @@ module.exports = () => {
     routes.get("/game-wise-commission",authenticate,adminController.gameWiseCommission)
 
     routes.get("/live-users",authenticate,adminController.liveUserCount)
-    routes.get("/get-game-history-data",authenticate,adminController.getGameHistoryData)
+    routes.get("/get-game-history-data",authenticate,adminController.getGameHistoryData);
+    routes.get("/wallet-based-user-list",authenticate,adminController.getUsersByWalletAmount)
     return routes;
 };
