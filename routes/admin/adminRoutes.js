@@ -213,6 +213,6 @@ module.exports = () => {
 
     routes.get("/live-users",authenticate,adminController.liveUserCount)
     routes.get("/get-game-history-data",authenticate,adminController.getGameHistoryData);
-    routes.get("/wallet-based-user-list",authenticate,adminController.getUsersByWalletAmount)
+  
     return routes;
 };
