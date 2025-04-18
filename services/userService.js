@@ -310,7 +310,7 @@ const updateNotifications = (data,query) => {
        {where: query});
 }
 const getTabledata=(query)=>{
-   return db.game_tables.findOne({where:query,raw:true})
+   return db.game_table.findOne({where:query,raw:true})
 }
 
 module.exports = {
