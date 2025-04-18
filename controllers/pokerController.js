@@ -2456,20 +2456,29 @@ const saveCommisionRecords = async (request) => {
       let tableData = await userService.getTabledata({game_table_id:request.tableId})
       console.log("tableData--->",tableData);
 
-      let transactionData = {
-         user_id: commisionedPlayerId,
-         table_id: request.tableId,
-         game_id:tableData.game_id,
-         type: "CR",
-         other_type: "Table Commision",
-         category: "Poker",
-         reference: tableRoundData.table_round_id,
-         commission: handCommission? parseFloat(handCommission):0,
-         amount: winAmount ? parseFloat(winAmount) : 0, // Uses correct winAmount for the player
-         is_admin_detail:1
-      };
+      for (let key in commisionedPlayerData) {
+         let playerId = key.replace("_", ""); // Removes underscore
+         let playerData = commisionedPlayerData[key];
+      
+         let winAmount = playerData?.winAmount || 0;
+         let fee = playerData?.fee || 0;
+      
+         let transactionData = {
+            user_id: playerId,
+            table_id: request.tableId,
+            game_id: tableData.game_id,
+            type: "CR",
+            other_type: "Table Commision",
+            category: "Poker",
+            reference: tableRoundData.table_round_id,
+            commission: parseFloat(fee),
+            amount: parseFloat(winAmount),
+            is_admin_detail: 1
+         };
+         await userService.createTransaction(transactionData);
+      }
 
-      await userService.createTransaction(transactionData);
+      
 
       console.log("Commission record saved successfully");
       return true;
