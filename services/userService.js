@@ -1,3 +1,4 @@
+const { query } = require("express");
 const db = require("../helpers/db");
 const { sequelize } = require("../models");
 //User Related Query
@@ -308,8 +309,12 @@ const updateNotifications = (data,query) => {
    return db.notifications.update(data,
        {where: query});
 }
+const getTabledata=(query)=>{
+   return db.game_tables.findOne({where:query,raw:true})
+}
 
 module.exports = {
+   getTabledata,
    getBanner,
    getUserDetailsByDeviceToken,
    createUser,

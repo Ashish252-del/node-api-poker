@@ -2453,10 +2453,13 @@ const saveCommisionRecords = async (request) => {
       // Extract winAmount for the commissioned player
       let winAmount = commisionedPlayerData[firstPlayerKey]?.winAmount || 0;
       // let handCommission = commisionedPlayerData[firstPlayerKey]?.fee || 0;
+      let tableData = await userService.getTabledata({game_table_id:request.tableId})
+      console.log("tableData--->",tableData);
 
       let transactionData = {
          user_id: commisionedPlayerId,
          table_id: request.tableId,
+         game_id:tableData.game_id,
          type: "CR",
          other_type: "Table Commision",
          category: "Poker",

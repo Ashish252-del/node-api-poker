@@ -20,6 +20,10 @@ function model(sequelize) {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
+        game_id:{
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
         is_deposit:{
             type: DataTypes.INTEGER,
             allowNull: true,
