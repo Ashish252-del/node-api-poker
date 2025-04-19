@@ -171,7 +171,7 @@ const getGameHistory = (query) => {
 }
 
 const getTransactionData = (query) => {
-   return db.transactions.findAll({ where: query, order: [['transaction_id', 'DESC']] });
+   return db.transactions.findAll({ where: query,raw:true, order: [['transaction_id', 'DESC']] });
 }
 
 const getOneTransactionByQuery = (query) => {

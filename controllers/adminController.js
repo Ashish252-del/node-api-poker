@@ -6378,6 +6378,51 @@ const commissionSummary = async (req, res) => {
     }
 }
 
+const getCommissionByTableId = async (req, res) => {
+    let responseData = {};
+    try {
+        let tableRoundId = req.query.table_round_id;
+        if (!tableRoundId) {
+            return responseHelper.error(res, { msg: "table_round_id is required" }, 400);
+        }
+
+        let transactionData = await userService.getTransactionData({ reference: tableRoundId });
+        console.log("transactionData--->",transactionData);
+
+        if (!transactionData || transactionData.length === 0) {
+            return responseHelper.error(res, { msg: "No transactions found" }, 404);
+        }
+
+        let totalCommission = 0;
+        let totalWinnings = 0;
+
+        for (let txn of transactionData) {
+            totalCommission += parseFloat(txn.commission || 0);
+            const amount = parseFloat(txn.amount || 0);
+            if (amount >= 0) {
+                totalWinnings += amount;
+            }
+        }
+
+        responseData = {
+            msg: "Commission summary fetched successfully",
+            status: true,
+            data: {
+                table_round_id: tableRoundId,
+                total_commission: totalCommission,
+                total_winnings: totalWinnings
+            }
+        };
+
+        return res.status(200).send(responseData);
+
+    } catch (error) {
+        console.error("Error fetching getCommissionByTableId:", error);
+        responseData.msg = error.message || "Something went wrong";
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
 
 
 
@@ -6523,4 +6568,5 @@ module.exports = {
     addDeposit,
     liveUserCount,
     getGameHistoryData,
+    getCommissionByTableId,
 }
