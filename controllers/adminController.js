@@ -1587,6 +1587,23 @@ const userDetail = async (req, res) => {
         getList.wallet_amount = parseFloat(depositAmt) + parseFloat(winWalletAmt);
         getList.bonus_amount = bonusAmt;
 
+        let query1 = `redemption_status = 'Withdraw' AND user_id='${user_id}'`;
+        let query2 = `other_type='Winning' AND user_id='${user_id}' AND amount > 0`;
+        let query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${user_id}'`;
+        let TotalWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalWithdraw,
+                                                          SUM(tds_amount)    as totalTds
+                                                   from redemptions
+                                                   where ${query1}`, {type: sequelize.QueryTypes.SELECT});
+        let TotalWinning = await sequelize.query(`Select SUM(amount) as totalWinning
+                                                  from transactions
+                                                  where ${query2}`, {type: sequelize.QueryTypes.SELECT});
+        let TotalDeposit = await sequelize.query(`Select SUM(amount) as totalDeposit, SUM(gst_amount) as totalGst
+                                                  from transactions
+                                                  where ${query3}`, {type: sequelize.QueryTypes.SELECT});
+        getList.total_deposit = (TotalDeposit[0].totalDeposit) ? parseFloat(TotalDeposit[0].totalDeposit) : 0.00;
+        getList.total_win = (TotalWinning[0].totalWinning) ? parseFloat(TotalWinning[0].totalWinning) : 0.00;
+        getList.total_withdraw = (TotalWithdraw[0].totalWithdraw) ? parseFloat(TotalWithdraw[0].totalWithdraw) : 0.00;
+
         // Determine user level
         let level = 0;
         if (getUserLevel > 0 && getUserLevel < 100) {
