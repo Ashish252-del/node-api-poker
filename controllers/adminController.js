@@ -6056,6 +6056,7 @@ const gameWiseUserStatus = async (req, res) => {
         let status = req.body.status;
         let type = req.body.type;
         let blockTime = req.body.block_time;
+        let is_blocked_until_unblock=req.body.Permanent;
         let blockTimeInt = blockTime.replace(/[^\d.]/g, ' ');
         var now = new Date().getTime()
         let time = Math.floor(now / 1000);
@@ -6066,6 +6067,28 @@ const gameWiseUserStatus = async (req, res) => {
             min = 1800;
         }
 
+       
+    
+        if(user_game_status==="unBlock"){
+            const check = await adminService.getUserStatus({ user_id: userId, game_id: gameId });
+            if (!check) {
+                responseData.msg = 'User status not found';
+                return responseHelper.error(res, responseData, 404);
+            }
+    
+            await adminService.updateUserStatus({
+                user_game_status:'unBlock',
+                block_time: null,
+                block_timestamp: null,
+                is_blocked_until_unblock: false,
+                updatedAt: new Date()
+            }, {
+                user_game_status_id: check.user_game_status_id
+            });
+    
+            responseData.msg = 'User unblocked successfully';
+            return responseHelper.success(res, responseData);
+        }
         let blockTimeStamp = parseInt(time) + parseInt(min);
         let data = {
             user_id: userId,
@@ -6074,11 +6097,13 @@ const gameWiseUserStatus = async (req, res) => {
             block_time: blockTime,
             block_timestamp: blockTimeStamp,
             user_game_status: status,
+            is_blocked_until_unblock:is_blocked_until_unblock,
             update_at: new Date()
         }
 
+
         let check = await adminService.getUserStatus({user_id: userId, game_id: gameId});
-        if (check && parseInt(check.block_timestamp) > parseInt(time)) {
+        if (check && parseInt(check.block_timestamp) > parseInt(time) || check &&check.is_blocked_until_unblock=="1") {
             responseData.msg = 'User Already Blocked!!!';
             return responseHelper.error(res, responseData, 201);
         } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
@@ -6098,39 +6123,6 @@ const gameWiseUserStatus = async (req, res) => {
     }
 }
 
-// const getAllpockerSuspiciousActions = async (req, res) => {
-//   let responseData = {};
-//   try {
-//     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
-
-
-//     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) {
-//       responseData.msg = "There are no suspicious actions found";
-//       return responseHelper.success(res, responseData);
-//     }
-
-//     // Process and add table_name from game_json_data
-//     allSuspiciousActionsData = allSuspiciousActionsData.map(action => {
-//       try {
-//         const gameData = JSON.parse(action.game_json_data || "{}"); // Parse game_json_data safely
-//         action.table_name = gameData.room_name || "Unknown"; // Extract room_name
-//       } catch (err) {
-//         console.error("Error parsing game_json_data:", err);
-//         action.table_name = "Unknown"; // Handle JSON parsing errors
-//       }
-//       return action;
-//     });
-
-//     responseData.msg = "All data fetched successfully";
-//     responseData.data = allSuspiciousActionsData;
-//     return responseHelper.success(res, responseData);
-
-//   } catch (error) {
-//     console.error("Error fetching suspicious actions:", error);
-//     responseData.msg = error.message || "Something went wrong";
-//     return responseHelper.error(res, responseData, 500);
-//   }
-// }
 
 const getAllpockerSuspiciousActions = async (req, res) => {
     let responseData = {};
