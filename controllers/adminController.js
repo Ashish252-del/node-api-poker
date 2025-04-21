@@ -4361,8 +4361,8 @@ const getGameWiseUsers = async (req, res) => {
             let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
             let depositAmt = getDepositAmt?.[0]?.amount ?? 0;
             let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
-            let block_time=getUserBlock.block_time;
-            let is_blocked_until_unblock=getUserBlock.is_blocked_until_unblock
+            let block_time = (getUserBlock && getUserBlock.block_time) || 0;
+            let is_blocked_until_unblock = (getUserBlock && getUserBlock.is_blocked_until_unblock) || false;
 
 
             return {
@@ -4390,7 +4390,7 @@ const getGameWiseUsers = async (req, res) => {
                 withdraw_amount: withdrawAmt,
                 deposit_amount: depositAmt,
                 is_block: isBlock,
-                block_time:block_time||0,
+                block_time:block_time,
                 is_blocked_until_unblock:is_blocked_until_unblock,
                 createdAt: userD?.createdAt,
                 updatedAt: userD?.updatedAt
