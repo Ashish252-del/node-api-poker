@@ -4488,25 +4488,15 @@ const getGameHistory = async (req, res) => {
                     const getGameType = await adminService.getGameTypeByQuery({ game_type_id: game_type });
 
                     // Enrich each game history entry with username
-                    const enrichedHistory = await Promise.all(
-                        gameHistory.map(async (history) => {
-                            const user = await adminService.getUserDetailsById({ user_id: history.user_id });
-                            return {
-                                ...history,
-                                username: user?.username || 'Unknown',  // Add username to each entry
-                                uuid:  user?.uuid || '---',
-                            };
-                        })
-                    );
+                    const user = await adminService.getUserDetailsById({ user_id: history.user_id });
 
                     return {
                         table_id,
                         table_name,
-                        blind,
                         createdAt,
                         updatedAt,
                         game_category: getGameType?.name || '',
-                        users: enrichedHistory  // Now includes usernames
+                        users: user  // Now includes usernames
                     };
                 })
             );
