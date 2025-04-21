@@ -9,6 +9,14 @@ function model(sequelize) {
             autoIncrement: true,
             primaryKey: true,
         },
+        uuid: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            unique: {
+                args: true,
+                msg: "Username already in use!",
+            },
+        },
         full_name: {
             type: DataTypes.STRING,
             allowNull: true,

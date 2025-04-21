@@ -54,6 +54,7 @@ const userSignup = async (req, res) => {
       reqObj.otp = otp;
       reqObj.ip = '';
       reqObj.username = makeString(5).toUpperCase();
+      reqObj.uuid = makeString(5).toUpperCase();
       reqObj.referral_code = referCode;
       reqObj.device_token = device_token;
       reqObj.device_type = 'Android';
