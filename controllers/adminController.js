@@ -1584,7 +1584,7 @@ const userDetail = async (req, res) => {
         getList.win_wallet = winWalletAmt;
         getList.withdraw_amount = withdrawAmt;
         getList.deposit_amount = depositAmt;
-        getList.wallet_amount = depositAmt + winWalletAmt;
+        getList.wallet_amount = parseFloat(depositAmt) + parseFloat(winWalletAmt);
         getList.bonus_amount = bonusAmt;
 
         // Determine user level
