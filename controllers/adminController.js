@@ -4421,14 +4421,14 @@ const getGameHistory = async (req, res) => {
         const whereConditions = [];
         const replacements = { limit, offset };
         if(game_type=='Pool'){
-            if (game_type) {
-                whereConditions.push('gh.game_category = :game_type');
-                replacements.game_type = game_type;
-
-                if (game_type == 2) {
-                    whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
-                }
-            }
+            // if (game_type) {
+            //     whereConditions.push('gh.game_category = :game_type');
+            //     replacements.game_type = game_type;
+            //
+            //     if (game_type == 2) {
+            //         whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
+            //     }
+            // }
 
             if (from_date && end_date) {
                 whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
