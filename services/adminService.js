@@ -655,6 +655,12 @@ const getAllBanners = (query) => {
 const getLudoGameHistory=()=>{
     return db.ludo_game_history.findAll({raw:true});
 }
+const getLudoGameHistoryByQuery=(query)=>{
+    return db.ludo_game_history.findAll({where:query,raw:true});
+}
+const getLudoGameTypeByQuery=(query)=>{
+    return db.ludo_game.findOne({where:query,raw:true});
+}
 const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
 }
@@ -901,5 +907,7 @@ module.exports = {
     getAllAdmins,
     deleteRole,
     getPoolGameTypeByQuery,
-    getAllPoolTables
+    getAllPoolTables,
+    getLudoGameTypeByQuery,
+    getLudoGameHistoryByQuery
 }
