@@ -29,11 +29,16 @@ function model(sequelize) {
         user_game_status:{
             type: DataTypes.ENUM,
             allowNull: true,
-            values: ['Block','Active','Inactive']
+            values: ['Block','unBlock','Inactive']
         },
         block_timestamp:{
             type: DataTypes.STRING,
             allowNull: true
+        },
+        is_blocked_until_unblock: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false // comment: 'If true, user remains blocked until manually unblocked'
         },
         createdAt: {
             type: DataTypes.DATE,
