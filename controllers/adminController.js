@@ -4416,39 +4416,104 @@ const getGameHistory = async (req, res) => {
         let query = '';
         let response;
         let responseTotalCount;
+        let totalCount = 0;
+        let resData = [];
+        const whereConditions = [];
+        const replacements = { limit, offset };
         if(game_type=='Pool'){
             if (game_type) {
-                console.log('d');
-                query += `game_category = 1`;
-            }
-            if (from_date && end_date) {
-                console.log('d');
-                let fromDate = moment(from_date).format('YYYY-MM-DD');
-                let endDate = moment(end_date).format('YYYY-MM-DD');
-                query += ` AND DATE(pool_game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
-            }
-            if (search_key) {
-                //let gameType = await adminService.getGameTypeByQuery({name:search_key});
-                let gameType = await sequelize.query(`Select *
-                                                  from game_types
-                                                  where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
-                if (gameType.length > 0) {
-                    query += ` AND pool_game_histories.game_type like '%${gameType[0].game_type_id}%'`;
-                } else {
-                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR pool_game_histories.table_name like '%${search_key}%' OR pool_game_histories.table_id like '%${search_key}%')`;
-                }
+                whereConditions.push('gh.game_category = :game_type');
+                replacements.game_type = game_type;
 
+                if (game_type == 2) {
+                    whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
+                }
             }
-            query += ` order by game_history_id DESC`;
-            response = await sequelize.query(`Select pool_game_histories.*
-                                              from pool_game_histories
-                                                       join users on pool_game_histories.user_id = users.user_id
-                                              where ${query} LIMIT ${offset}
-                                                  , ${limit}`, {type: sequelize.QueryTypes.SELECT});
-            responseTotalCount = await sequelize.query(`Select pool_game_histories.*
-                                                        from pool_game_histories
-                                                                 join users on pool_game_histories.user_id = users.user_id
-                                                        where ${query}`, {type: sequelize.QueryTypes.SELECT});
+
+            if (from_date && end_date) {
+                whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
+                replacements.fromDate = moment(from_date).format('YYYY-MM-DD');
+                replacements.endDate = moment(end_date).format('YYYY-MM-DD');
+            }
+
+            if (search_key) {
+                const gameTypes = await sequelize.query(
+                    `SELECT game_type_id FROM game_types WHERE name LIKE :searchKey`,
+                    { replacements: { searchKey: `%${search_key}%` }, type: sequelize.QueryTypes.SELECT }
+                );
+
+                if (gameTypes.length > 0) {
+                    whereConditions.push('gh.game_type = :gameTypeId');
+                    replacements.gameTypeId = gameTypes[0].game_type_id;
+                } else {
+                    whereConditions.push(
+                        `(u.username LIKE :searchKey OR 
+                     u.referral_code LIKE :searchKey OR 
+                     u.full_name LIKE :searchKey OR 
+                     gh.table_name LIKE :searchKey OR 
+                     gh.table_id LIKE :searchKey)`
+                    );
+                    replacements.searchKey = `%${search_key}%`;
+                }
+            }
+
+            // Build the final query
+            const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+            // Get table_ids with pagination
+            const tableIdsResult = await sequelize.query(
+                `SELECT DISTINCT gh.table_id, gh.table_name, gh.game_type, gh.blind, gh.createdAt, gh.updatedAt
+             FROM pool_game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}
+             ORDER BY gh.game_history_id DESC
+                 LIMIT :limit OFFSET :offset`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
+
+            // Get total count
+            const countResult = await sequelize.query(
+                `SELECT COUNT(DISTINCT gh.table_id) as totalCount
+             FROM pool_game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
+            const tableDetails = await Promise.all(
+                tableIdsResult.map(async ({ table_id,table_name, game_type,blind,createdAt,updatedAt }) => {
+                    // Get game history for the table
+                    const gameHistory = await userService.getGameHistoryByQuery({ table_id });
+
+                    // Get game type name
+                    const getGameType = await adminService.getGameTypeByQuery({ game_type_id: game_type });
+
+                    // Enrich each game history entry with username
+                    const enrichedHistory = await Promise.all(
+                        gameHistory.map(async (history) => {
+                            const user = await adminService.getUserDetailsById({ user_id: history.user_id });
+                            return {
+                                ...history,
+                                community_card: JSON.parse(history.community_card),
+                                hands_record: JSON.parse(history.hands_record),
+                                hand_history: JSON.parse(history.hand_history),
+                                username: user?.username || 'Unknown'  // Add username to each entry
+                            };
+                        })
+                    );
+
+                    return {
+                        table_id,
+                        table_name,
+                        blind,
+                        createdAt,
+                        updatedAt,
+                        game_category: getGameType?.name || '',
+                        users: enrichedHistory  // Now includes usernames
+                    };
+                })
+            );
+            totalCount = countResult[0]?.totalCount || 0;
+            resData = tableDetails
         }else{
             if (game_type) {
                 console.log('d');
@@ -4482,40 +4547,40 @@ const getGameHistory = async (req, res) => {
                                                         from game_histories
                                                                  join users on game_histories.user_id = users.user_id
                                                         where ${query}`, {type: sequelize.QueryTypes.SELECT});
-        }
-
-
-        if (responseTotalCount.length == 0) {
-            responseData.msg = 'Game history not found';
-            return responseHelper.error(res, responseData, 201);
-        }
-        response = response.map(async (element) => {
-            //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
-            let getGameType, category;
-            if(game_type=='Pool'){
-                getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
-                category = (getGameType) ? getGameType.table_type : ''
-            }else{
-                getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
-                category = (getGameType) ? getGameType.name : ''
+            if (responseTotalCount.length == 0) {
+                responseData.msg = 'Game history not found';
+                return responseHelper.error(res, responseData, 201);
             }
+            response = response.map(async (element) => {
+                //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
+                let getGameType, category;
+                if(game_type=='Pool'){
+                    getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
+                    category = (getGameType) ? getGameType.table_type : ''
+                }else{
+                    getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+                    category = (getGameType) ? getGameType.name : ''
+                }
 
-            let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
-            element.game_category = category;
-            element.username = (getUserDetail) ? getUserDetail.username : '';
-            element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
-            element.win_amount = (element.win_amount) ? element.win_amount : '0';
-            element.hands_record = (element.hands_record) ? JSON.parse(element.hands_record, true) : '';
-            element.community_card = (element.community_card) ? JSON.parse(element.community_card, true) : '';
-            return element;
-        })
-        response = await Promise.all(response);
+                let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
+                element.game_category = category;
+                element.username = (getUserDetail) ? getUserDetail.username : '';
+                element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
+                element.win_amount = (element.win_amount) ? element.win_amount : '0';
+                element.hands_record = (element.hands_record) ? JSON.parse(element.hands_record, true) : '';
+                element.community_card = (element.community_card) ? JSON.parse(element.community_card, true) : '';
+                return element;
+            })
+            response = await Promise.all(response);
+            totalCount = responseTotalCount.length;
+            resData = response
+        }
         return res.status(200).send({
             message: 'Game history Data',
             statusCode: 200,
             status: true,
-            count: responseTotalCount.length,
-            data: response
+            count: totalCount,
+            data: resData
         });
     } catch (error) {
         responseData.msg = error.message;
