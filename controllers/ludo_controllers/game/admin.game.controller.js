@@ -36,6 +36,8 @@ const getPagination = (page,limit) => {
 };
 const { sequelize } = require("../../../models");
 const {Op, fn, col, where} = require("sequelize");
+const userService = require("../../../services/userService");
+const adminService = require("../../../services/adminService");
 // const {withdrawPayout,payoutStatus} = require('../../../utils/payment');
 // const shop_users = require("../../models/shop_users");
 module.exports.create_gameType = async (req, res) => {
@@ -470,57 +472,139 @@ module.exports.admin_game_history = async (req, res) => {
         const {page, search_key, from_date, end_date,user_id,page_limit} = req.query;
         let limits = (page_limit) ? page_limit : 50 ;
         const {limit, offset} = getPagination(page, limits);
-        let query = `users.isAdmin=0`;
-        // if (game_type) {
-        //   console.log('d');
-        //   query += `game_category = '${game_type}'`;
-        // } 
+     //    let query = `users.isAdmin=0`;
+     //    // if (game_type) {
+     //    //   console.log('d');
+     //    //   query += `game_category = '${game_type}'`;
+     //    // }
+     //    if (from_date && end_date) {
+     //        console.log('d');
+     //        let fromDate = moment(from_date).format('YYYY-MM-DD');
+     //        let endDate = moment(end_date).format('YYYY-MM-DD');
+     //        query += ` AND DATE(ludo_game_history.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+     //    }
+     //    if (search_key) {
+     //        //let gameType = await adminService.getGameTypeByQuery({name:search_key});
+     //        //let gameType = await sequelize.query(`Select *  from game_types where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
+     //        // if(gameType.length > 0){
+     //        //   query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
+     //        // }else{
+     //        query += ` AND (users.username like '%${search_key}%' OR users.email like '%${search_key}%' OR users.name like '%${search_key}%' OR ludo_game_history.tableId like '%${search_key}%')`;
+     //        //}
+     //
+     //    }
+     //    if(user_id){
+     //        query += ` AND ludo_game_history.userId='${user_id}'`;
+     //    }
+     //    query += ` order by ludo_game_history.id DESC`;
+     //    let response = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
+     // from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
+     //
+     //    let responseTotalCount = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
+     //    from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
+     //    for(let i=0; i < response.length; i++){
+     //        let allPlayers = await db.ludo_game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
+     //        let playerArray = [];
+     //        for(let k=0; k< allPlayers.length; k++){
+     //            let userD = await db.users.findOne({where:{user_id:allPlayers[k].userId},raw:true});
+     //            if(userD){
+     //                let playerD = {
+     //                    playerName: userD.username,
+     //                    win_loss: (allPlayers[k].isWin==1) ? 'Win' : 'Loss'
+     //                }
+     //                playerArray.push(playerD);
+     //            }
+     //
+     //
+     //
+     //        }
+     //        response[i].players = playerArray;
+     //    }
+
+        const whereConditions = [];
+        const replacements = { limit, offset };
         if (from_date && end_date) {
-            console.log('d');
-            let fromDate = moment(from_date).format('YYYY-MM-DD');         
-            let endDate = moment(end_date).format('YYYY-MM-DD');
-            query += ` AND DATE(ludo_game_history.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
+            whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
+            replacements.fromDate = moment(from_date).format('YYYY-MM-DD');
+            replacements.endDate = moment(end_date).format('YYYY-MM-DD');
         }
+
         if (search_key) {
-            //let gameType = await adminService.getGameTypeByQuery({name:search_key});
-            //let gameType = await sequelize.query(`Select *  from game_types where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
-            // if(gameType.length > 0){
-            //   query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
-            // }else{
-            query += ` AND (users.username like '%${search_key}%' OR users.email like '%${search_key}%' OR users.name like '%${search_key}%' OR ludo_game_history.tableId like '%${search_key}%')`;
-            //}
+            const gameTypes = await sequelize.query(
+                `SELECT game_type_id FROM game_types WHERE name LIKE :searchKey`,
+                { replacements: { searchKey: `%${search_key}%` }, type: sequelize.QueryTypes.SELECT }
+            );
 
-        }
-        if(user_id){
-            query += ` AND ludo_game_history.userId='${user_id}'`;
-        }
-        query += ` order by ludo_game_history.id DESC`;
-        let response = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
-     from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query} LIMIT ${offset}, ${limit} `, {type: sequelize.QueryTypes.SELECT});
-
-        let responseTotalCount = await sequelize.query(`Select gameId as Game_Id , tableId as Table_Id, varient_id ,type_id , status, ludo_game_history.commission as comission , isWin as Is_Win ,winAmount as Winning_Amount, ludo_game_history.createdAt as Created_At , username as User_Name ,Score
-        from ludo_game_history join ludo_games on ludo_games.id = ludo_game_history.gameId join users on ludo_game_history.userId = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
-        for(let i=0; i < response.length; i++){
-            let allPlayers = await db.ludo_game_history.findAll({where:{tableId:response[i].Table_Id}, raw:true})
-            let playerArray = [];
-            for(let k=0; k< allPlayers.length; k++){
-                let userD = await db.users.findOne({where:{user_id:allPlayers[k].userId},raw:true});
-                if(userD){
-                    let playerD = {
-                        playerName: userD.username,
-                        win_loss: (allPlayers[k].isWin==1) ? 'Win' : 'Loss'
-                    }
-                    playerArray.push(playerD);
-                }
-             
-
-                
+            if (gameTypes.length > 0) {
+                whereConditions.push('gh.game_type = :gameTypeId');
+                replacements.gameTypeId = gameTypes[0].game_type_id;
+            } else {
+                whereConditions.push(
+                    `(u.username LIKE :searchKey OR 
+                     u.referral_code LIKE :searchKey OR 
+                     u.full_name LIKE :searchKey OR 
+                     gh.table_name LIKE :searchKey OR 
+                     gh.table_id LIKE :searchKey)`
+                );
+                replacements.searchKey = `%${search_key}%`;
             }
-            response[i].players = playerArray;
         }
+
+        // Build the final query
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        // Get table_ids with pagination
+        const tableIdsResult = await sequelize.query(
+            `SELECT DISTINCT gh.tableId, gh.gameId, gh.createdAt, gh.updatedAt
+             FROM ludo_game_history gh
+                      JOIN users u ON gh.userId = u.user_id
+                 ${whereClause}
+             ORDER BY gh.id DESC
+                 LIMIT :limit OFFSET :offset`,
+            { replacements, type: sequelize.QueryTypes.SELECT }
+        );
+
+        // Get total count
+        const countResult = await sequelize.query(
+            `SELECT COUNT(DISTINCT gh.tableId) as totalCount
+             FROM ludo_game_history gh
+                      JOIN users u ON gh.userId = u.user_id
+                 ${whereClause}`,
+            { replacements, type: sequelize.QueryTypes.SELECT }
+        );
+        const tableDetails = await Promise.all(
+            tableIdsResult.map(async ({ tableId,gameId, createdAt,updatedAt }) => {
+                // Get game history for the table
+                const gameHistory = await userService.getPoolGameHistoryByQuery({ tableId });
+                //let usersData = gameHistory.dataValues.players.split(',')
+                // Get game type name
+                const getGameType = await adminService.getLudoGameTypeByQuery({ id: gameId });
+
+                // Enrich each game history entry with username
+                const enrichedHistory = await Promise.all(
+                    gameHistory.map(async (history) => {
+                        const user = await adminService.getUserDetailsById({ user_id: history.userId });
+                        return {
+                            ...history,
+                            uuid: user?.uuid || '---',
+                            username: user?.username || 'Unknown'  // Add username to each entry
+                        };
+                    })
+                );
+
+                return {
+                    table_id,
+                    table_name,
+                    createdAt,
+                    updatedAt,
+                    table_type: getGameType?.table_type || '',
+                    users: enrichedHistory  // Now includes usernames
+                };
+            })
+        );
         const result = {
-            count: responseTotalCount.length,
-            data: response
+            count: countResult[0]?.totalCount || 0,
+            data: tableDetails
         }
         return successResponse(req, res, result);
     } catch (error) {
