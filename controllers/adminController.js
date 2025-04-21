@@ -4591,6 +4591,57 @@ const getGameHistory = async (req, res) => {
     }
 }
 
+const getRummyGameHistoryByTableId = async (req, res) => {
+    let responseData = {};
+    try {
+        let tableId = req.query.table_id;
+
+        if (!tableId) {
+            responseData.msg = 'table_id is required';
+            return responseHelper.error(res, responseData, 400);
+        }
+
+        let historyData = await adminService.gameHistory({ table_id: tableId });
+
+        const updatedHistory = await Promise.all(historyData.map(async (element) => {
+            // Convert Sequelize instance to plain object
+            let record = element.get({ plain: true });
+
+            let getGameType, category;
+            if (record.game_type_name === 'Pool') {
+                getGameType = await adminService.getPoolGameTypeByQuery({ name: record.table_name });
+                category = getGameType ? getGameType.table_type : '';
+            } else {
+                getGameType = await adminService.getGameTypeByQuery({ game_type_id: record.game_type });
+                category = getGameType ? getGameType.name : '';
+            }
+
+            const getUserDetail = await adminService.getUserDetailsById({ user_id: record.user_id });
+
+            return {
+                ...record,
+                game_category: category,
+                username: getUserDetail ? getUserDetail.username : '',
+                is_win: record.is_win == 1 ? 'Yes' : 'No',
+                win_amount: record.win_amount || '0',
+                hands_record: record.hands_record ? JSON.parse(record.hands_record) : '',
+                community_card: record.community_card ? JSON.parse(record.community_card) : ''
+            };
+        }));
+
+        responseData.msg = 'Rummy history by table id';
+        responseData.data = updatedHistory;
+        responseData.count = updatedHistory.length;
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
+
+
+
 const getLeaderBoardData = async (req, res) => {
     let responseData = {};
     try {
@@ -6591,6 +6642,7 @@ module.exports = {
     getWinningAmount,
     getGameWiseUsers,
     getGameHistory,
+    getRummyGameHistoryByTableId,
     getLeaderBoardData,
     getRunningTable,
     getTotalTable,
