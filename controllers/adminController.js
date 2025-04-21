@@ -1587,9 +1587,15 @@ const userDetail = async (req, res) => {
         getList.wallet_amount = parseFloat(depositAmt) + parseFloat(winWalletAmt);
         getList.bonus_amount = bonusAmt;
 
+        let query = `redemption_status = 'Pending' AND user_id='${user_id}'`;
         let query1 = `redemption_status = 'Withdraw' AND user_id='${user_id}'`;
         let query2 = `other_type='Winning' AND user_id='${user_id}' AND amount > 0`;
         let query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${user_id}'`;
+
+        let pendingWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalPending
+                                                     from redemptions
+                                                     where ${query}`, {type: sequelize.QueryTypes.SELECT});
+
         let TotalWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalWithdraw,
                                                           SUM(tds_amount)    as totalTds
                                                    from redemptions
@@ -1603,6 +1609,7 @@ const userDetail = async (req, res) => {
         getList.total_deposit = (TotalDeposit[0].totalDeposit) ? parseFloat(TotalDeposit[0].totalDeposit) : 0.00;
         getList.total_win = (TotalWinning[0].totalWinning) ? parseFloat(TotalWinning[0].totalWinning) : 0.00;
         getList.total_withdraw = (TotalWithdraw[0].totalWithdraw) ? parseFloat(TotalWithdraw[0].totalWithdraw) : 0.00;
+        getList.pending_withdraw = (pendingWithdraw[0].totalPending) ? parseFloat(pendingWithdraw[0].totalPending) : 0.00;
 
         // Determine user level
         let level = 0;
