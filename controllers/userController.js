@@ -3615,6 +3615,9 @@ const deductJoinFeesForRummy = async (deductBalanceReq) => {
 const addWinningAmountForRummy = async (addWinBalanceRequest) => {
     try {
         console.log("addWinBalanceRequest---->", addWinBalanceRequest);
+        let tableId=addWinBalanceRequest.tableId;
+        let gameId=addWinBalanceRequest.gameId;
+        let rummyCode=addWinBalanceRequest.rummy_code;
         let userId = addWinBalanceRequest.user_id;
         let realAmount = parseFloat(addWinBalanceRequest.realAmount);
         let winAmount = parseFloat(addWinBalanceRequest.winningAmount + "");
@@ -3646,6 +3649,9 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                         amount: parseFloat(remainingAmt),
                         type: 'CR',
                         other_type: 'Refunded',
+                        table_id:tableId,
+                        game_id:gameId,
+                        reference:rummyCode,
                         category: 'Rummy',
                         user_id: userId,
                         transaction_status: 'SUCCESS',
@@ -3679,6 +3685,9 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 type: 'CR',
                 other_type: 'Winning',
                 category: 'Rummy',
+                table_id:tableId,
+                game_id:gameId,
+                reference:rummyCode,
                 user_id: userId,
                 transaction_status: 'SUCCESS',
                 commission: Number(AdminCommision.toFixed(4))
@@ -3694,6 +3703,9 @@ const addWinningAmountForRummy = async (addWinBalanceRequest) => {
                 type: 'CR',
                 other_type: 'Commission',
                 category: 'Rummy',
+                table_id:tableId,
+                game_id:gameId,
+                reference:rummyCode,
                 user_id: userId,
                 commission: Number(AdminCommision.toFixed(4)),
                 is_admin: 1,
