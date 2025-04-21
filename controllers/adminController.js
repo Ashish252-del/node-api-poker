@@ -4083,17 +4083,17 @@ const getWinningAmount = async (req, res) => {
         let baseQuery;
         let getCount;
         if (game_type === 'Poker') {
-                baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+                baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Table Commision' AND t.category='${game_type}'`;
         } else if (game_type) {
-            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Winning' AND t.category='${game_type}'`;
         } else {
-            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Winning'`;
