@@ -575,7 +575,7 @@ module.exports.admin_game_history = async (req, res) => {
         const tableDetails = await Promise.all(
             tableIdsResult.map(async ({ tableId,gameId, createdAt,updatedAt }) => {
                 // Get game history for the table
-                const gameHistory = await userService.getPoolGameHistoryByQuery({ tableId });
+                const gameHistory = await adminService.getLudoGameHistoryByQuery({ tableId });
                 //let usersData = gameHistory.dataValues.players.split(',')
                 // Get game type name
                 const getGameType = await adminService.getLudoGameTypeByQuery({ id: gameId });
