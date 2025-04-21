@@ -209,6 +209,10 @@ const getPoolGameHistoryByQuery = (query) => {
    return db.pool_game_history.findAll({ where: query, raw: true });
 }
 
+const getPoolGameTable = (query) => {
+   return db.pool_tables.findOne({ where: query, raw: true });
+}
+
 const getOneGameHistoryByQuery = (query) => {
    return db.game_history.findOne({ where: query });
 }
@@ -397,5 +401,6 @@ module.exports = {
    getLiveUserByDate,
    updateLiveUser,
    updateNotifications,
-   getPoolGameHistoryByQuery
+   getPoolGameHistoryByQuery,
+   getPoolGameTable
 };
