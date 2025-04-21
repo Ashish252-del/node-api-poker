@@ -79,6 +79,8 @@ message addWinBalanceRequest {
   int64 success=8;
   float newLockedAmount=9;
   float remainingAmount =10;
+  int64 gameId = 11;
+  int64 rummy_code = 12;
 }
 //Get min-max buyIn 
 message userMinMaxBuyInReq {
