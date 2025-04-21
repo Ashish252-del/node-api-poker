@@ -586,6 +586,7 @@ module.exports.admin_game_history = async (req, res) => {
                         const user = await adminService.getUserDetailsById({ user_id: history.userId });
                         return {
                             ...history,
+                            betAmount: history.fee,
                             uuid: user?.uuid || '---',
                             username: user?.username || 'Unknown'  // Add username to each entry
                         };
