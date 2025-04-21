@@ -4390,7 +4390,7 @@ const getGameWiseUsers = async (req, res) => {
                 withdraw_amount: withdrawAmt,
                 deposit_amount: depositAmt,
                 is_block: isBlock,
-                block_time:block_time,
+                block_time:block_time||0,
                 is_blocked_until_unblock:is_blocked_until_unblock,
                 createdAt: userD?.createdAt,
                 updatedAt: userD?.updatedAt
