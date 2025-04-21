@@ -470,7 +470,7 @@ module.exports.update_game = async (req, res) => {
 module.exports.admin_game_history = async (req, res) => {
     try {
         const {page, search_key, from_date, end_date,user_id,page_limit} = req.query;
-        let limits = (page_limit) ? page_limit : 50 ;
+        let limits = (page_limit) ? parseInt(page_limit) : 50 ;
         const {limit, offset} = getPagination(page, limits);
      //    let query = `users.isAdmin=0`;
      //    // if (game_type) {
