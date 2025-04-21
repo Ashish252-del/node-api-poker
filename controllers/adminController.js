@@ -4487,10 +4487,11 @@ const getGameHistory = async (req, res) => {
             const tableDetails = await Promise.all(
                 tableIdsResult.map(async ({ table_id,table_name, game_type,createdAt,updatedAt }) => {
                     // Get game history for the table
-                    const gameHistory = await userService.getPoolGameTable({game_table_id: table_id });
-
+                    const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
+                    const gameTable = await userService.getPoolGameTable({ game_table_id:table_id });
+                    //let usersData = gameHistory.dataValues.players.split(',')
                     // Get game type name
-                    const getGameType = await adminService.getGameTypeByQuery({ game_type_id: game_type });
+                    const getGameType = await adminService.getGameTypeByQuery({ game_id: gameTable.game_id });
 
                     // Enrich each game history entry with username
                     const enrichedHistory = await Promise.all(
@@ -4498,8 +4499,8 @@ const getGameHistory = async (req, res) => {
                             const user = await adminService.getUserDetailsById({ user_id: history.user_id });
                             return {
                                 ...history,
-                                username: user?.username || 'Unknown',  // Add username to each entry
-                                uuid:  user?.uuid || '---',
+                                uuid: user?.uuid || '---',
+                                username: user?.username || 'Unknown'  // Add username to each entry
                             };
                         })
                     );
@@ -4507,10 +4508,9 @@ const getGameHistory = async (req, res) => {
                     return {
                         table_id,
                         table_name,
-                        blind,
                         createdAt,
                         updatedAt,
-                        game_category: getGameType?.name || '',
+                        table_type: getGameType?.table_type || '',
                         users: enrichedHistory  // Now includes usernames
                     };
                 })
