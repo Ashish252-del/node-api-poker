@@ -4462,7 +4462,7 @@ const getGameHistory = async (req, res) => {
 
             // Get table_ids with pagination
             const tableIdsResult = await sequelize.query(
-                `SELECT DISTINCT gh.table_id, gh.table_name, gh.game_type, gh.blind, gh.createdAt, gh.updatedAt
+                `SELECT DISTINCT gh.table_id, gh.table_name, gh.game_type, gh.createdAt, gh.updatedAt
              FROM pool_game_histories gh
                       JOIN users u ON gh.user_id = u.user_id
                  ${whereClause}
@@ -4480,9 +4480,9 @@ const getGameHistory = async (req, res) => {
                 { replacements, type: sequelize.QueryTypes.SELECT }
             );
             const tableDetails = await Promise.all(
-                tableIdsResult.map(async ({ table_id,table_name, game_type,blind,createdAt,updatedAt }) => {
+                tableIdsResult.map(async ({ table_id,table_name, game_type,createdAt,updatedAt }) => {
                     // Get game history for the table
-                    const gameHistory = await userService.getGameHistoryByQuery({ table_id });
+                    const gameHistory = await userService.getPoolGameTable({game_table_id: table_id });
 
                     // Get game type name
                     const getGameType = await adminService.getGameTypeByQuery({ game_type_id: game_type });
@@ -4493,10 +4493,8 @@ const getGameHistory = async (req, res) => {
                             const user = await adminService.getUserDetailsById({ user_id: history.user_id });
                             return {
                                 ...history,
-                                community_card: JSON.parse(history.community_card),
-                                hands_record: JSON.parse(history.hands_record),
-                                hand_history: JSON.parse(history.hand_history),
-                                username: user?.username || 'Unknown'  // Add username to each entry
+                                username: user?.username || 'Unknown',  // Add username to each entry
+                                uuid:  user?.uuid || '---',
                             };
                         })
                     );
