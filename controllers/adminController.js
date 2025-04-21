@@ -6066,7 +6066,7 @@ const gameWiseUserStatus = async (req, res) => {
         let status = req.body.status;
         let type = req.body.type;
         let blockTime = req.body.block_time;
-        let is_blocked_until_unblock=req.body.Permanent;
+        let is_blocked_until_unblock=req.body.is_blocked_until_unblock;
         let blockTimeInt = blockTime.replace(/[^\d.]/g, ' ');
         var now = new Date().getTime()
         let time = Math.floor(now / 1000);
@@ -6077,17 +6077,15 @@ const gameWiseUserStatus = async (req, res) => {
             min = 1800;
         }
 
-       
-    
-        if(user_game_status==="unBlock"){
+
+        if(status==="Active"){
             const check = await adminService.getUserStatus({ user_id: userId, game_id: gameId });
             if (!check) {
                 responseData.msg = 'User status not found';
                 return responseHelper.error(res, responseData, 404);
             }
-    
-            await adminService.updateUserStatus({
-                user_game_status:'unBlock',
+            let updatedData=await adminService.updateUserStatus({
+                user_game_status: status,
                 block_time: null,
                 block_timestamp: null,
                 is_blocked_until_unblock: false,
@@ -6095,7 +6093,7 @@ const gameWiseUserStatus = async (req, res) => {
             }, {
                 user_game_status_id: check.user_game_status_id
             });
-    
+            responseData.data=updatedData,
             responseData.msg = 'User unblocked successfully';
             return responseHelper.success(res, responseData);
         }
@@ -6114,14 +6112,17 @@ const gameWiseUserStatus = async (req, res) => {
 
         let check = await adminService.getUserStatus({user_id: userId, game_id: gameId});
         if (check && parseInt(check.block_timestamp) > parseInt(time) || check &&check.is_blocked_until_unblock=="1") {
+            responseData.data=check,
             responseData.msg = 'User Already Blocked!!!';
             return responseHelper.error(res, responseData, 201);
         } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
-            await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
+            let updatedData=await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
+            responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
             return responseHelper.success(res, responseData);
         } else {
-            await adminService.addUserStatus(data)
+            let updatedData=await adminService.addUserStatus(data)
+            responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
             return responseHelper.success(res, responseData);
         }

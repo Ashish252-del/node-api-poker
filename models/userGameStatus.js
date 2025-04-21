@@ -29,7 +29,7 @@ function model(sequelize) {
         user_game_status:{
             type: DataTypes.ENUM,
             allowNull: true,
-            values: ['Block','unBlock','Inactive']
+            values: ['Block','Active','Inactive']
         },
         block_timestamp:{
             type: DataTypes.STRING,
