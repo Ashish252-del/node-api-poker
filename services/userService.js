@@ -206,7 +206,7 @@ const getGameHistoryByQuery = (query) => {
 }
 
 const getPoolGameTable = (query) => {
-   return db.pool_game_table.findAll({ where: query });
+   return db.pool_game_tables.findOne({ where: query });
 }
 
 const getOneGameHistoryByQuery = (query) => {
