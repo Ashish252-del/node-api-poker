@@ -17,7 +17,7 @@ function model(sequelize) {
             allowNull: true,
         },
         table_id:{
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: true,
         },
         game_id:{
