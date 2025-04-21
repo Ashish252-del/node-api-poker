@@ -4491,7 +4491,7 @@ const getGameHistory = async (req, res) => {
                     const gameTable = await userService.getPoolGameTable({ game_table_id:table_id });
                     //let usersData = gameHistory.dataValues.players.split(',')
                     // Get game type name
-                    const getGameType = await adminService.getGameTypeByQuery({ game_id: gameTable.game_id });
+                    const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: gameTable.game_id });
 
                     // Enrich each game history entry with username
                     const enrichedHistory = await Promise.all(
