@@ -1627,8 +1627,8 @@ const userDetail = async (req, res) => {
         getList.user_level = "Level " + level;
 
 
-        let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({user_id: user_id, isWin: '1',fee:{[Op.gt] : 0}});
-        let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({user_id: user_id, isWin: '0', fee:{[Op.gt] : 0}});
+        let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '1',fee:{[Op.gt] : 0}});
+        let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '0', fee:{[Op.gt] : 0}});
         let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2, game_type: {
                 [Op.ne]: 84  // Not equal to 2
             }});
