@@ -5699,14 +5699,14 @@ const ledgerDetails = async (req, res) => {
             queryWallet = `user_id='${req.query.user_id}'`;
             query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled' AND user_id='${req.query.user_id}'`;
             query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
-            query2 = `other_type='Winning' AND user_id='${req.query.user_id}'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0 AND user_id='${req.query.user_id}'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
             query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
         } else {
             queryWallet = `1=1`
             query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled'`;
             query1 = `redemption_status = 'Withdraw'`;
-            query2 = `other_type='Winning'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
             query4 = `transaction_status = 'SUCCESS' AND other_type='Commission'`;
         }
