@@ -1660,8 +1660,7 @@ const userDetail = async (req, res) => {
 
         const response = await axios.request(config);
         let data1 = JSON.parse(JSON.stringify(response.data));
-        console.log("Auth:", response.data);
-        console.log("data1:", data1);
+        console.log("Auth:", response.data.data);
         getList.gameData = {
             username:(getList) ? getList.username : '',
             total_ludo_played: parseInt(getLudoUserWinHistory.length) + parseInt(getLudoUserLossHistory.length),
@@ -1680,10 +1679,10 @@ const userDetail = async (req, res) => {
             pool_win: getPoolUserWinHistory.length,
             pool_win_sum: poolWinSum,
             pool_loss: getPoolUserLossHistory.length,
-            total_fantasy_played: parseInt(data1.fantasy_win) + parseInt(data1.fantasy_loss),
-            fantasy_win: data1.fantasy_win,
-            fantasy_win_sum: data1.fantasy_win_sum,
-            fantasy_loss: data1.fantasy_loss
+            total_fantasy_played: parseInt(data1.data.fantasy_win) + parseInt(data1.data.fantasy_loss),
+            fantasy_win: data1.data.fantasy_win,
+            fantasy_win_sum: data1.data.fantasy_win_sum,
+            fantasy_loss: data1.data.fantasy_loss
         };
         responseData.msg = "User Detail";
         responseData.data = getList;
