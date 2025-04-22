@@ -4212,17 +4212,17 @@ const getWinningAmount = async (req, res) => {
             responseData.msg = 'Data not found';
             return responseHelper.error(res, responseData, 201);
         }
-        getUserData = getUserData.map(async (element, i) => {
-            if(game_type=='Pool'){
-                let poolGame = adminService.getPoolGameTypeByQuery({game_id:element.game_id})
+        getUserData = await Promise.all(getUserData.map(async (element, i) => {
+            if (game_type === 'Pool') {
+                let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
                 element.table_name = (poolGame) ? poolGame.name : '';
                 element.table_type = (poolGame) ? poolGame.table_type : '';
             }
             element.user_id = element.username;
             return element;
-        })
+        }));
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+
         responseData.msg = 'Winning Transaction List!!!';
         responseData.count = totalCount;
         responseData.data = getUserData;
