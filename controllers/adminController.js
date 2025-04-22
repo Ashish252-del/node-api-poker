@@ -5179,7 +5179,7 @@ const pendingWithdrawal = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT r.*, u.username, u.email, u.mobile
+            SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
             WHERE r.redemption_status != 'Withdraw'
@@ -5190,7 +5190,7 @@ const pendingWithdrawal = async (req, res) => {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
-                u.mobile LIKE '%${search_key}%'
+                u.uuid LIKE '%${search_key}%' OR u.mobile LIKE '%${search_key}%'
             )`;
         }
 
@@ -5274,7 +5274,7 @@ const todayWithdrawal = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT r.*, u.username, u.email, u.mobile
+            SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
             WHERE r.redemption_status = 'Withdraw'
@@ -5284,6 +5284,7 @@ const todayWithdrawal = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -5340,7 +5341,7 @@ const todayDeposit = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT t.*, u.username, u.email, u.mobile
+            SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Deposit' AND t.transaction_status='SUCCESS'
@@ -5350,6 +5351,7 @@ const todayDeposit = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -5552,14 +5554,15 @@ const totalWinning = async (req, res) => {
             // if (gameCategory.length > 0) {
             //     query += ` AND game_histories.game_type like '%${gameCategory[0].game_type_id}%'`;
             // } else {
-            query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR transactions.category like '%${search_key}%')`;
+            query += ` AND (users.username like '%${search_key}%' OR users.uuid like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR transactions.category like '%${search_key}%')`;
             // }
         }
         query += ` order by transaction_id DESC`;
         let response = await sequelize.query(`Select transactions.amount,
                                                      transactions.createdAt,
                                                      transactions.category,
-                                                     users.username
+                                                     users.username,
+                                                     users.uuid
                                               from transactions
                                                        join users on transactions.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
