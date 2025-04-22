@@ -4233,7 +4233,7 @@ const getWinningAmount = async (req, res) => {
                     let gameNameD = await adminService.getLudoGameByQuery({ id: gameLudoResult.gameId });
                     ludoName = (gameNameD) ? gameNameD.name : '';
                 }
-                let gameType = await adminService.getLudoGameByQuery({ id: element.reference });
+                let gameType = await adminService.getLudoGameTypeByQuery({ id: element.reference });
                 element.game_id = (gameLudoResult) ? gameLudoResult.gameId : '';
                 element.game_name = ludoName;
                 element.game_type = (gameType) ? gameType.name : '';
