@@ -4226,7 +4226,7 @@ const getWinningAmount = async (req, res) => {
                     gameName = gameResult.game_name;
                 }
                 element.game_name = gameName;
-            }else{
+            }else if(game_type=='Ludo'){
                 let gameLudoResult = await adminService.getLudoGameHistoryById({ tableId: element.table_id });
                 let ludoName;
                 if(gameLudoResult && gameLudoResult.gameId){
@@ -4237,6 +4237,8 @@ const getWinningAmount = async (req, res) => {
                 element.game_id = (gameLudoResult) ? gameLudoResult.gameId : '';
                 element.game_name = ludoName;
                 element.game_type = (gameType) ? gameType.name : '';
+            }else{
+
             }
            // element.user_id = element.username;
             return element;
