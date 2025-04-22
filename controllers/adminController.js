@@ -5259,7 +5259,7 @@ const pendingWithdrawal = async (req, res) => {
             SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
-            WHERE r.redemption_status != 'Withdraw' OR r.redemption_status != 'Cancelled'
+            WHERE r.redemption_status != 'Withdraw' AND r.redemption_status != 'Cancelled'
         `;
 
         // Add search condition if search_key is provided
@@ -5684,14 +5684,14 @@ const ledgerDetails = async (req, res) => {
         let query, query1, query2, query3, query4, queryWallet
         if (req.query.user_id) {
             queryWallet = `user_id='${req.query.user_id}'`;
-            query = `(redemption_status != 'Withdraw' OR redemption_status != 'Cancelled') AND user_id='${req.query.user_id}'`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled' AND user_id='${req.query.user_id}'`;
             query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
             query2 = `other_type='Winning' AND user_id='${req.query.user_id}'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
             query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
         } else {
             queryWallet = `1=1`
-            query = `(redemption_status != 'Withdraw' OR redemption_status != 'Cancelled')`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled'`;
             query1 = `redemption_status = 'Withdraw'`;
             query2 = `other_type='Winning'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
