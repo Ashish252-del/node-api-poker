@@ -115,7 +115,7 @@ const addUserStatus = (data) => {
 }
 
 const getUserStatus = (query) => {
-    return db.user_game_status.findOne({where: query});
+    return db.user_game_status.findOne({where: query,raw:true});
 }
 
 const updateUserStatus = (data, query) => {

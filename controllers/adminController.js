@@ -4440,7 +4440,10 @@ const getGameWiseUsers = async (req, res) => {
 
         response = await Promise.all(response.map(async (element) => {
             let userD = await adminService.getUserDetailsById({user_id: element.user_id});
+            console.log("gameId-->",element.user_id);
+            console.log("game_type-->",game_type);
             let getUserBlock = await adminService.getUserStatus({user_id: element.user_id, game_id: game_type});
+            console.log("getUserBlock----->",getUserBlock);
 
             let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
             let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
@@ -4448,8 +4451,9 @@ const getGameWiseUsers = async (req, res) => {
             let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
             let depositAmt = getDepositAmt?.[0]?.amount ?? 0;
             let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
-            let block_time = (getUserBlock && getUserBlock.block_time) || 0;
-            let is_blocked_until_unblock = (getUserBlock && getUserBlock.is_blocked_until_unblock) || false;
+            let block_time = getUserBlock?.block_time || 0;
+            let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
+            
 
 
             return {
@@ -6269,7 +6273,7 @@ const gameWiseUserStatus = async (req, res) => {
             responseData.data=check,
             responseData.msg = 'User Already Blocked!!!';
             return responseHelper.error(res, responseData, 201);
-        } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
+        } else if (check && parseInt(check.block_timestamp) < parseInt(time)|| (check && check.user_game_status=="Active" )) {
             let updatedData=await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
             responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
