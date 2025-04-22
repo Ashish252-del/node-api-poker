@@ -4183,6 +4183,7 @@ const getWinningAmount = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                 u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -4212,6 +4213,11 @@ const getWinningAmount = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
         getUserData = getUserData.map(async (element, i) => {
+            if(game_type=='Pool'){
+                let poolGame = adminService.getPoolGameTypeByQuery({game_id:element.game_id})
+                element.table_name = (poolGame) ? poolGame.name : '';
+                element.table_type = (poolGame) ? poolGame.table_type : '';
+            }
             element.user_id = element.username;
             return element;
         })
