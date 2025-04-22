@@ -5625,7 +5625,7 @@ const totalWinning = async (req, res) => {
     try {
         const {game_type, page, search_key, from_date, end_date, csvtype} = req.query;
         const {limit, offset} = getPagination(page, csvtype);
-        let query = `transactions.is_admin='0' AND transactions.other_type='Winning'`;
+        let query = `transactions.is_admin='0' AND (transactions.other_type='Winning' OR transactions.other_type='Table Commision')`;
         if (req.query.user_id) {
             query += ` AND transactions.user_id='${req.query.user_id}'`;
         }
