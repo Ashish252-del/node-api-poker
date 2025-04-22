@@ -1626,6 +1626,50 @@ const userDetail = async (req, res) => {
         }
         getList.user_level = "Level " + level;
 
+
+        let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({user_id: user_id, isWin: '1',fee:{[Op.gt] : 0}});
+        let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({user_id: user_id, isWin: '0', fee:{[Op.gt] : 0}});
+        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2, game_type: {
+                [Op.ne]: 84  // Not equal to 2
+            }});
+        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2, game_type: {
+                [Op.ne]: 84  // Not equal to 2
+            }});
+        let getRummyUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:3});
+        let getRummyUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:3});
+
+        let getPoolUserWinHistory = await userService.getPoolGameHistoryByQuery({user_id: user_id, is_win: '1'});
+        let getPoolUserLossHistory = await userService.getPoolGameHistoryByQuery({user_id: user_id, is_win: '0'});
+        // if (getList.length == 0) {
+        //     responseData.msg = 'No Data found';
+        //     return responseHelper.error(res, responseData, 201);
+        // }
+        const ludoWinSum = getLudoUserWinHistory.reduce((total, game) => total + (parseFloat(game.winAmount) || 0), 0);
+        const pokerWinSum = getPokerUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+        const rummyWinSum = getRummyUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+        const poolWinSum = getPoolUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+        getList.gameData = {
+            username:(getList) ? getList.username : '',
+            total_ludo_played: parseInt(getLudoUserWinHistory.length) + parseInt(getLudoUserLossHistory.length),
+            ludo_win:getLudoUserWinHistory.length,
+            ludo_win_sum: ludoWinSum,
+            ludo_loss: getLudoUserLossHistory.length,
+            total_poker_played: parseInt(getPokerUserWinHistory.length) + parseInt(getPokerUserLossHistory.length),
+            poker_win: getPokerUserWinHistory.length,
+            poker_win_sum: pokerWinSum,
+            poker_loss: getPokerUserLossHistory.length,
+            total_rummy_played: parseInt(getRummyUserWinHistory.length) + parseInt(getRummyUserLossHistory.length),
+            rummy_win: getRummyUserWinHistory.length,
+            rummy_win_sum: rummyWinSum,
+            rummy_loss: getRummyUserLossHistory.length,
+            total_pool_played: parseInt(getRummyUserWinHistory.length) + parseInt(getRummyUserLossHistory.length),
+            pool_win: getRummyUserWinHistory.length,
+            pool_win_sum: rummyWinSum,
+            pool_loss: getRummyUserLossHistory.length,
+            fantasy_win: 0,
+            fantasy_win_sum: 0,
+            fantasy_loss: 0
+        };
         responseData.msg = "User Detail";
         responseData.data = getList;
         return responseHelper.success(res, responseData);
