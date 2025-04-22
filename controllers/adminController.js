@@ -2407,11 +2407,7 @@ const getGameFields = async (req, res) => {
                     'key': 'is_practice'
                 }
             )
-            if (subType == 'Deal') field.push({
-                    'field': 'Point Value',
-                    'field_type': 'Number',
-                    'key': 'point_value'
-                }, {
+            if (subType == 'Deal') field.push( {
                     'field': 'Deal Type',
                     'field_type': 'Number',
                     'key': 'deal_type'
