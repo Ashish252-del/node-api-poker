@@ -4534,6 +4534,7 @@ const getGameHistory = async (req, res) => {
                 } else {
                     whereConditions.push(
                         `(u.username LIKE :searchKey OR 
+                        u.uuid LIKE :searchKey OR 
                      u.referral_code LIKE :searchKey OR 
                      u.full_name LIKE :searchKey OR 
                      gh.table_name LIKE :searchKey OR 
@@ -4617,7 +4618,7 @@ const getGameHistory = async (req, res) => {
                 if (gameType.length > 0) {
                     query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
                 } else {
-                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+                    query += ` AND (users.username like '%${search_key}%' OR users.uuid like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
                 }
 
             }
