@@ -4226,8 +4226,11 @@ const getWinningAmount = async (req, res) => {
                     gameName = gameResult.game_name;
                 }
                 element.game_name = gameName;
+            }else{
+                let gameLudoResult = await adminService.getLudoGameHistoryById({ tableId: element.table_id });
+                element.game_id = (gameLudoResult) ? gameLudoResult.gameId : '';
             }
-            element.user_id = element.username;
+           // element.user_id = element.username;
             return element;
         }));
         const totalCount = getCount[0].total;
