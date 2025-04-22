@@ -4353,7 +4353,10 @@ const getGameWiseUsers = async (req, res) => {
 
         response = await Promise.all(response.map(async (element) => {
             let userD = await adminService.getUserDetailsById({user_id: element.user_id});
+            console.log("gameId-->",element.user_id);
+            console.log("game_type-->",game_type);
             let getUserBlock = await adminService.getUserStatus({user_id: element.user_id, game_id: game_type});
+            console.log("getUserBlock----->",getUserBlock);
 
             let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
             let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
@@ -4361,8 +4364,9 @@ const getGameWiseUsers = async (req, res) => {
             let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
             let depositAmt = getDepositAmt?.[0]?.amount ?? 0;
             let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
-            let block_time = (getUserBlock && getUserBlock.block_time) || 0;
-            let is_blocked_until_unblock = (getUserBlock && getUserBlock.is_blocked_until_unblock) || false;
+            let block_time = getUserBlock?.block_time || 0;
+            let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
+            
 
 
             return {
