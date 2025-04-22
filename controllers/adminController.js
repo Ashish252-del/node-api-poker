@@ -1679,7 +1679,7 @@ const userDetail = async (req, res) => {
             pool_win: getPoolUserWinHistory.length,
             pool_win_sum: poolWinSum,
             pool_loss: getPoolUserLossHistory.length,
-            total_fantasy_played: parseInt(data1.data.fantasy_win) + parseInt(data1.data.fantasy_loss),
+            total_fantasy_played: parseInt(response.data.data.fantasy_win) + parseInt(response.data.data.fantasy_loss),
             fantasy_win: data1.data.fantasy_win,
             fantasy_win_sum: data1.data.fantasy_win_sum,
             fantasy_loss: data1.data.fantasy_loss
