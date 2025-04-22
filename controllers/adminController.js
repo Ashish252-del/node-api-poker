@@ -3,6 +3,7 @@ const adminService = require("../services/adminService");
 const pokerService = require("../services/pokerService");
 const responseHelper = require("../helpers/customResponse");
 const {sendPushNotification} = require('../utils/sendnotification')
+const axios = require('axios');
 const {
     makeString,
     generateUserToken,
@@ -1648,6 +1649,17 @@ const userDetail = async (req, res) => {
         const pokerWinSum = getPokerUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
         const rummyWinSum = getRummyUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
         const poolWinSum = getPoolUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+
+
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: 'https://fantasymatch.europagaminggalaxy.com/api/v1/match/get-fantasy-history-by-userid?user_id=3875',
+            headers: { }
+        };
+
+        const response = await axios.request(config);
+        let data1 = JSON.parse(JSON.stringify(response.data));
         getList.gameData = {
             username:(getList) ? getList.username : '',
             total_ludo_played: parseInt(getLudoUserWinHistory.length) + parseInt(getLudoUserLossHistory.length),
@@ -1662,13 +1674,14 @@ const userDetail = async (req, res) => {
             rummy_win: getRummyUserWinHistory.length,
             rummy_win_sum: rummyWinSum,
             rummy_loss: getRummyUserLossHistory.length,
-            total_pool_played: parseInt(getRummyUserWinHistory.length) + parseInt(getRummyUserLossHistory.length),
-            pool_win: getRummyUserWinHistory.length,
-            pool_win_sum: rummyWinSum,
-            pool_loss: getRummyUserLossHistory.length,
-            fantasy_win: 0,
-            fantasy_win_sum: 0,
-            fantasy_loss: 0
+            total_pool_played: parseInt(getPoolUserWinHistory.length) + parseInt(getPoolUserLossHistory.length),
+            pool_win: getPoolUserWinHistory.length,
+            pool_win_sum: poolWinSum,
+            pool_loss: getPoolUserLossHistory.length,
+            total_fantasy_played: parseInt(data1.fantasy_win) + parseInt(data1.fantasy_loss),
+            fantasy_win: data1.fantasy_win,
+            fantasy_win_sum: data1.fantasy_win_sum,
+            fantasy_loss: data1.fantasy_loss
         };
         responseData.msg = "User Detail";
         responseData.data = getList;
