@@ -5625,6 +5625,9 @@ const totalWinning = async (req, res) => {
         let response = await sequelize.query(`Select transactions.amount,
                                                      transactions.createdAt,
                                                      transactions.category,
+                                                     transactions.commission,
+                                                     transactions.table_id,
+                                                     transactions.game_id,
                                                      users.username,
                                                      users.uuid
                                               from transactions
