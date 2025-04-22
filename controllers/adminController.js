@@ -4544,7 +4544,8 @@ const getGameHistory = async (req, res) => {
                      u.referral_code LIKE :searchKey OR 
                      u.full_name LIKE :searchKey OR 
                      gh.table_name LIKE :searchKey OR 
-                     gh.table_id LIKE :searchKey)`
+                     gh.table_id LIKE :searchKey) OR 
+                        gh.game_id LIKE :searchKey)`
                     );
                     replacements.searchKey = `%${search_key}%`;
                 }
@@ -4555,7 +4556,7 @@ const getGameHistory = async (req, res) => {
 
             // Get table_ids with pagination
             const tableIdsResult = await sequelize.query(
-                `SELECT DISTINCT gh.table_id, gh.table_name, gh.game_type, gh.createdAt, gh.updatedAt
+                `SELECT DISTINCT gh.table_id, gh.game_id, gh.table_name, gh.game_type, gh.createdAt, gh.updatedAt
              FROM pool_game_histories gh
                       JOIN users u ON gh.user_id = u.user_id
                  ${whereClause}
@@ -4573,13 +4574,12 @@ const getGameHistory = async (req, res) => {
                 { replacements, type: sequelize.QueryTypes.SELECT }
             );
             const tableDetails = await Promise.all(
-                tableIdsResult.map(async ({ table_id,table_name, game_type,createdAt,updatedAt }) => {
+                tableIdsResult.map(async ({ table_id,table_name, game_id,createdAt,updatedAt }) => {
                     // Get game history for the table
                     const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
-                    const gameTable = await userService.getPoolGameTable({ game_table_id:table_id });
-                    //let usersData = gameHistory.dataValues.players.split(',')
+
                     // Get game type name
-                    const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: gameTable.game_id });
+                    const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: game_id });
 
                     // Enrich each game history entry with username
                     const enrichedHistory = await Promise.all(
@@ -4594,7 +4594,7 @@ const getGameHistory = async (req, res) => {
                     );
 
                     return {
-                        table_id,
+                        table_id: game_id,
                         table_name,
                         createdAt,
                         updatedAt,
