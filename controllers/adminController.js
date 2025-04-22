@@ -4213,7 +4213,7 @@ const getWinningAmount = async (req, res) => {
                 let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
                 element.table_name = (poolGame) ? poolGame.name : '';
                 element.table_type = (poolGame) ? poolGame.table_type : '';
-            }else{
+            }else if(game_type=='Poker' || game_type=='Rummy'){
                 let gameResult = await adminService.getGameByQuery({ game_id: element.game_id });
                 let gameName;
                 let str = JSON.parse(gameResult.game_json_data || "{}");
