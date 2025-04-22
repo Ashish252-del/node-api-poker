@@ -4217,6 +4217,19 @@ const getWinningAmount = async (req, res) => {
                 let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
                 element.table_name = (poolGame) ? poolGame.name : '';
                 element.table_type = (poolGame) ? poolGame.table_type : '';
+            }else{
+                let gameResult = await adminService.getGameByQuery({ game_id: element.game_id });
+                let gameName;
+                let str = JSON.parse(gameResult.game_json_data || "{}");
+
+                if (gameResult.game_category_id == 2) {
+                    gameName = str.room_name;
+                } else if (gameResult.game_category_id == 3) {
+                    gameName = str.name || str.Name;
+                } else if (gameResult.game_category_id == 4) {
+                    gameName = gameResult.game_name;
+                }
+                element.game_name = gameName;
             }
             element.user_id = element.username;
             return element;
