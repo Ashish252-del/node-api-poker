@@ -173,6 +173,7 @@ module.exports = () => {
     routes.get('/get-winning-amount',authenticate, adminController.getWinningAmount)
     routes.get('/get-game-wise-users', authenticate, adminController.getGameWiseUsers);
     routes.get('/get-game-history', authenticate, adminController.getGameHistory);
+    routes.get("/get-rummy-history-by-table-id",authenticate,adminController.getRummyGameHistoryByTableId)
     routes.get("/get-leaderboard-data",adminController.getLeaderBoardData);
     routes.get('/get-running-table', authenticate, adminController.getRunningTable);
     routes.get('/get-total-table', authenticate, adminController.getTotalTable);
@@ -207,6 +208,8 @@ module.exports = () => {
     routes.get('/get-bonus-setting-data',authenticate,adminController.getBonusData);
     routes.get('/ludo-users', authenticate, adminController.getLudoUsers)
     // routes.get("/pool-user",authenticate,adminController.getPoolUsers)
+
+    
     routes.post('/update-user-game-status', authenticate, adminController.gameWiseUserStatus);
     routes.get("/get-pocker-suspicious-actions",authenticate,adminController.getAllpockerSuspiciousActions)
     routes.get("/game-wise-commission",authenticate,adminController.gameWiseCommission)

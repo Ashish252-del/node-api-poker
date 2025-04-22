@@ -3,6 +3,7 @@ const adminService = require("../services/adminService");
 const pokerService = require("../services/pokerService");
 const responseHelper = require("../helpers/customResponse");
 const {sendPushNotification} = require('../utils/sendnotification')
+const axios = require('axios');
 const {
     makeString,
     generateUserToken,
@@ -1584,8 +1585,32 @@ const userDetail = async (req, res) => {
         getList.win_wallet = winWalletAmt;
         getList.withdraw_amount = withdrawAmt;
         getList.deposit_amount = depositAmt;
-        getList.wallet_amount = depositAmt + winWalletAmt;
+        getList.wallet_amount = parseFloat(depositAmt) + parseFloat(winWalletAmt);
         getList.bonus_amount = bonusAmt;
+
+        let query = `redemption_status = 'Pending' AND user_id='${user_id}'`;
+        let query1 = `redemption_status = 'Withdraw' AND user_id='${user_id}'`;
+        let query2 = `other_type='Winning' AND user_id='${user_id}' AND amount > 0`;
+        let query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${user_id}'`;
+
+        let pendingWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalPending
+                                                     from redemptions
+                                                     where ${query}`, {type: sequelize.QueryTypes.SELECT});
+
+        let TotalWithdraw = await sequelize.query(`Select SUM(redeem_amount) as totalWithdraw,
+                                                          SUM(tds_amount)    as totalTds
+                                                   from redemptions
+                                                   where ${query1}`, {type: sequelize.QueryTypes.SELECT});
+        let TotalWinning = await sequelize.query(`Select SUM(amount) as totalWinning
+                                                  from transactions
+                                                  where ${query2}`, {type: sequelize.QueryTypes.SELECT});
+        let TotalDeposit = await sequelize.query(`Select SUM(amount) as totalDeposit, SUM(gst_amount) as totalGst
+                                                  from transactions
+                                                  where ${query3}`, {type: sequelize.QueryTypes.SELECT});
+        getList.total_deposit = (TotalDeposit[0].totalDeposit) ? parseFloat(TotalDeposit[0].totalDeposit) : 0.00;
+        getList.total_win = (TotalWinning[0].totalWinning) ? parseFloat(TotalWinning[0].totalWinning) : 0.00;
+        getList.total_withdraw = (TotalWithdraw[0].totalWithdraw) ? parseFloat(TotalWithdraw[0].totalWithdraw) : 0.00;
+        getList.pending_withdraw = (pendingWithdraw[0].totalPending) ? parseFloat(pendingWithdraw[0].totalPending) : 0.00;
 
         // Determine user level
         let level = 0;
@@ -1602,6 +1627,62 @@ const userDetail = async (req, res) => {
         }
         getList.user_level = "Level " + level;
 
+
+        let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '1',fee:{[Op.gt] : 0}});
+        let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '0', fee:{[Op.gt] : 0}});
+        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2, game_type: {
+                [Op.ne]: 84  // Not equal to 2
+            }});
+        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2, game_type: {
+                [Op.ne]: 84  // Not equal to 2
+            }});
+        let getRummyUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:3});
+        let getRummyUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:3});
+
+        let getPoolUserWinHistory = await userService.getPoolGameHistoryByQuery({user_id: user_id, is_win: '1'});
+        let getPoolUserLossHistory = await userService.getPoolGameHistoryByQuery({user_id: user_id, is_win: '0'});
+        // if (getList.length == 0) {
+        //     responseData.msg = 'No Data found';
+        //     return responseHelper.error(res, responseData, 201);
+        // }
+        const ludoWinSum = getLudoUserWinHistory.reduce((total, game) => total + (parseFloat(game.winAmount) || 0), 0);
+        const pokerWinSum = getPokerUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+        const rummyWinSum = getRummyUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+        const poolWinSum = getPoolUserWinHistory.reduce((total, game) => total + (parseFloat(game.win_amount) || 0), 0);
+
+
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: 'https://fantasymatch.europagaminggalaxy.com/api/v1/match/get-fantasy-history-by-userid?user_id=3875',
+            headers: { }
+        };
+
+        const response = await axios.request(config);
+        let data1 = response.data;
+        getList.gameData = {
+            username:(getList) ? getList.username : '',
+            total_ludo_played: parseInt(getLudoUserWinHistory.length) + parseInt(getLudoUserLossHistory.length),
+            ludo_win:getLudoUserWinHistory.length,
+            ludo_win_sum: ludoWinSum,
+            ludo_loss: getLudoUserLossHistory.length,
+            total_poker_played: parseInt(getPokerUserWinHistory.length) + parseInt(getPokerUserLossHistory.length),
+            poker_win: getPokerUserWinHistory.length,
+            poker_win_sum: pokerWinSum,
+            poker_loss: getPokerUserLossHistory.length,
+            total_rummy_played: parseInt(getRummyUserWinHistory.length) + parseInt(getRummyUserLossHistory.length),
+            rummy_win: getRummyUserWinHistory.length,
+            rummy_win_sum: rummyWinSum,
+            rummy_loss: getRummyUserLossHistory.length,
+            total_pool_played: parseInt(getPoolUserWinHistory.length) + parseInt(getPoolUserLossHistory.length),
+            pool_win: getPoolUserWinHistory.length,
+            pool_win_sum: poolWinSum,
+            pool_loss: getPoolUserLossHistory.length,
+            total_fantasy_played: parseInt(data1.data.fantasy_win) + parseInt(data1.data.fantasy_loss),
+            fantasy_win: data1.data.fantasy_win,
+            fantasy_win_sum: data1.data.fantasy_win_sum,
+            fantasy_loss: data1.data.fantasy_loss
+        };
         responseData.msg = "User Detail";
         responseData.data = getList;
         return responseHelper.success(res, responseData);
@@ -4079,17 +4160,17 @@ const getWinningAmount = async (req, res) => {
         let baseQuery;
         let getCount;
         if (game_type === 'Poker') {
-                baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+                baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Table Commision' AND t.category='${game_type}'`;
         } else if (game_type) {
-            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Winning' AND t.category='${game_type}'`;
         } else {
-            baseQuery = `SELECT t.*, u.username, u.email, u.mobile
+            baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Winning'`;
@@ -4098,6 +4179,7 @@ const getWinningAmount = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                 u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -4126,12 +4208,17 @@ const getWinningAmount = async (req, res) => {
             responseData.msg = 'Data not found';
             return responseHelper.error(res, responseData, 201);
         }
-        getUserData = getUserData.map(async (element, i) => {
+        getUserData = await Promise.all(getUserData.map(async (element, i) => {
+            if (game_type === 'Pool') {
+                let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
+                element.table_name = (poolGame) ? poolGame.name : '';
+                element.table_type = (poolGame) ? poolGame.table_type : '';
+            }
             element.user_id = element.username;
             return element;
-        })
+        }));
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+
         responseData.msg = 'Winning Transaction List!!!';
         responseData.count = totalCount;
         responseData.data = getUserData;
@@ -4349,7 +4436,10 @@ const getGameWiseUsers = async (req, res) => {
 
         response = await Promise.all(response.map(async (element) => {
             let userD = await adminService.getUserDetailsById({user_id: element.user_id});
+            console.log("gameId-->",element.user_id);
+            console.log("game_type-->",game_type);
             let getUserBlock = await adminService.getUserStatus({user_id: element.user_id, game_id: game_type});
+            console.log("getUserBlock----->",getUserBlock);
 
             let getWithDrawAmt = await adminService.getWithdrawl({user_id: element.user_id});
             let getDepositAmt = await adminService.getDeposit({user_id: element.user_id});
@@ -4357,6 +4447,10 @@ const getGameWiseUsers = async (req, res) => {
             let withdrawAmt = getWithDrawAmt?.[0]?.redeem_amount ?? 0;
             let depositAmt = getDepositAmt?.[0]?.amount ?? 0;
             let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+            let block_time = getUserBlock?.block_time || 0;
+            let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
+            
+
 
             return {
                 ...element,
@@ -4383,6 +4477,8 @@ const getGameWiseUsers = async (req, res) => {
                 withdraw_amount: withdrawAmt,
                 deposit_amount: depositAmt,
                 is_block: isBlock,
+                block_time:block_time,
+                is_blocked_until_unblock:is_blocked_until_unblock,
                 createdAt: userD?.createdAt,
                 updatedAt: userD?.updatedAt
             };
@@ -4412,39 +4508,103 @@ const getGameHistory = async (req, res) => {
         let query = '';
         let response;
         let responseTotalCount;
+        let totalCount = 0;
+        let resData = [];
+        const whereConditions = [];
+        const replacements = { limit, offset };
         if(game_type=='Pool'){
-            if (game_type) {
-                console.log('d');
-                query += `game_category = 1`;
-            }
-            if (from_date && end_date) {
-                console.log('d');
-                let fromDate = moment(from_date).format('YYYY-MM-DD');
-                let endDate = moment(end_date).format('YYYY-MM-DD');
-                query += ` AND DATE(pool_game_histories.createdAt) BETWEEN '${fromDate}' AND '${endDate}'`;
-            }
-            if (search_key) {
-                //let gameType = await adminService.getGameTypeByQuery({name:search_key});
-                let gameType = await sequelize.query(`Select *
-                                                  from game_types
-                                                  where name like '%${search_key}%'`, {type: sequelize.QueryTypes.SELECT});
-                if (gameType.length > 0) {
-                    query += ` AND pool_game_histories.game_type like '%${gameType[0].game_type_id}%'`;
-                } else {
-                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR pool_game_histories.table_name like '%${search_key}%' OR pool_game_histories.table_id like '%${search_key}%')`;
-                }
+            // if (game_type) {
+            //     whereConditions.push('gh.game_category = :game_type');
+            //     replacements.game_type = game_type;
+            //
+            //     if (game_type == 2) {
+            //         whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
+            //     }
+            // }
 
+            if (from_date && end_date) {
+                whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
+                replacements.fromDate = moment(from_date).format('YYYY-MM-DD');
+                replacements.endDate = moment(end_date).format('YYYY-MM-DD');
             }
-            query += ` order by game_history_id DESC`;
-            response = await sequelize.query(`Select pool_game_histories.*
-                                              from pool_game_histories
-                                                       join users on pool_game_histories.user_id = users.user_id
-                                              where ${query} LIMIT ${offset}
-                                                  , ${limit}`, {type: sequelize.QueryTypes.SELECT});
-            responseTotalCount = await sequelize.query(`Select pool_game_histories.*
-                                                        from pool_game_histories
-                                                                 join users on pool_game_histories.user_id = users.user_id
-                                                        where ${query}`, {type: sequelize.QueryTypes.SELECT});
+
+            if (search_key) {
+                const gameTypes = await sequelize.query(
+                    `SELECT game_type_id FROM game_types WHERE name LIKE :searchKey`,
+                    { replacements: { searchKey: `%${search_key}%` }, type: sequelize.QueryTypes.SELECT }
+                );
+
+                if (gameTypes.length > 0) {
+                    whereConditions.push('gh.game_type = :gameTypeId');
+                    replacements.gameTypeId = gameTypes[0].game_type_id;
+                } else {
+                    whereConditions.push(
+                        `(u.username LIKE :searchKey OR 
+                        u.uuid LIKE :searchKey OR 
+                        u.referral_code LIKE :searchKey OR 
+                        u.full_name LIKE :searchKey OR 
+                        gh.table_name LIKE :searchKey OR 
+                        gh.table_id LIKE :searchKey OR 
+                        gh.game_id LIKE :searchKey)`
+                    );
+                    replacements.searchKey = `%${search_key}%`;
+                }
+            }
+
+            // Build the final query
+            const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+            // Get table_ids with pagination
+            const tableIdsResult = await sequelize.query(
+                `SELECT DISTINCT gh.table_id, gh.game_id, gh.table_name, gh.game_type, gh.createdAt, gh.updatedAt
+             FROM pool_game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}
+             ORDER BY gh.game_history_id DESC
+                 LIMIT :limit OFFSET :offset`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
+
+            // Get total count
+            const countResult = await sequelize.query(
+                `SELECT COUNT(DISTINCT gh.table_id) as totalCount
+             FROM pool_game_histories gh
+                      JOIN users u ON gh.user_id = u.user_id
+                 ${whereClause}`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
+            const tableDetails = await Promise.all(
+                tableIdsResult.map(async ({ table_id,table_name, game_id,createdAt,updatedAt }) => {
+                    // Get game history for the table
+                    const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
+
+                    // Get game type name
+                    const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: game_id });
+
+                    // Enrich each game history entry with username
+                    const enrichedHistory = await Promise.all(
+                        gameHistory.map(async (history) => {
+                            const user = await adminService.getUserDetailsById({ user_id: history.user_id });
+                            return {
+                                ...history,
+                                uuid: user?.uuid || '---',
+                                username: user?.username || 'Unknown'  // Add username to each entry
+                            };
+                        })
+                    );
+
+                    return {
+                        table_id: game_id,
+                        table_name,
+                        createdAt,
+                        updatedAt,
+                        table_type: getGameType?.table_type || '',
+                        users: enrichedHistory  // Now includes usernames
+                    };
+                })
+            );
+            totalCount = countResult[0]?.totalCount || 0;
+            resData = tableDetails
         }else{
             if (game_type) {
                 console.log('d');
@@ -4464,7 +4624,7 @@ const getGameHistory = async (req, res) => {
                 if (gameType.length > 0) {
                     query += ` AND game_histories.game_type like '%${gameType[0].game_type_id}%'`;
                 } else {
-                    query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
+                    query += ` AND (users.username like '%${search_key}%' OR users.uuid like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
                 }
 
             }
@@ -4478,46 +4638,97 @@ const getGameHistory = async (req, res) => {
                                                         from game_histories
                                                                  join users on game_histories.user_id = users.user_id
                                                         where ${query}`, {type: sequelize.QueryTypes.SELECT});
-        }
-
-
-        if (responseTotalCount.length == 0) {
-            responseData.msg = 'Game history not found';
-            return responseHelper.error(res, responseData, 201);
-        }
-        response = response.map(async (element) => {
-            //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
-            let getGameType, category;
-            if(game_type=='Pool'){
-                getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
-                category = (getGameType) ? getGameType.table_type : ''
-            }else{
-                getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
-                category = (getGameType) ? getGameType.name : ''
+            if (responseTotalCount.length == 0) {
+                responseData.msg = 'Game history not found';
+                return responseHelper.error(res, responseData, 201);
             }
+            response = response.map(async (element) => {
+                //let getGameCategory = await adminService.getGameCategoryByQuery({game_category_id: element.game_category})
+                let getGameType, category;
+                if(game_type=='Pool'){
+                    getGameType = await adminService.getPoolGameTypeByQuery({name: element.table_name})
+                    category = (getGameType) ? getGameType.table_type : ''
+                }else{
+                    getGameType = await adminService.getGameTypeByQuery({game_type_id: element.game_type})
+                    category = (getGameType) ? getGameType.name : ''
+                }
 
-            let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
-            element.game_category = category;
-            element.username = (getUserDetail) ? getUserDetail.username : '';
-            element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
-            element.win_amount = (element.win_amount) ? element.win_amount : '0';
-            element.hands_record = (element.hands_record) ? JSON.parse(element.hands_record, true) : '';
-            element.community_card = (element.community_card) ? JSON.parse(element.community_card, true) : '';
-            return element;
-        })
-        response = await Promise.all(response);
+                let getUserDetail = await adminService.getUserDetailsById({user_id: element.user_id})
+                element.game_category = category;
+                element.username = (getUserDetail) ? getUserDetail.username : '';
+                element.is_win = (element.is_win == 1) ? 'Yes' : 'No';
+                element.win_amount = (element.win_amount) ? element.win_amount : '0';
+                element.hands_record = (element.hands_record) ? JSON.parse(element.hands_record, true) : '';
+                element.community_card = (element.community_card) ? JSON.parse(element.community_card, true) : '';
+                return element;
+            })
+            response = await Promise.all(response);
+            totalCount = responseTotalCount.length;
+            resData = response
+        }
         return res.status(200).send({
             message: 'Game history Data',
             statusCode: 200,
             status: true,
-            count: responseTotalCount.length,
-            data: response
+            count: totalCount,
+            data: resData
         });
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 500);
     }
 }
+
+const getRummyGameHistoryByTableId = async (req, res) => {
+    let responseData = {};
+    try {
+        let tableId = req.query.table_id;
+
+        if (!tableId) {
+            responseData.msg = 'table_id is required';
+            return responseHelper.error(res, responseData, 400);
+        }
+
+        let historyData = await adminService.gameHistory({ table_id: tableId });
+
+        const updatedHistory = await Promise.all(historyData.map(async (element) => {
+            // Convert Sequelize instance to plain object
+            let record = element.get({ plain: true });
+
+            let getGameType, category;
+            if (record.game_type_name === 'Pool') {
+                getGameType = await adminService.getPoolGameTypeByQuery({ name: record.table_name });
+                category = getGameType ? getGameType.table_type : '';
+            } else {
+                getGameType = await adminService.getGameTypeByQuery({ game_type_id: record.game_type });
+                category = getGameType ? getGameType.name : '';
+            }
+
+            const getUserDetail = await adminService.getUserDetailsById({ user_id: record.user_id });
+
+            return {
+                ...record,
+                game_category: category,
+                username: getUserDetail ? getUserDetail.username : '',
+                is_win: record.is_win == 1 ? 'Yes' : 'No',
+                win_amount: record.win_amount || '0',
+                hands_record: record.hands_record ? JSON.parse(record.hands_record) : '',
+                community_card: record.community_card ? JSON.parse(record.community_card) : ''
+            };
+        }));
+
+        responseData.msg = 'Rummy history by table id';
+        responseData.data = updatedHistory;
+        responseData.count = updatedHistory.length;
+        return responseHelper.success(res, responseData);
+    } catch (error) {
+        responseData.msg = error.message;
+        return responseHelper.error(res, responseData, 500);
+    }
+};
+
+
+
 
 const getLeaderBoardData = async (req, res) => {
     let responseData = {};
@@ -5032,7 +5243,7 @@ const pendingWithdrawal = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT r.*, u.username, u.email, u.mobile
+            SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
             WHERE r.redemption_status != 'Withdraw'
@@ -5043,7 +5254,7 @@ const pendingWithdrawal = async (req, res) => {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
-                u.mobile LIKE '%${search_key}%'
+                u.uuid LIKE '%${search_key}%' OR u.mobile LIKE '%${search_key}%'
             )`;
         }
 
@@ -5101,12 +5312,12 @@ const pendingWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+       // getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Pending Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5127,7 +5338,7 @@ const todayWithdrawal = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT r.*, u.username, u.email, u.mobile
+            SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
             WHERE r.redemption_status = 'Withdraw'
@@ -5137,6 +5348,7 @@ const todayWithdrawal = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -5167,12 +5379,12 @@ const todayWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Today Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5193,7 +5405,7 @@ const todayDeposit = async (req, res) => {
 
         // Base query with JOIN to users table
         let baseQuery = `
-            SELECT t.*, u.username, u.email, u.mobile
+            SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Deposit' AND t.transaction_status='SUCCESS'
@@ -5203,6 +5415,7 @@ const todayDeposit = async (req, res) => {
         if (search_key) {
             baseQuery += ` AND (
                 u.username LIKE '%${search_key}%' OR 
+                u.uuid LIKE '%${search_key}%' OR 
                 u.email LIKE '%${search_key}%' OR 
                 u.mobile LIKE '%${search_key}%'
             )`;
@@ -5233,12 +5446,12 @@ const todayDeposit = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Total Deposit List!!!';
         responseData.count = totalCount;
@@ -5405,14 +5618,19 @@ const totalWinning = async (req, res) => {
             // if (gameCategory.length > 0) {
             //     query += ` AND game_histories.game_type like '%${gameCategory[0].game_type_id}%'`;
             // } else {
-            query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR transactions.category like '%${search_key}%')`;
+            query += ` AND (users.username like '%${search_key}%' OR users.uuid like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR transactions.category like '%${search_key}%')`;
             // }
         }
         query += ` order by transaction_id DESC`;
         let response = await sequelize.query(`Select transactions.amount,
                                                      transactions.createdAt,
                                                      transactions.category,
-                                                     users.username
+                                                     transactions.commission,
+                                                     transactions.table_id,
+                                                     transactions.game_id,
+                                                     transactions.user_id,
+                                                     users.username,
+                                                     users.uuid
                                               from transactions
                                                        join users on transactions.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
@@ -5595,6 +5813,7 @@ const tdsSummary = async (req, res) => {
                                                      redemptions.redeem_amount,
                                                      redemptions.bank_reason,
                                                      redemptions.tds_amount,
+                                                     redemptions.user_id,
                                                      redemptions.createdAt,
                                                      redemptions.updatedAt,
                                                      redemptions.redemption_status,
@@ -5717,7 +5936,9 @@ const gstSummary = async (req, res) => {
                                                      transactions.gst_amount,
                                                      transactions.createdAt,
                                                      transactions.transaction_status,
-                                                     users.username
+                                                     transactions.user_id,
+                                                     users.username,
+                                                     users.uuid
                                               from transactions
                                                        join users on transactions.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
@@ -5999,6 +6220,7 @@ const gameWiseUserStatus = async (req, res) => {
         let status = req.body.status;
         let type = req.body.type;
         let blockTime = req.body.block_time;
+        let is_blocked_until_unblock=req.body.is_blocked_until_unblock;
         let blockTimeInt = blockTime.replace(/[^\d.]/g, ' ');
         var now = new Date().getTime()
         let time = Math.floor(now / 1000);
@@ -6009,6 +6231,26 @@ const gameWiseUserStatus = async (req, res) => {
             min = 1800;
         }
 
+
+        if(status==="Active"){
+            const check = await adminService.getUserStatus({ user_id: userId, game_id: gameId });
+            if (!check) {
+                responseData.msg = 'User status not found';
+                return responseHelper.error(res, responseData, 404);
+            }
+            let updatedData=await adminService.updateUserStatus({
+                user_game_status: status,
+                block_time: null,
+                block_timestamp: null,
+                is_blocked_until_unblock: false,
+                updatedAt: new Date()
+            }, {
+                user_game_status_id: check.user_game_status_id
+            });
+            responseData.data=updatedData,
+            responseData.msg = 'User unblocked successfully';
+            return responseHelper.success(res, responseData);
+        }
         let blockTimeStamp = parseInt(time) + parseInt(min);
         let data = {
             user_id: userId,
@@ -6017,19 +6259,24 @@ const gameWiseUserStatus = async (req, res) => {
             block_time: blockTime,
             block_timestamp: blockTimeStamp,
             user_game_status: status,
+            is_blocked_until_unblock:is_blocked_until_unblock,
             update_at: new Date()
         }
 
+
         let check = await adminService.getUserStatus({user_id: userId, game_id: gameId});
-        if (check && parseInt(check.block_timestamp) > parseInt(time)) {
+        if (check && parseInt(check.block_timestamp) > parseInt(time) || check &&check.is_blocked_until_unblock=="1") {
+            responseData.data=check,
             responseData.msg = 'User Already Blocked!!!';
             return responseHelper.error(res, responseData, 201);
-        } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
-            await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
+        } else if (check && parseInt(check.block_timestamp) < parseInt(time)|| (check && check.user_game_status=="Active" )) {
+            let updatedData=await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
+            responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
             return responseHelper.success(res, responseData);
         } else {
-            await adminService.addUserStatus(data)
+            let updatedData=await adminService.addUserStatus(data)
+            responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
             return responseHelper.success(res, responseData);
         }
@@ -6041,39 +6288,6 @@ const gameWiseUserStatus = async (req, res) => {
     }
 }
 
-// const getAllpockerSuspiciousActions = async (req, res) => {
-//   let responseData = {};
-//   try {
-//     let allSuspiciousActionsData = await adminService.getAllpockerSuspiciousActions({});
-
-
-//     if (!allSuspiciousActionsData || allSuspiciousActionsData.length === 0) {
-//       responseData.msg = "There are no suspicious actions found";
-//       return responseHelper.success(res, responseData);
-//     }
-
-//     // Process and add table_name from game_json_data
-//     allSuspiciousActionsData = allSuspiciousActionsData.map(action => {
-//       try {
-//         const gameData = JSON.parse(action.game_json_data || "{}"); // Parse game_json_data safely
-//         action.table_name = gameData.room_name || "Unknown"; // Extract room_name
-//       } catch (err) {
-//         console.error("Error parsing game_json_data:", err);
-//         action.table_name = "Unknown"; // Handle JSON parsing errors
-//       }
-//       return action;
-//     });
-
-//     responseData.msg = "All data fetched successfully";
-//     responseData.data = allSuspiciousActionsData;
-//     return responseHelper.success(res, responseData);
-
-//   } catch (error) {
-//     console.error("Error fetching suspicious actions:", error);
-//     responseData.msg = error.message || "Something went wrong";
-//     return responseHelper.error(res, responseData, 500);
-//   }
-// }
 
 const getAllpockerSuspiciousActions = async (req, res) => {
     let responseData = {};
@@ -6345,7 +6559,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.createdAt,transactions.transaction_status, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
@@ -6526,6 +6740,7 @@ module.exports = {
     getWinningAmount,
     getGameWiseUsers,
     getGameHistory,
+    getRummyGameHistoryByTableId,
     getLeaderBoardData,
     getRunningTable,
     getTotalTable,
