@@ -4215,8 +4215,8 @@ const getWinningAmount = async (req, res) => {
         getUserData = getUserData.map(async (element, i) => {
             if(game_type=='Pool'){
                 let poolGame = adminService.getPoolGameTypeByQuery({game_id:element.game_id})
-                element.table_name = (poolGame) ? poolGame.dataValues.name : '';
-                element.table_type = (poolGame) ? poolGame.dataValues.table_type : '';
+                element.table_name = (poolGame) ? poolGame.name : '';
+                element.table_type = (poolGame) ? poolGame.table_type : '';
             }
             element.user_id = element.username;
             return element;
