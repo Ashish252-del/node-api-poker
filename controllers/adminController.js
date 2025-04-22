@@ -6269,7 +6269,7 @@ const gameWiseUserStatus = async (req, res) => {
             responseData.data=check,
             responseData.msg = 'User Already Blocked!!!';
             return responseHelper.error(res, responseData, 201);
-        } else if (check && parseInt(check.block_timestamp) < parseInt(time)) {
+        } else if (check && parseInt(check.block_timestamp) < parseInt(time)|| (check && check.user_game_status=="Active" )) {
             let updatedData=await adminService.updateUserStatus(data, {user_game_status_id: check.user_game_status_id})
             responseData.data=updatedData,
             responseData.msg = 'User Blocked successfully!!!';
