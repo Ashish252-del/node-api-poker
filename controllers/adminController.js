@@ -5312,12 +5312,12 @@ const pendingWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+       // getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Pending Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5379,12 +5379,12 @@ const todayWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Today Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5446,12 +5446,12 @@ const todayDeposit = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Total Deposit List!!!';
         responseData.count = totalCount;
@@ -5628,6 +5628,7 @@ const totalWinning = async (req, res) => {
                                                      transactions.commission,
                                                      transactions.table_id,
                                                      transactions.game_id,
+                                                     transactions.user_id,
                                                      users.username,
                                                      users.uuid
                                               from transactions
@@ -5812,6 +5813,7 @@ const tdsSummary = async (req, res) => {
                                                      redemptions.redeem_amount,
                                                      redemptions.bank_reason,
                                                      redemptions.tds_amount,
+                                                     redemptions.user_id,
                                                      redemptions.createdAt,
                                                      redemptions.updatedAt,
                                                      redemptions.redemption_status,
@@ -5934,7 +5936,9 @@ const gstSummary = async (req, res) => {
                                                      transactions.gst_amount,
                                                      transactions.createdAt,
                                                      transactions.transaction_status,
-                                                     users.username
+                                                     transactions.user_id,
+                                                     users.username,
+                                                     users.uuid
                                               from transactions
                                                        join users on transactions.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
@@ -6555,7 +6559,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.createdAt,transactions.transaction_status, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
