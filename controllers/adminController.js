@@ -4544,7 +4544,7 @@ const getGameHistory = async (req, res) => {
                         u.referral_code LIKE :searchKey OR 
                         u.full_name LIKE :searchKey OR 
                         gh.table_name LIKE :searchKey OR 
-                        gh.table_id LIKE :searchKey) OR 
+                        gh.table_id LIKE :searchKey OR 
                         gh.game_id LIKE :searchKey)`
                     );
                     replacements.searchKey = `%${search_key}%`;
