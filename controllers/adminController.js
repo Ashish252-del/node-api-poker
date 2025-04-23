@@ -4163,7 +4163,7 @@ const sendNotification = async (req, res) => {
 const getWinningAmount = async (req, res) => {
     let responseData = {};
     try {
-        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype} = req.query;
+        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype, user_id} = req.query;
         const {limit, offset} = getPagination(page);
         let getUserData;
         let baseQuery;
