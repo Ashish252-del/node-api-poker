@@ -6181,6 +6181,11 @@ const getLudoUsers = async (req, res) => {
         // Loop through each userId and fetch user data
         for (let userId of userIds) {
             let user = await adminService.getUserDetailsById({user_id: userId});
+            const getUserBlock = await adminService.getUserStatus({ user_id: userId, game_id: '4' });
+            console.log("getUserBlock-->",getUserBlock);
+            let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+            let block_time = getUserBlock?.block_time || 0;
+            let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
             if (user) {
                 // Decrypt email and mobile or set them to null if not present
                 let decryptedEmail = user.email ? await decryptData(user.email) : null;
@@ -6196,6 +6201,9 @@ const getLudoUsers = async (req, res) => {
                     profile_image: user.profile_image,
                     number_of_win_games: user.number_of_win_games,
                     amount_win_in_game: user.amount_win_in_game,
+                    is_block: isBlock,
+                    block_time:block_time,
+                    is_blocked_until_unblock:is_blocked_until_unblock,
                     createdAt: user.createdAt,
                     updatedAt: user.updatedAt
                 });
