@@ -1716,24 +1716,54 @@ const changeTournamentStatus = async (req, res) => {
         return responseHelper.error(res, responseData, 500);
     }
 }
-const getAllPoolTables=async(req,res)=>{
-    let responseData={}
+// const getAllPoolTables=async(req,res)=>{
+//     let responseData={}
+//     try {
+//         let allPoolTables=await adminService.getAllPoolTables({});
+//         if(!allPoolTables || allPoolTables.length==0){
+//             responseData.msg = 'pool tables not found';
+//             return responseHelper.error(res, responseData, 201);
+//         }
+
+//       responseData.msg = 'pool tables';
+//         responseData.data = allPoolTables;
+//         return responseHelper.success(res, responseData);
+        
+//     } catch (error) {
+//         responseData.msg = error.message;
+//         return responseHelper.error(res, responseData, 500);
+//     }
+// }
+const getAllPoolTables = async (req, res) => {
+    let responseData = {};
     try {
-        let allPoolTables=await adminService.getAllPoolTables({});
-        if(!allPoolTables || allPoolTables.length==0){
+        let allPoolTables = await adminService.getAllPoolTables({});
+        if (!allPoolTables || allPoolTables.length === 0) {
             responseData.msg = 'pool tables not found';
             return responseHelper.error(res, responseData, 201);
         }
 
-      responseData.msg = 'pool tables';
-        responseData.data = allPoolTables;
+        // Enrich each table with its name based on game_id
+        const enrichedTables = await Promise.all(
+            allPoolTables.map(async (table) => {
+                const tableName = await adminService.getGameDetailsById({game_id:table.game_id}); // Implement this method
+                return {
+                    ...table,
+                    table_name: tableName || null
+                };
+            })
+        );
+
+        responseData.msg = 'pool tables';
+        responseData.data = enrichedTables;
         return responseHelper.success(res, responseData);
-        
+
     } catch (error) {
         responseData.msg = error.message;
         return responseHelper.error(res, responseData, 500);
     }
-}
+};
+
 module.exports = {
     adminLogin,
     changePassword,

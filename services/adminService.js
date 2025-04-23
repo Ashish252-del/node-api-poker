@@ -745,6 +745,10 @@ const getAllpockerSuspiciousActions = ({ limit, offset, search_key, from_date, e
   const getAllPoolTables = (query) => {
     return db.pool_game_tables.findAll({where:query,raw:true});
 }
+const getGameDetailsById = (query) => {
+    console.log("query",query);
+    return db.pool_games.findOne(query);
+}
 
   
 
@@ -914,6 +918,7 @@ module.exports = {
     deleteRole,
     getPoolGameTypeByQuery,
     getAllPoolTables,
+    getGameDetailsById,
     getLudoGameTypeByQuery,
     getLudoGameHistoryByQuery,
     getLudoGameHistoryById,
