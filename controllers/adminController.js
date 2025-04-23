@@ -6453,13 +6453,18 @@ const liveUserCount = async (req, res) => {
                                                from live_users
                                                where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Ludo'
                                                group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+        let response4 = await sequelize.query(`Select live_users.id
+                                               from live_users
+                                               where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Pool'
+                                               group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
         console.log('response2.length', response1.length)
         responseData.msg = 'User List';
         responseData.data = {
             fantasy_user: response.length,
             poker_user: response1.length,
             rummy_user: response2.length,
-            ludo_user: response3.length
+            ludo_user: response3.length,
+            pool_user: response4.length
         };
         return responseHelper.success(res, responseData);
     } catch (error) {
@@ -6610,7 +6615,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.bet_amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.bet_amount,transactions.table_id,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
