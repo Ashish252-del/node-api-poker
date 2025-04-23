@@ -5717,14 +5717,14 @@ const ledgerDetails = async (req, res) => {
             query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
             query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0 AND user_id='${req.query.user_id}'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
-            query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
+            query4 = `transaction_status = 'SUCCESS' AND (other_type='Winning' OR other_type='Table Commision') AND user_id='${req.query.user_id}'`;
         } else {
             queryWallet = `1=1`
             query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled'`;
             query1 = `redemption_status = 'Withdraw'`;
             query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
-            query4 = `transaction_status = 'SUCCESS' AND other_type='Commission'`;
+            query4 = `transaction_status = 'SUCCESS' AND (other_type='Winning' OR other_type='Table Commision')`;
         }
 
         let userWallet = await sequelize.query(`Select SUM(win_amount)   as winAmount,
@@ -6586,7 +6586,7 @@ const commissionSummary = async (req, res) => {
     try {
         const { page, search_key, from_date, end_date,csvtype} = req.query;
         const {limit, offset} = getPagination(page,csvtype);
-        let query = `other_type='Commission' AND transaction_status='SUCCESS' AND is_admin='1'`;
+        let query = `(other_type='Winning' OR other_type='Table Commision') AND transaction_status='SUCCESS'`;
         if(req.query.user_id){
             query += ` AND transactions.user_id='${req.query.user_id}'`;
         }
@@ -6601,7 +6601,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.bet_amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
@@ -6611,8 +6611,15 @@ const commissionSummary = async (req, res) => {
         }
         let sum = 0;
         response = response.map(async (element, i) => {
-            sum += parseFloat(element.commission)
-            element.bet_amount = parseFloat(element.commission) + parseFloat(element.amount)
+            sum += parseFloat(element.commission);
+            const commission = parseFloat(element.commission);
+            const amount = parseFloat(element.amount);
+            console.log(parseFloat(element.bet_amount))
+            if (parseFloat(element.bet_amount) > 0) {
+                element.bet_amount = element.bet_amount;
+            }else{
+                element.bet_amount = Math.abs(commission + amount);
+            }
             return element;
         })
         response = await Promise.all(response);

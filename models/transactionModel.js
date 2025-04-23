@@ -42,6 +42,10 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: true
         },
+        bet_amount: {
+            type: DataTypes.DECIMAL(15,2),
+            allowNull: true,
+        },
         amount: {
             type: DataTypes.DECIMAL(15,2),
             allowNull: true,
