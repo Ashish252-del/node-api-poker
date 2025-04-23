@@ -658,8 +658,14 @@ const getLudoGameHistory=()=>{
 const getLudoGameHistoryByQuery=(query)=>{
     return db.ludo_game_history.findAll({where:query,raw:true});
 }
-const getLudoGameTypeByQuery=(query)=>{
+const getLudoGameHistoryById=(query)=>{
+    return db.ludo_game_history.findOne({where:query,raw:true});
+}
+const getLudoGameByQuery=(query)=>{
     return db.ludo_game.findOne({where:query,raw:true});
+}
+const getLudoGameTypeByQuery=(query)=>{
+    return db.ludo_game_type.findOne({where:query,raw:true});
 }
 const getPoolGameHistory=()=>{
     return db.pool_game_history.findAll({raw:true})
@@ -909,5 +915,7 @@ module.exports = {
     getPoolGameTypeByQuery,
     getAllPoolTables,
     getLudoGameTypeByQuery,
-    getLudoGameHistoryByQuery
+    getLudoGameHistoryByQuery,
+    getLudoGameHistoryById,
+    getLudoGameByQuery
 }

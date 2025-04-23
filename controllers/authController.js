@@ -71,7 +71,7 @@ const userSignup = async (req, res) => {
 
       let walletData = {
          user_id: newUser.user_id,
-         real_amount: 100000000
+         real_amount: 1000
       }
       let savewalet = await userService.createUserWallet(walletData);
       responseData.msg = 'OTP Sent to your registered mobile number. Please verify!!!';

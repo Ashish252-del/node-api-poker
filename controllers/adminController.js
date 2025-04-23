@@ -2501,11 +2501,7 @@ const getGameFields = async (req, res) => {
                     'key': 'is_practice'
                 }
             )
-            if (subType == 'Deal') field.push({
-                    'field': 'Point Value',
-                    'field_type': 'Number',
-                    'key': 'point_value'
-                }, {
+            if (subType == 'Deal') field.push( {
                     'field': 'Deal Type',
                     'field_type': 'Number',
                     'key': 'deal_type'
@@ -4230,8 +4226,34 @@ const getWinningAmount = async (req, res) => {
                 let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
                 element.table_name = (poolGame) ? poolGame.name : '';
                 element.table_type = (poolGame) ? poolGame.table_type : '';
+            }else if(game_type=='Poker'){
+                let gameResult = await adminService.getGameByQuery({ game_id: element.game_id });
+                let gameName;
+                let str = JSON.parse(gameResult.game_json_data || "{}");
+
+                if (gameResult.game_category_id == 2) {
+                    gameName = str.room_name;
+                } else if (gameResult.game_category_id == 3) {
+                    gameName = str.name || str.Name;
+                } else if (gameResult.game_category_id == 4) {
+                    gameName = gameResult.game_name;
+                }
+                element.game_name = gameName;
+            }else if(game_type=='Ludo'){
+                let gameLudoResult = await adminService.getLudoGameHistoryById({ tableId: element.table_id });
+                let ludoName;
+                if(gameLudoResult && gameLudoResult.gameId){
+                    let gameNameD = await adminService.getLudoGameByQuery({ id: gameLudoResult.gameId });
+                    ludoName = (gameNameD) ? gameNameD.name : '';
+                }
+                let gameType = await adminService.getLudoGameTypeByQuery({ id: element.reference });
+                element.game_id = (gameLudoResult) ? gameLudoResult.gameId : '';
+                element.game_name = ludoName;
+                element.game_type = (gameType) ? gameType.name : '';
+            }else{
+
             }
-            element.user_id = element.username;
+           // element.user_id = element.username;
             return element;
         }));
         const totalCount = getCount[0].total;
@@ -5263,7 +5285,7 @@ const pendingWithdrawal = async (req, res) => {
             SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
-            WHERE r.redemption_status != 'Withdraw'
+            WHERE r.redemption_status != 'Withdraw' AND r.redemption_status != 'Cancelled'
         `;
 
         // Add search condition if search_key is provided
@@ -5329,12 +5351,12 @@ const pendingWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+       // getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Pending Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5396,12 +5418,12 @@ const todayWithdrawal = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Today Withdrawal List!!!';
         responseData.count = totalCount;
@@ -5463,12 +5485,12 @@ const todayDeposit = async (req, res) => {
             return responseHelper.error(res, responseData, 201);
         }
 
-        getUserData = getUserData.map(async (element, i) => {
-            element.user_id = element.username;
-            return element;
-        })
+        // getUserData = getUserData.map(async (element, i) => {
+        //     element.user_id = element.username;
+        //     return element;
+        // })
         const totalCount = getCount[0].total;
-        getUserData = await Promise.all(getUserData);
+        //getUserData = await Promise.all(getUserData);
 
         responseData.msg = 'Total Deposit List!!!';
         responseData.count = totalCount;
@@ -5616,7 +5638,7 @@ const totalWinning = async (req, res) => {
     try {
         const {game_type, page, search_key, from_date, end_date, csvtype} = req.query;
         const {limit, offset} = getPagination(page, csvtype);
-        let query = `transactions.is_admin='0' AND transactions.other_type='Winning'`;
+        let query = `transactions.is_admin='0' AND (transactions.other_type='Winning' OR transactions.other_type='Table Commision')`;
         if (req.query.user_id) {
             query += ` AND transactions.user_id='${req.query.user_id}'`;
         }
@@ -5645,6 +5667,7 @@ const totalWinning = async (req, res) => {
                                                      transactions.commission,
                                                      transactions.table_id,
                                                      transactions.game_id,
+                                                     transactions.user_id,
                                                      users.username,
                                                      users.uuid
                                               from transactions
@@ -5687,16 +5710,16 @@ const ledgerDetails = async (req, res) => {
         let query, query1, query2, query3, query4, queryWallet
         if (req.query.user_id) {
             queryWallet = `user_id='${req.query.user_id}'`;
-            query = `redemption_status = 'Pending' AND user_id='${req.query.user_id}'`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled' AND user_id='${req.query.user_id}'`;
             query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
-            query2 = `other_type='Winning' AND user_id='${req.query.user_id}'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0 AND user_id='${req.query.user_id}'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
             query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
         } else {
             queryWallet = `1=1`
-            query = `redemption_status = 'Pending'`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled'`;
             query1 = `redemption_status = 'Withdraw'`;
-            query2 = `other_type='Winning'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
             query4 = `transaction_status = 'SUCCESS' AND other_type='Commission'`;
         }
@@ -5829,6 +5852,7 @@ const tdsSummary = async (req, res) => {
                                                      redemptions.redeem_amount,
                                                      redemptions.bank_reason,
                                                      redemptions.tds_amount,
+                                                     redemptions.user_id,
                                                      redemptions.createdAt,
                                                      redemptions.updatedAt,
                                                      redemptions.redemption_status,
@@ -5951,7 +5975,9 @@ const gstSummary = async (req, res) => {
                                                      transactions.gst_amount,
                                                      transactions.createdAt,
                                                      transactions.transaction_status,
-                                                     users.username
+                                                     transactions.user_id,
+                                                     users.username,
+                                                     users.uuid
                                               from transactions
                                                        join users on transactions.user_id = users.user_id
                                               where ${query} LIMIT ${offset}
@@ -6572,7 +6598,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.createdAt,transactions.transaction_status, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
