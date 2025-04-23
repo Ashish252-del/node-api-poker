@@ -6608,8 +6608,10 @@ const commissionSummary = async (req, res) => {
         }
         let sum = 0;
         response = response.map(async (element, i) => {
-            sum += parseFloat(element.commission)
-            element.bet_amount = parseFloat(element.commission) + parseFloat(element.amount)
+            sum += parseFloat(element.commission);
+            const commission = parseFloat(element.commission);
+            const amount = parseFloat(element.amount);
+            element.bet_amount = Math.abs(commission + amount);
             return element;
         })
         response = await Promise.all(response);
