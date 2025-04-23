@@ -6611,7 +6611,9 @@ const commissionSummary = async (req, res) => {
             sum += parseFloat(element.commission);
             const commission = parseFloat(element.commission);
             const amount = parseFloat(element.amount);
-            if (!element.bet_amount || element.bet_amount == "" || element.bet_amount == 0) {
+            if (element.bet_amount > 0) {
+                element.bet_amount = element.bet_amount;
+            }else{
                 element.bet_amount = Math.abs(commission + amount);
             }
             return element;
