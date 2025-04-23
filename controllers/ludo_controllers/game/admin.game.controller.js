@@ -599,6 +599,7 @@ module.exports.admin_game_history = async (req, res) => {
                     createdAt,
                     updatedAt,
                     table_type: getGameType?.name || '',
+                    table_name: getGame?.name || '',
                     users: enrichedHistory  // Now includes usernames
                 };
             })
