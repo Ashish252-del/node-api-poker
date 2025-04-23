@@ -561,12 +561,13 @@ module.exports.admin_game_history = async (req, res) => {
             }
         }
 
+        whereConditions.push('gh.fee > 0');
         // Build the final query
         const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
         // Get table_ids with pagination
         const tableIdsResult = await sequelize.query(
-            `SELECT DISTINCT gh.tableId, gh.gameId, gh.createdAt, gh.updatedAt
+            `SELECT DISTINCT gh.tableId,gh.fee, gh.gameId, gh.createdAt, gh.updatedAt
              FROM ludo_game_history gh
                       JOIN users u ON gh.userId = u.user_id
                  ${whereClause}
@@ -584,7 +585,7 @@ module.exports.admin_game_history = async (req, res) => {
             { replacements, type: sequelize.QueryTypes.SELECT }
         );
         const tableDetails = await Promise.all(
-            tableIdsResult.map(async ({ tableId,gameId, createdAt,updatedAt }) => {
+            tableIdsResult.map(async ({ tableId,gameId,fee, createdAt,updatedAt }) => {
                 // Get game history for the table
                 const gameHistory = await adminService.getLudoGameHistoryByQuery({ tableId });
                 //let usersData = gameHistory.dataValues.players.split(',')
@@ -609,6 +610,7 @@ module.exports.admin_game_history = async (req, res) => {
                     tableId,
                     createdAt,
                     updatedAt,
+                    betAmount: fee,
                     table_type: getGameType?.name || '',
                     table_name: getGame?.name || '',
                     users: enrichedHistory  // Now includes usernames
