@@ -30,3 +30,4 @@ router.get("/leaderboard/daily",gameController.leaderboard_daily); // user is no
 // router.get("/get-ludo-private-games",gameController.getAllPrivateGames)
 
 module.exports = router;
+
