@@ -4179,8 +4179,10 @@ const getWinningAmount = async (req, res) => {
                          JOIN users u ON t.user_id = u.user_id
                          WHERE t.other_type = 'Winning' 
                            AND t.category = '${game_type}'
-                           AND t.game_id IS NOT NULL`;
-        }else if (game_type) {
+                           AND t.game_id IS NOT NULL
+                           AND t.game_id != 0`;
+        }
+        else if (game_type) {
             baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
