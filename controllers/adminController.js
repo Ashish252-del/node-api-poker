@@ -1130,7 +1130,7 @@ const getUserGames = async (req, res) => {
         });
 
         const gameIdList = gameIds.map(entry => entry.game_id);
-        console.log("gameIdList---->", gameIdList);
+      
 
         if (gameIdList.length === 0) {
             // throw new Error("No games found for this user");
@@ -1142,12 +1142,25 @@ const getUserGames = async (req, res) => {
                       FROM games
                       WHERE game_id IN (:gameIds)`;
         // Step 3: Fetch game details from Game table using game IDs
-        const games = await sequelize.query(query3, {
+
+        const gameData = await sequelize.query(query3, {
             replacements: {gameIds: gameIdList},
             type: sequelize.QueryTypes.SELECT,
         });
-
-        // console.log("games---->", games);
+        console.log("gamedata-->",gameData);
+        // Parse room_name from game_json_data and set as game_name
+const games = gameData.map(game => {
+    try {
+        const gameData = JSON.parse(game.game_json_data || '{}');
+        return {
+            ...game,
+            game_name: gameData.room_name || '', // Set game_name as room_name
+        };
+    } catch (e) {
+        console.warn(`Invalid JSON for game_id ${game.game_id}`);
+        return game; // Return as-is if JSON is malformed
+    }
+});
 
         responseData.msg = "User game list";
         responseData.data = games;
@@ -4168,7 +4181,7 @@ const getWinningAmount = async (req, res) => {
             baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
-            WHERE t.other_type= 'Winning' AND t.category='${game_type}'`;
+            WHERE t.other_type= 'Winning'  AND t.category='${game_type}'`;
         } else {
             baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
