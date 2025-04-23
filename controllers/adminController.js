@@ -6446,13 +6446,18 @@ const liveUserCount = async (req, res) => {
                                                from live_users
                                                where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Ludo'
                                                group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+        let response4 = await sequelize.query(`Select live_users.id
+                                               from live_users
+                                               where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Pool'
+                                               group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
         console.log('response2.length', response1.length)
         responseData.msg = 'User List';
         responseData.data = {
             fantasy_user: response.length,
             poker_user: response1.length,
             rummy_user: response2.length,
-            ludo_user: response3.length
+            ludo_user: response3.length,
+            pool_user: response4.length
         };
         return responseHelper.success(res, responseData);
     } catch (error) {
