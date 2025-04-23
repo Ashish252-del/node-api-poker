@@ -382,11 +382,18 @@ module.exports.delete_gameVarient = async (req, res) => {
 
 module.exports.all_games = async (req, res) => {
     try {
-        const data = await db.ludo_game.findAll({
+        let data = await db.ludo_game.findAll({
             where: {
                 isPrivate: 0
             }
         });
+        data = await Promise.all(data.map(async (element, i) => {
+            let gameVarient =  await db.ludo_game_varient.findOne({
+                where: { id: element.varient_id }})
+            element.varient_name = (gameVarient) ? gameVarient.name : '';
+            element.varient_value = (gameVarient) ? gameVarient.value : '';
+            return element;
+        }));
         successResponse(req, res, data);
     } catch (error) {
         errorResponse(req, res, error.message);
