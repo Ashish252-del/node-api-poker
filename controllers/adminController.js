@@ -6182,6 +6182,7 @@ const getLudoUsers = async (req, res) => {
         for (let userId of userIds) {
             let user = await adminService.getUserDetailsById({user_id: userId});
             const getUserBlock = await adminService.getUserStatus({ user_id: userId, game_id: '4' });
+            console.log("getUserBlock-->",getUserBlock);
             let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
             let block_time = getUserBlock?.block_time || 0;
             let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
