@@ -1737,15 +1737,15 @@ const changeTournamentStatus = async (req, res) => {
 const getAllPoolTables = async (req, res) => {
     let responseData = {};
     try {
-        let allPoolTables = await adminService.getAllPoolTables({});
-        if (!allPoolTables || allPoolTables.length === 0) {
+        let allPoolTable = await adminService.getAllPoolTables({});
+        if (!allPoolTable || allPoolTable.length === 0) {
             responseData.msg = 'pool tables not found';
             return responseHelper.error(res, responseData, 201);
         }
 
         // Enrich each table with its name based on game_id
-        const enrichedTables = await Promise.all(
-            allPoolTables.map(async (table) => {
+        const allPoolTables = await Promise.all(
+            allPoolTable.map(async (table) => {
                 const tableName = await adminService.getGameDetailsById({game_id:table.game_id}); // Implement this method
                 return {
                     ...table,
@@ -1755,7 +1755,7 @@ const getAllPoolTables = async (req, res) => {
         );
 
         responseData.msg = 'pool tables';
-        responseData.data = enrichedTables;
+        responseData.data = allPoolTables;
         return responseHelper.success(res, responseData);
 
     } catch (error) {
