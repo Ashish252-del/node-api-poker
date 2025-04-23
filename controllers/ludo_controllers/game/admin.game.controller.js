@@ -543,7 +543,6 @@ module.exports.admin_game_history = async (req, res) => {
                     `(u.username LIKE :searchKey OR 
                      u.referral_code LIKE :searchKey OR 
                      u.full_name LIKE :searchKey OR 
-                     gh.table_name LIKE :searchKey OR 
                      gh.tableId LIKE :searchKey)`
                 );
                 replacements.searchKey = `%${search_key}%`;
