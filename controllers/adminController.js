@@ -6169,6 +6169,8 @@ const getBonusData = async (req, res) => {
 const getLudoUsers = async (req, res) => {
     let responseData = {};
     try {
+        var now = new Date().getTime()
+        let time = Math.floor(now / 1000);
         // Fetch ludo game history
         let ludoGameHistory = await adminService.getLudoGameHistory();
 
