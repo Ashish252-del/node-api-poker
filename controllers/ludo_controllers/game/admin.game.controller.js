@@ -578,7 +578,8 @@ module.exports.admin_game_history = async (req, res) => {
                 const gameHistory = await adminService.getLudoGameHistoryByQuery({ tableId });
                 //let usersData = gameHistory.dataValues.players.split(',')
                 // Get game type name
-                const getGameType = await adminService.getLudoGameTypeByQuery({ id: gameId });
+                const getGame = await adminService.getLudoGameByQuery({ id: gameId });
+                const getGameType = await adminService.getLudoGameTypeByQuery({ id: getGame.type_id });
 
                 // Enrich each game history entry with username
                 const enrichedHistory = await Promise.all(
