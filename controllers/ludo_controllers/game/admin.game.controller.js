@@ -388,10 +388,15 @@ module.exports.all_games = async (req, res) => {
             }
         });
         data = await Promise.all(data.map(async (element, i) => {
-            let gameVarient =  await db.ludo_game_varient.findOne({
-                where: { id: element.varient_id }})
-            element.varient_name = (gameVarient) ? gameVarient.name : '';
-            element.varient_value = (gameVarient) ? gameVarient.value : '';
+            element = element.toJSON(); // Convert Sequelize instance to plain object
+
+            let gameVarient = await db.ludo_game_varient.findOne({
+                where: { id: element.varient_id }
+            });
+
+            element.varient_name = gameVarient ? gameVarient.name : '';
+            element.varient_value = gameVarient ? gameVarient.value : '';
+
             return element;
         }));
         successResponse(req, res, data);
