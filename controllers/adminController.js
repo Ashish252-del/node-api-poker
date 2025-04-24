@@ -6799,11 +6799,11 @@ const getGameHistoryByUserId = async (req, res) => {
             }
             if (is_win) {
                 console.log('d');
-                query += ` AND is_win = '${is_win}'`;
+                query += ` AND game_histories.is_win = '${is_win}'`;
             }
             if (user_id) {
                 console.log('d');
-                query += ` AND user_id = '${user_id}'`;
+                query += ` AND game_histories.user_id = '${user_id}'`;
             }
 
             if (from_date && end_date) {
