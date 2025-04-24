@@ -6743,7 +6743,7 @@ const getGameHistoryByUserId = async (req, res) => {
 
             // Get table_ids with pagination
             const tableIdsResult = await sequelize.query(
-                `SELECT gh.table_id, gh.game_id, gh.table_name, gh.game_type, gh.createdAt, gh.updatedAt
+                `SELECT gh.*
              FROM pool_game_histories gh
                       JOIN users u ON gh.user_id = u.user_id
                  ${whereClause}
@@ -6760,38 +6760,38 @@ const getGameHistoryByUserId = async (req, res) => {
                  ${whereClause}`,
                 { replacements, type: sequelize.QueryTypes.SELECT }
             );
-            const tableDetails = await Promise.all(
-                tableIdsResult.map(async ({ table_id,table_name, game_id,createdAt,updatedAt }) => {
-                    // Get game history for the table
-                    const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
-
-                    // Get game type name
-                    const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: game_id });
-
-                    // Enrich each game history entry with username
-                    const enrichedHistory = await Promise.all(
-                        gameHistory.map(async (history) => {
-                            const user = await adminService.getUserDetailsById({ user_id: history.user_id });
-                            return {
-                                ...history,
-                                uuid: user?.uuid || '---',
-                                username: user?.username || 'Unknown'  // Add username to each entry
-                            };
-                        })
-                    );
-
-                    return {
-                        table_id: game_id,
-                        table_name,
-                        createdAt,
-                        updatedAt,
-                        table_type: getGameType?.table_type || '',
-                        users: enrichedHistory  // Now includes usernames
-                    };
-                })
-            );
+            // const tableDetails = await Promise.all(
+            //     tableIdsResult.map(async ({ table_id,table_name, game_id,createdAt,updatedAt }) => {
+            //         // Get game history for the table
+            //         const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
+            //
+            //         // Get game type name
+            //         const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: game_id });
+            //
+            //         // Enrich each game history entry with username
+            //         const enrichedHistory = await Promise.all(
+            //             gameHistory.map(async (history) => {
+            //                 const user = await adminService.getUserDetailsById({ user_id: history.user_id });
+            //                 return {
+            //                     ...history,
+            //                     uuid: user?.uuid || '---',
+            //                     username: user?.username || 'Unknown'  // Add username to each entry
+            //                 };
+            //             })
+            //         );
+            //
+            //         return {
+            //             table_id: game_id,
+            //             table_name,
+            //             createdAt,
+            //             updatedAt,
+            //             table_type: getGameType?.table_type || '',
+            //             users: enrichedHistory  // Now includes usernames
+            //         };
+            //     })
+            // );
             totalCount = countResult[0]?.totalCount || 0;
-            resData = tableDetails
+            resData = tableIdsResult
         }else{
             if (game_type) {
                 console.log('d');
