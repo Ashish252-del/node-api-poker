@@ -6699,7 +6699,7 @@ const getGameHistoryByUserId = async (req, res) => {
         let resData = [];
         const whereConditions = [];
         const replacements = { limit, offset };
-        if(game_type=='Pool'){
+        if(game_type==1){
             if (user_id) {
                 whereConditions.push('gh.user_id = :user_id');
                 replacements.user_id = user_id;
@@ -6760,36 +6760,66 @@ const getGameHistoryByUserId = async (req, res) => {
                  ${whereClause}`,
                 { replacements, type: sequelize.QueryTypes.SELECT }
             );
-            // const tableDetails = await Promise.all(
-            //     tableIdsResult.map(async ({ table_id,table_name, game_id,createdAt,updatedAt }) => {
-            //         // Get game history for the table
-            //         const gameHistory = await userService.getPoolGameHistoryByQuery({ table_id });
-            //
-            //         // Get game type name
-            //         const getGameType = await adminService.getPoolGameTypeByQuery({ game_id: game_id });
-            //
-            //         // Enrich each game history entry with username
-            //         const enrichedHistory = await Promise.all(
-            //             gameHistory.map(async (history) => {
-            //                 const user = await adminService.getUserDetailsById({ user_id: history.user_id });
-            //                 return {
-            //                     ...history,
-            //                     uuid: user?.uuid || '---',
-            //                     username: user?.username || 'Unknown'  // Add username to each entry
-            //                 };
-            //             })
-            //         );
-            //
-            //         return {
-            //             table_id: game_id,
-            //             table_name,
-            //             createdAt,
-            //             updatedAt,
-            //             table_type: getGameType?.table_type || '',
-            //             users: enrichedHistory  // Now includes usernames
-            //         };
-            //     })
-            // );
+            totalCount = countResult[0]?.totalCount || 0;
+            resData = tableIdsResult
+        }else if(game_type==4){
+            if (user_id) {
+                whereConditions.push('gh.userId = :user_id');
+                replacements.userId = user_id;
+            }
+            if (is_win) {
+                whereConditions.push('gh.isWin = :is_win');
+                replacements.isWin = is_win;
+            }
+            if (from_date && end_date) {
+                whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
+                replacements.fromDate = moment(from_date).format('YYYY-MM-DD');
+                replacements.endDate = moment(end_date).format('YYYY-MM-DD');
+            }
+
+            if (search_key) {
+                const gameTypes = await sequelize.query(
+                    `SELECT game_type_id FROM game_types WHERE name LIKE :searchKey`,
+                    { replacements: { searchKey: `%${search_key}%` }, type: sequelize.QueryTypes.SELECT }
+                );
+
+                if (gameTypes.length > 0) {
+                    whereConditions.push('gh.game_type = :gameTypeId');
+                    replacements.gameTypeId = gameTypes[0].game_type_id;
+                } else {
+                    whereConditions.push(
+                        `(u.username LIKE :searchKey OR 
+                     u.referral_code LIKE :searchKey OR 
+                     u.full_name LIKE :searchKey OR 
+                     gh.tableId LIKE :searchKey)`
+                    );
+                    replacements.searchKey = `%${search_key}%`;
+                }
+            }
+
+            whereConditions.push('gh.fee > 0');
+            // Build the final query
+            const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+            // Get table_ids with pagination
+            const tableIdsResult = await sequelize.query(
+                `SELECT gh.*
+             FROM ludo_game_history gh
+                      JOIN users u ON gh.userId = u.user_id
+                 ${whereClause}
+             ORDER BY gh.id DESC
+                 LIMIT :limit OFFSET :offset`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
+
+            // Get total count
+            const countResult = await sequelize.query(
+                `SELECT gh.tableId as totalCount
+             FROM ludo_game_history gh
+                      JOIN users u ON gh.userId = u.user_id
+                 ${whereClause}`,
+                { replacements, type: sequelize.QueryTypes.SELECT }
+            );
             totalCount = countResult[0]?.totalCount || 0;
             resData = tableIdsResult
         }else{
