@@ -17,7 +17,7 @@ const addBot= async function (req,res){
 
         const {name}=req.body;
 
-        let url=req.file.location;
+        let url=(req.file) ? req.file.location : '';
         console.log("name",name);
         console.log("url",url);
         if(!name||!req.file.location){
