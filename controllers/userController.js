@@ -2436,11 +2436,11 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
             console.log("userWallet is --->", userWallet, balance);
        // if (!locked_balance_history) {
 
-            data["minimum_buyin"] = parseFloat((roomAttributesObj.minimum_buyin).toFixed(2));
-            data["maximum_buyin"] = parseFloat((roomAttributesObj.maximum_buyin).toFixed(2));
+            data["minimum_buyin"] = parseFloat(parseFloat(roomAttributesObj.minimum_buyin+"").toFixed(2));
+            data["maximum_buyin"] = parseFloat(parseFloat(roomAttributesObj.maximum_buyin+"").toFixed(2));
             data["message"] = "Success"
             data["tableId"] = tableId;
-            data["user_balance"] = parseFloat(balance.toFixed(2));
+            data["user_balance"] = parseFloat(parseFloat(balance+"").toFixed(2));
             return data;
       //  }
 //         // Assuming dbDate is the timestamp retrieved from your database
