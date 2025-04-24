@@ -99,7 +99,7 @@ message userMinMaxBuyInReqRes {
   float maximum_buyin = 2;
   string message = 3;
   string tableId = 4;
-  float user_balance = 5;
+  double  user_balance = 5;
 }
 
 //message bonus percentage
