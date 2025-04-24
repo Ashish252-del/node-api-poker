@@ -6793,18 +6793,19 @@ const getGameHistoryByUserId = async (req, res) => {
             totalCount = countResult[0]?.totalCount || 0;
             resData = tableIdsResult
         }else{
-            if (is_win) {
-                console.log('d');
-                query += `is_win = '${is_win}'`;
-            }
-            if (user_id) {
-                console.log('d');
-                query += `user_id = '${user_id}'`;
-            }
             if (game_type) {
                 console.log('d');
                 query += `game_category = '${game_type}'`;
             }
+            if (is_win) {
+                console.log('d');
+                query += ` AND is_win = '${is_win}'`;
+            }
+            if (user_id) {
+                console.log('d');
+                query += ` AND user_id = '${user_id}'`;
+            }
+
             if (from_date && end_date) {
                 console.log('d');
                 let fromDate = moment(from_date).format('YYYY-MM-DD');
