@@ -6764,11 +6764,11 @@ const getGameHistoryByUserId = async (req, res) => {
             resData = tableIdsResult
         }else if(game_type==4){
             if (user_id) {
-                whereConditions.push('gh.userId = :user_id');
+                whereConditions.push('gh.userId = :userId');
                 replacements.userId = user_id;
             }
             if (is_win) {
-                whereConditions.push('gh.isWin = :is_win');
+                whereConditions.push('gh.isWin = :isWin');
                 replacements.isWin = is_win;
             }
             if (from_date && end_date) {
