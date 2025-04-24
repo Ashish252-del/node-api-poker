@@ -79,6 +79,8 @@ const getProfile = async (req, res) => {
         getUser.adhaar_number = (userKyc) ? await userKyc.adhaar_number : '';
         getUser.is_adhaar_verify = (userKyc) ? await userKyc.is_adhaar_verify : '';
         getUser.bank_details = bankD;
+        getUser.apk_url = '';
+        getUser.new_app_version = '';
         responseData.msg = 'User Fetch successfully!!!';
         responseData.data = getUser;
         return responseHelper.success(res, responseData);

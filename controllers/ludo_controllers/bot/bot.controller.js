@@ -17,11 +17,11 @@ const addBot= async function (req,res){
 
         const {name}=req.body;
 
-        let url=req.file.location;
+        let url=(req.file) ? req.file.location : '';
         console.log("name",name);
         console.log("url",url);
-        if(!name||!req.file.location){
-            return res.status(404).json({ message: 'name and avaratar pic both are required' });
+        if(!name){
+            return res.status(404).json({ message: 'name  are required' });
         }
       
         // const newAvatar = await avatar.create({
@@ -33,7 +33,7 @@ const addBot= async function (req,res){
 
             userObject.username=name;
           //  userObject.name=name;
-            userObject.avatarId=1;
+            userObject.avatarId=20;
             userObject.profile_image=url;
             userObject.mobile=Math.floor(Math.random() * 90000) + 10000,
             userObject.kyc='NO'
