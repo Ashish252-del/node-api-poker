@@ -20,7 +20,7 @@ const addBot= async function (req,res){
         let url=(req.file) ? req.file.location : '';
         console.log("name",name);
         console.log("url",url);
-        if(!name||!req.file.location){
+        if(!name || !req.file || !req.file.location){
             return res.status(404).json({ message: 'name and avaratar pic both are required' });
         }
       
