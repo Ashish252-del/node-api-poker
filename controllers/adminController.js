@@ -4949,7 +4949,7 @@ const getTotalTable = async (req, res) => {
         element.dataValues.game_table_id = element.game_id
         element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
         element.dataValues.game_type = (getGameType) ? getGameType.dataValues.name : '';
-        element.dataValues.table_name = roomAttributesObj.room_name;
+        element.dataValues.table_name = roomAttributesObj.name || '';
         element.dataValues.game_table_status = "Active";
         return element;
 
