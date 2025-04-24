@@ -221,6 +221,6 @@ module.exports = () => {
     routes.get("/live-users",authenticate,adminController.liveUserCount)
     routes.get("/get-game-history-data",authenticate,adminController.getGameHistoryData);
     routes.get("/get-commission-by-table_id",authenticate,adminController.getCommissionByTableId)
-  
+    routes.get('/get-game-history-userid', authenticate, adminController.getGameHistoryByUserId);
     return routes;
 };
