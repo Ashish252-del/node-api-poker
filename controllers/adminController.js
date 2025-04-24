@@ -1639,12 +1639,9 @@ const userDetail = async (req, res) => {
 
         let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '1',fee:{[Op.gt] : 0}});
         let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '0', fee:{[Op.gt] : 0}});
-        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2, game_type: {
-                [Op.ne]: 84  // Not equal to 2
-            }});
-        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2, game_type: {
-                [Op.ne]: 84  // Not equal to 2
-            }});
+        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2});
+
+        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2});
         let getRummyUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:3});
         let getRummyUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:3});
 
@@ -4547,7 +4544,7 @@ const getGameWiseUsers = async (req, res) => {
 const getGameHistory = async (req, res) => {
     let responseData = {};
     try {
-        const {game_type, page, search_key, from_date, end_date} = req.query;
+        const {game_type, page, search_key, from_date, end_date, user_id, is_win} = req.query;
         const {limit, offset} = getPagination(page);
         let query = '';
         let response;
@@ -4557,14 +4554,14 @@ const getGameHistory = async (req, res) => {
         const whereConditions = [];
         const replacements = { limit, offset };
         if(game_type=='Pool'){
-            // if (game_type) {
-            //     whereConditions.push('gh.game_category = :game_type');
-            //     replacements.game_type = game_type;
-            //
-            //     if (game_type == 2) {
-            //         whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
-            //     }
-            // }
+            if (user_id) {
+                whereConditions.push('gh.user_id = :user_id');
+                replacements.user_id = user_id;
+            }
+            if (is_win) {
+                whereConditions.push('gh.is_win = :is_win');
+                replacements.is_win = is_win;
+            }
 
             if (from_date && end_date) {
                 whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
