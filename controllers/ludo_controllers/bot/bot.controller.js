@@ -33,7 +33,7 @@ const addBot= async function (req,res){
 
             userObject.username=name;
           //  userObject.name=name;
-            userObject.avatarId=1;
+            userObject.avatarId=20;
             userObject.profile_image=url;
             userObject.mobile=Math.floor(Math.random() * 90000) + 10000,
             userObject.kyc='NO'
