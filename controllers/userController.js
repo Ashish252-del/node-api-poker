@@ -2440,7 +2440,7 @@ const getMinMaxBuyInForTable = async (userMinMaxBuyInReq) => {
             data["maximum_buyin"] = parseFloat(parseFloat(roomAttributesObj.maximum_buyin+"").toFixed(2));
             data["message"] = "Success"
             data["tableId"] = tableId;
-            data["user_balance"] = parseFloat(parseFloat(balance+"").toFixed(2));
+            data["user_balance"] = parseFloat(parseFloat(balance).toFixed(2));
             return data;
       //  }
 //         // Assuming dbDate is the timestamp retrieved from your database
