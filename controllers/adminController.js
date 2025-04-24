@@ -1130,10 +1130,9 @@ const getUserGames = async (req, res) => {
         });
 
         const gameIdList = gameIds.map(entry => entry.game_id);
-        console.log("gameIdList---->", gameIdList);
+      
 
         if (gameIdList.length === 0) {
-            // throw new Error("No games found for this user");
             responseData.msg = "No games found for this user";
             return responseHelper.error(res, responseData, 404);
 
@@ -1141,13 +1140,23 @@ const getUserGames = async (req, res) => {
         let query3 = `SELECT *
                       FROM games
                       WHERE game_id IN (:gameIds)`;
-        // Step 3: Fetch game details from Game table using game IDs
-        const games = await sequelize.query(query3, {
+
+        const gameData = await sequelize.query(query3, {
             replacements: {gameIds: gameIdList},
             type: sequelize.QueryTypes.SELECT,
         });
-
-        // console.log("games---->", games);
+const games = gameData.map(game => {
+    try {
+        const gameData = JSON.parse(game.game_json_data || '{}');
+        return {
+            ...game,
+            game_name: gameData.room_name || '', // Set game_name as room_name
+        };
+    } catch (e) {
+        console.warn(`Invalid JSON for game_id ${game.game_id}`);
+        return game; // Return as-is if JSON is malformed
+    }
+});
 
         responseData.msg = "User game list";
         responseData.data = games;
@@ -1630,12 +1639,9 @@ const userDetail = async (req, res) => {
 
         let getLudoUserWinHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '1',fee:{[Op.gt] : 0}});
         let getLudoUserLossHistory = await adminService.getLudoGameHistoryByQuery({userId: user_id, isWin: '0', fee:{[Op.gt] : 0}});
-        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2, game_type: {
-                [Op.ne]: 84  // Not equal to 2
-            }});
-        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2, game_type: {
-                [Op.ne]: 84  // Not equal to 2
-            }});
+        let getPokerUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:2});
+
+        let getPokerUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:2});
         let getRummyUserWinHistory = await userService.getGameHistory({user_id: user_id, is_win: '1', game_category:3});
         let getRummyUserLossHistory = await userService.getGameHistory({user_id: user_id, is_win: '0', game_category:3});
 
@@ -4154,7 +4160,7 @@ const sendNotification = async (req, res) => {
 const getWinningAmount = async (req, res) => {
     let responseData = {};
     try {
-        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype} = req.query;
+        const {game_type,page = 1, search_key = '', from_date, end_date, csvtype, user_id} = req.query;
         const {limit, offset} = getPagination(page);
         let getUserData;
         let baseQuery;
@@ -4164,11 +4170,20 @@ const getWinningAmount = async (req, res) => {
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
             WHERE t.other_type= 'Table Commision' AND t.category='${game_type}'`;
-        } else if (game_type) {
+        } else if (game_type === 'Rummy') {
+            baseQuery = `SELECT t.*, u.username, u.uuid, u.email, u.mobile
+                         FROM transactions t
+                         JOIN users u ON t.user_id = u.user_id
+                         WHERE t.other_type = 'Winning' 
+                           AND t.category = '${game_type}'
+                           AND t.game_id IS NOT NULL
+                           AND t.game_id != 0`;
+        }
+        else if (game_type) {
             baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
                      JOIN users u ON t.user_id = u.user_id
-            WHERE t.other_type= 'Winning' AND t.category='${game_type}'`;
+            WHERE t.other_type= 'Winning'  AND t.category='${game_type}'`;
         } else {
             baseQuery = `SELECT t.*, u.username,u.uuid, u.email, u.mobile
             FROM transactions t
@@ -4213,8 +4228,34 @@ const getWinningAmount = async (req, res) => {
                 let poolGame = await adminService.getPoolGameTypeByQuery({ game_id: element.game_id }); // <-- Add 'await' here
                 element.table_name = (poolGame) ? poolGame.name : '';
                 element.table_type = (poolGame) ? poolGame.table_type : '';
+            }else if(game_type=='Poker'){
+                let gameResult = await adminService.getGameByQuery({ game_id: element.game_id });
+                let gameName;
+                let str = JSON.parse(gameResult.game_json_data || "{}");
+
+                if (gameResult.game_category_id == 2) {
+                    gameName = str.room_name;
+                } else if (gameResult.game_category_id == 3) {
+                    gameName = str.name || str.Name;
+                } else if (gameResult.game_category_id == 4) {
+                    gameName = gameResult.game_name;
+                }
+                element.game_name = gameName;
+            }else if(game_type=='Ludo'){
+                let gameLudoResult = await adminService.getLudoGameHistoryById({ tableId: element.table_id });
+                let ludoName;
+                if(gameLudoResult && gameLudoResult.gameId){
+                    let gameNameD = await adminService.getLudoGameByQuery({ id: gameLudoResult.gameId });
+                    ludoName = (gameNameD) ? gameNameD.name : '';
+                }
+                let gameType = await adminService.getLudoGameTypeByQuery({ id: element.reference });
+                element.game_id = (gameLudoResult) ? gameLudoResult.gameId : '';
+                element.game_name = ludoName;
+                element.game_type = (gameType) ? gameType.name : '';
+            }else{
+
             }
-            element.user_id = element.username;
+           // element.user_id = element.username;
             return element;
         }));
         const totalCount = getCount[0].total;
@@ -4503,7 +4544,7 @@ const getGameWiseUsers = async (req, res) => {
 const getGameHistory = async (req, res) => {
     let responseData = {};
     try {
-        const {game_type, page, search_key, from_date, end_date} = req.query;
+        const {game_type, page, search_key, from_date, end_date, user_id, is_win} = req.query;
         const {limit, offset} = getPagination(page);
         let query = '';
         let response;
@@ -4513,14 +4554,14 @@ const getGameHistory = async (req, res) => {
         const whereConditions = [];
         const replacements = { limit, offset };
         if(game_type=='Pool'){
-            // if (game_type) {
-            //     whereConditions.push('gh.game_category = :game_type');
-            //     replacements.game_type = game_type;
-            //
-            //     if (game_type == 2) {
-            //         whereConditions.push('gh.game_type NOT IN (81, 82, 83)');
-            //     }
-            // }
+            if (user_id) {
+                whereConditions.push('gh.user_id = :user_id');
+                replacements.user_id = user_id;
+            }
+            if (is_win) {
+                whereConditions.push('gh.is_win = :is_win');
+                replacements.is_win = is_win;
+            }
 
             if (from_date && end_date) {
                 whereConditions.push('DATE(gh.createdAt) BETWEEN :fromDate AND :endDate');
@@ -4908,7 +4949,7 @@ const getTotalTable = async (req, res) => {
         element.dataValues.game_table_id = element.game_id
         element.dataValues.game_category = (getGameCategory) ? getGameCategory.dataValues.name : '';
         element.dataValues.game_type = (getGameType) ? getGameType.dataValues.name : '';
-        element.dataValues.table_name = roomAttributesObj.room_name;
+        element.dataValues.table_name = roomAttributesObj.name || '';
         element.dataValues.game_table_status = "Active";
         return element;
 
@@ -5246,7 +5287,7 @@ const pendingWithdrawal = async (req, res) => {
             SELECT r.*, u.username,u.uuid, u.email, u.mobile
             FROM redemptions r
                      JOIN users u ON r.user_id = u.user_id
-            WHERE r.redemption_status != 'Withdraw'
+            WHERE r.redemption_status != 'Withdraw' AND r.redemption_status != 'Cancelled'
         `;
 
         // Add search condition if search_key is provided
@@ -5599,7 +5640,7 @@ const totalWinning = async (req, res) => {
     try {
         const {game_type, page, search_key, from_date, end_date, csvtype} = req.query;
         const {limit, offset} = getPagination(page, csvtype);
-        let query = `transactions.is_admin='0' AND transactions.other_type='Winning'`;
+        let query = `transactions.is_admin='0' AND (transactions.other_type='Winning' OR transactions.other_type='Table Commision')`;
         if (req.query.user_id) {
             query += ` AND transactions.user_id='${req.query.user_id}'`;
         }
@@ -5671,18 +5712,18 @@ const ledgerDetails = async (req, res) => {
         let query, query1, query2, query3, query4, queryWallet
         if (req.query.user_id) {
             queryWallet = `user_id='${req.query.user_id}'`;
-            query = `redemption_status = 'Pending' AND user_id='${req.query.user_id}'`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled' AND user_id='${req.query.user_id}'`;
             query1 = `redemption_status = 'Withdraw' AND user_id='${req.query.user_id}'`;
-            query2 = `other_type='Winning' AND user_id='${req.query.user_id}'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0 AND user_id='${req.query.user_id}'`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit' AND user_id='${req.query.user_id}'`;
-            query4 = `transaction_status = 'SUCCESS' AND other_type='Commission' AND user_id='${req.query.user_id}'`;
+            query4 = `transaction_status = 'SUCCESS' AND (other_type='Winning' OR other_type='Table Commision') AND user_id='${req.query.user_id}'`;
         } else {
             queryWallet = `1=1`
-            query = `redemption_status = 'Pending'`;
+            query = `redemption_status != 'Withdraw' AND redemption_status != 'Cancelled'`;
             query1 = `redemption_status = 'Withdraw'`;
-            query2 = `other_type='Winning'`;
+            query2 = `(other_type='Winning' OR other_type='Table Commision') AND amount > 0`;
             query3 = `transaction_status = 'SUCCESS' AND other_type='Deposit'`;
-            query4 = `transaction_status = 'SUCCESS' AND other_type='Commission'`;
+            query4 = `transaction_status = 'SUCCESS' AND (other_type='Winning' OR other_type='Table Commision')`;
         }
 
         let userWallet = await sequelize.query(`Select SUM(win_amount)   as winAmount,
@@ -6125,6 +6166,8 @@ const getBonusData = async (req, res) => {
 const getLudoUsers = async (req, res) => {
     let responseData = {};
     try {
+        var now = new Date().getTime()
+        let time = Math.floor(now / 1000);
         // Fetch ludo game history
         let ludoGameHistory = await adminService.getLudoGameHistory();
 
@@ -6137,6 +6180,11 @@ const getLudoUsers = async (req, res) => {
         // Loop through each userId and fetch user data
         for (let userId of userIds) {
             let user = await adminService.getUserDetailsById({user_id: userId});
+            const getUserBlock = await adminService.getUserStatus({ user_id: userId, game_id: '4' });
+            console.log("getUserBlock-->",getUserBlock);
+            let isBlock = (getUserBlock && time < getUserBlock.block_timestamp) ? 1 : 0;
+            let block_time = getUserBlock?.block_time || 0;
+            let is_blocked_until_unblock = getUserBlock?.is_blocked_until_unblock || false;
             if (user) {
                 // Decrypt email and mobile or set them to null if not present
                 let decryptedEmail = user.email ? await decryptData(user.email) : null;
@@ -6152,6 +6200,9 @@ const getLudoUsers = async (req, res) => {
                     profile_image: user.profile_image,
                     number_of_win_games: user.number_of_win_games,
                     amount_win_in_game: user.amount_win_in_game,
+                    is_block: isBlock,
+                    block_time:block_time,
+                    is_blocked_until_unblock:is_blocked_until_unblock,
                     createdAt: user.createdAt,
                     updatedAt: user.updatedAt
                 });
@@ -6402,13 +6453,18 @@ const liveUserCount = async (req, res) => {
                                                from live_users
                                                where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Ludo'
                                                group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
+        let response4 = await sequelize.query(`Select live_users.id
+                                               from live_users
+                                               where DATE (live_users.createdAt)='${newdate}' AND live_users.game_type='Pool'
+                                               group by live_users.user_id`, {type: sequelize.QueryTypes.SELECT});
         console.log('response2.length', response1.length)
         responseData.msg = 'User List';
         responseData.data = {
             fantasy_user: response.length,
             poker_user: response1.length,
             rummy_user: response2.length,
-            ludo_user: response3.length
+            ludo_user: response3.length,
+            pool_user: response4.length
         };
         return responseHelper.success(res, responseData);
     } catch (error) {
@@ -6544,7 +6600,7 @@ const commissionSummary = async (req, res) => {
     try {
         const { page, search_key, from_date, end_date,csvtype} = req.query;
         const {limit, offset} = getPagination(page,csvtype);
-        let query = `other_type='Commission' AND transaction_status='SUCCESS' AND is_admin='1'`;
+        let query = `(other_type='Winning' OR other_type='Table Commision') AND transaction_status='SUCCESS'`;
         if(req.query.user_id){
             query += ` AND transactions.user_id='${req.query.user_id}'`;
         }
@@ -6559,7 +6615,7 @@ const commissionSummary = async (req, res) => {
             query += ` AND (users.username like '%${search_key}%' OR users.referral_code like '%${search_key}%' OR users.full_name like '%${search_key}%' OR game_histories.table_name like '%${search_key}%' OR game_histories.table_id like '%${search_key}%')`;
         }
         query += ` order by transaction_id DESC`;
-        let response = await sequelize.query(`Select transactions.amount,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
+        let response = await sequelize.query(`Select transactions.amount,transactions.bet_amount,transactions.table_id,transactions.category,transactions.commission,transactions.user_id,transactions.createdAt,transactions.transaction_status, users.uuid, users.username  from transactions join users on transactions.user_id = users.user_id where ${query}  LIMIT ${offset}, ${limit}`, {type: sequelize.QueryTypes.SELECT});
         let responseTotalCount = await sequelize.query(`Select transactions.*  from transactions join users on transactions.user_id = users.user_id where ${query}`, {type: sequelize.QueryTypes.SELECT});
         let totalCount = responseTotalCount.length;
 
@@ -6569,8 +6625,15 @@ const commissionSummary = async (req, res) => {
         }
         let sum = 0;
         response = response.map(async (element, i) => {
-            sum += parseFloat(element.commission)
-            element.bet_amount = parseFloat(element.commission) + parseFloat(element.amount)
+            sum += parseFloat(element.commission);
+            const commission = parseFloat(element.commission);
+            const amount = parseFloat(element.amount);
+            console.log(parseFloat(element.bet_amount))
+            if (parseFloat(element.bet_amount) > 0) {
+                element.bet_amount = element.bet_amount;
+            }else{
+                element.bet_amount = Math.abs(commission + amount);
+            }
             return element;
         })
         response = await Promise.all(response);

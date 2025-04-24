@@ -125,7 +125,11 @@ module.exports = () => {
     routes.post("/update-game", authenticate, postGame(), validate201 ,adminController.updateGame);
     routes.post("/change-game-status", authenticate,adminController.changeGameStatus);
     routes.get("/game-tables",authenticate,adminController.getGameTables)
+
+
     routes.get("/get-user-game",authenticate,adminController.getUserGames)
+
+    
 
     routes.post("/add-price-structure", authenticate, adminController.addPriceStructure);
     routes.get("/price-structure-list", authenticate, adminController.priceStructureList);
@@ -209,7 +213,7 @@ module.exports = () => {
     routes.get('/ludo-users', authenticate, adminController.getLudoUsers)
     // routes.get("/pool-user",authenticate,adminController.getPoolUsers)
 
-    
+
     routes.post('/update-user-game-status', authenticate, adminController.gameWiseUserStatus);
     routes.get("/get-pocker-suspicious-actions",authenticate,adminController.getAllpockerSuspiciousActions)
     routes.get("/game-wise-commission",authenticate,adminController.gameWiseCommission)

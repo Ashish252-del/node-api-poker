@@ -37,11 +37,7 @@ module.exports.create_gametype = {
 module.exports.create_gameVarient = {
   body: Joi.object({
     name: Joi.string().required(),
-    status: Joi.number().required(),
-    value: Joi.number().required(),
-    cap: Joi.string().optional(),
-    commission: Joi.number().required(),
-    prize_id:Joi.number().required(),
+    value: Joi.number().required()
   }),
 };
 module.exports.update_status = {
