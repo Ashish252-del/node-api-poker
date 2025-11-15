@@ -50,15 +50,15 @@ const getProfile = async (req, res) => {
         }
         let userWallet = await userService.getUserWalletDetailsById({user_id: id});
         let userKyc = await userService.getUserKycDetailsById({user_id: id});
-        let userBank = await userService.getUserBankDetailsById({user_id: id});
+       // let userBank = await userService.getUserBankDetailsById({user_id: id});
 
-        let bankD = {
-            bank_name: (userBank) ? userBank.bank_name : '',
-            account_holder_name: (userBank) ? userBank.account_holder_name : '',
-            ifsc_code: userBank?.ifsc_code ? await decryptData(userBank.ifsc_code) : "",
-            account_no: userBank?.account_no ? await decryptData(userBank.account_no) : "",
-            bank_address: (userBank) ? userBank.bank_address : ''
-        }
+        // let bankD = {
+        //     bank_name: (userBank) ? userBank.bank_name : '',
+        //     account_holder_name: (userBank) ? userBank.account_holder_name : '',
+        //     ifsc_code: userBank?.ifsc_code ? await decryptData(userBank.ifsc_code) : "",
+        //     account_no: userBank?.account_no ? await decryptData(userBank.account_no) : "",
+        //     bank_address: (userBank) ? userBank.bank_address : ''
+        // }
         let today = new Date().toISOString().split('T')[0];
         let isClaim = 0;
         if (userWallet && (moment(userWallet.last_claim_date).format('YYYY-MM-DD') == today)) {
@@ -70,15 +70,15 @@ const getProfile = async (req, res) => {
         }
         userWallet.dataValues.is_claim = isClaim;
         getUser.profile_image = (getUser.profile_image) ? getUser.profile_image : '';
-        getUser.mobile = getUser.mobile ? await decryptData(getUser.mobile) : "";
-        getUser.email = getUser.email ? await decryptData(getUser.email) : "";
+        getUser.mobile = getUser.mobile ?( await decryptData(getUser.mobile)) : "";
+        getUser.email = getUser.email ? (await decryptData(getUser.email)) : "";
         getUser.user_wallet = userWallet;
         getUser.pan_number = (userKyc) ? await userKyc.pan_number : '';
         getUser.is_pan_card_verify = (userKyc) ? await userKyc.is_pan_card_verify : '';
         getUser.is_kyc_done = isKycDone;
         getUser.adhaar_number = (userKyc) ? await userKyc.adhaar_number : '';
         getUser.is_adhaar_verify = (userKyc) ? await userKyc.is_adhaar_verify : '';
-        getUser.bank_details = bankD;
+       // getUser.bank_details = bankD;
         getUser.apk_url = '';
         getUser.new_app_version = '';
         responseData.msg = 'User Fetch successfully!!!';
