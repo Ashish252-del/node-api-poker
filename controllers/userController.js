@@ -149,49 +149,49 @@ const updateProfile = async (req, res) => {
         await userService.addUserLog(userLog, { transaction });
 
         // Bank Account Update
-        const checkUserBank = await userService.getUserBankDetailsById({ user_id: id }, { transaction });
-        const {
-            bank_name,
-            account_holder_name,
-            ifsc_code,
-            account_no,
-            bank_address
-        } = reqObj;
+        // const checkUserBank = await userService.getUserBankDetailsById({ user_id: id }, { transaction });
+        // const {
+        //     bank_name,
+        //     account_holder_name,
+        //     ifsc_code,
+        //     account_no,
+        //     bank_address
+        // } = reqObj;
 
-        // Helper function for bank fields
-        const getBankFieldValue = async (newValue, existingValue, shouldEncrypt = false) => {
-            if (newValue !== undefined && newValue !== '') {
-                return shouldEncrypt ? await encryptData(newValue) : newValue;
-            }
-            return existingValue;
-        };
+        // // Helper function for bank fields
+        // const getBankFieldValue = async (newValue, existingValue, shouldEncrypt = false) => {
+        //     if (newValue !== undefined && newValue !== '') {
+        //         return shouldEncrypt ? await encryptData(newValue) : newValue;
+        //     }
+        //     return existingValue;
+        // };
 
-        const beneficiaryId = checkUserBank?.beneficiary_id || new Date().getTime();
-        const accountData = {
-            user_id: id,
-            beneficiary_id: beneficiaryId,
-            bank_name: await getBankFieldValue(bank_name, checkUserBank?.bank_name),
-            account_holder_name: await getBankFieldValue(account_holder_name, checkUserBank?.account_holder_name),
-            ifsc_code: await getBankFieldValue(ifsc_code, checkUserBank?.ifsc_code, true),
-            account_no: await getBankFieldValue(account_no, checkUserBank?.account_no, true),
-            bank_address: await getBankFieldValue(bank_address, checkUserBank?.bank_address)
-        };
+        // const beneficiaryId = checkUserBank?.beneficiary_id || new Date().getTime();
+        // const accountData = {
+        //     user_id: id,
+        //     beneficiary_id: beneficiaryId,
+        //     bank_name: await getBankFieldValue(bank_name, checkUserBank?.bank_name),
+        //     account_holder_name: await getBankFieldValue(account_holder_name, checkUserBank?.account_holder_name),
+        //     ifsc_code: await getBankFieldValue(ifsc_code, checkUserBank?.ifsc_code, true),
+        //     account_no: await getBankFieldValue(account_no, checkUserBank?.account_no, true),
+        //     bank_address: await getBankFieldValue(bank_address, checkUserBank?.bank_address)
+        // };
 
-        // Validate required bank fields when creating or updating
-        if (!accountData.bank_name || !accountData.account_no) {
-            await transaction.rollback();
-            responseData.msg = 'Bank name and account number are required';
-            return responseHelper.error(res, responseData, 400);
-        }
+        // // Validate required bank fields when creating or updating
+        // if (!accountData.bank_name || !accountData.account_no) {
+        //     await transaction.rollback();
+        //     responseData.msg = 'Bank name and account number are required';
+        //     return responseHelper.error(res, responseData, 400);
+        // }
 
-        if (checkUserBank) {
-            await userService.updateBankAccount(accountData,
-                { user_account_id: checkUserBank.user_account_id },
-                { transaction }
-            );
-        } else {
-            await userService.createBankAccount(accountData, { transaction });
-        }
+        // if (checkUserBank) {
+        //     await userService.updateBankAccount(accountData,
+        //         { user_account_id: checkUserBank.user_account_id },
+        //         { transaction }
+        //     );
+        // } else {
+        //     await userService.createBankAccount(accountData, { transaction });
+        // }
 
         // Commit transaction
         await transaction.commit();
